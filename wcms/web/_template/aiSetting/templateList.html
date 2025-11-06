@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}
+</head>
+<body>
+    {# left}
+    {# header}
+
+    <main class="container">
+        <div role="document">
+			<div role="heading">AI기사 템플릿</div>
+			<section class="section-search"> 
+                <form role="search" name="searchForm" id="searchForm">
+                    <input type="hidden" id="coId" name="coId" value="{_SESSION.coId}"/>
+
+                    <select name="category" id="category">
+                        <option value="">선택하세요</option>
+                        {@ result.category.item}
+                        <option value="{.category}"{?_GET.category == .category} selected{/}>{.category}</option>
+                        {/}
+                    </select>
+					<div class="search-input">
+                        <input type="text" name="searchText" id="searchText" value="{? _GET.searchText}{_GET.searchText}{/}" placeholder="검색어를 입력하세요">
+                        <button id="searchBtn" class="btn-search" type="button"><i class="fa-light fa-magnifying-glass"></i></button>
+                    </div>
+					<button type="button" class="btn" id="insertBtn"><i class="fa-light fa-plus"></i> 템플릿 등록</button>
+                    <!-- <button type="button" class="btn btn-black" id="deleteBtn">삭제</button> -->
+				</form>
+			</section>
+			<section role="list">
+                <div class="list-cont">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="chkSelectAll"/></th>
+                                <th>명칭</th>
+                                <th>기사제목</th>
+                                <th>사용여부</th>
+                                <th>생성일자</th>
+                                <th>수정일자</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {@ result.items}
+                            <tr data-collection="{.collection}">
+                                <td><input type="checkbox" name="apiSelect" value="{.id}"/></td>
+                                <td><strong><a href="/aiSetting/templateEdit?idx={.idx}" class="subject" title="{.subject}">{? empty(.subject)}<span class="red">제목없음</span>{:}{.subject}{/}</a></strong></td>
+                                <td>{? empty(.title)}<span class="red">기사제목 없음</span>{:}{.title}{/}</td>
+                                <td>{? .isUse}사용{:}미사용{/}</td>
+                                <td>{=substr(.insert.date,0,10)}<br/>({.insert.managerName})</td>
+                                <td>{=substr(.update.date,0,10)}<br/>({.update.managerName})</td>
+                            </tr>
+                            {/}
+                        </tbody>
+                    </table>
+                </div>
+                {#paging}
+            </section>
+        </div>
+    </main>
+
+<!-- 마지막 데이터 Modal -->
+<dialog id="dataModal">
+    <article style="width:600px;">
+        <header>
+            <a href="#close" aria-label="Close" class="close" data-target="dataModal" onClick="toggleModal(event);"></a>
+            <h6>제목</h6>
+        </header>
+        <div style="height:400px;overflow-y:scroll;">
+            <table id="dataTable1" class="th-bg">
+                <thead><tr></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <footer>
+            <a href="#cancel" role="button" data-target="dataModal" onClick="toggleModal(event);"> 닫기</a>
+          </footer>
+    </article>
+</dialog>
+
+<script type="text/javascript">
+    $(document).ready(function(){
+        $('#insertBtn').click(function(){
+            location.href='/aiSetting/templateEdit';
+        });
+    
+        $('#deleteBtn').click(function(){
+            var chkCompany = '';
+            $("input[name=apiSelect]:checked").each(function(){
+                chkCompany += $(this).val() + '|';
+            });
+    
+            if(chkCompany == '' ){
+                alert('Please select the api information to be deleted.');
+            }else{
+                apiDelete(chkCompany);
+            }
+        });
+    
+        $('#chkSelectAll').click(function(){
+            $("input[name=apiSelect]").prop('checked', $("input:checkbox[id='chkSelectAll']").is(":checked"));
+        });
+            
+        $('#searchBtn').click(function(){
+            $('#searchForm').attr('action','/apis/list').submit();
+        });
+    });
+    
+    function apiDelete(apiId){
+        if( confirm('Are you sure you want to delete the selected API?') ){
+            $.ajax({
+                url: '/apis/delete/ajax',
+                method : 'POST',
+                data : {'apiId': apiId}
+            }).done(function() {
+                alert('API has been removed.');
+                location.href='/apis/list';
+            });
+        }
+    }
+
+    $(".showLastData").click(function(){
+        const collection = $(this).closest("tr").data('collection');
+        const title = $(this).closest("tr").find('.title').text();
+
+        $('#dataModal header h6').text(title);
+        $.ajax({
+            url: '/apis/getLastApiData/ajax',
+            method: 'get',
+            contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+            dataType: 'json',
+            async: true,
+            data: {
+                'collection':collection,
+            },
+        }).done(function(data, textStatus, jqXHR) {
+            $("#dataTable1 thead tr").empty();
+            $("#dataTable1 tbody").empty();
+
+            // 테이블 해더 세팅
+            $.each(data.result[0], function(idx, val){
+                $("#dataTable1 thead tr").append("<th>"+idx+"</th>");
+            });
+
+            
+            $.each(data.result, function(idx, val){
+                let html = "<tr>";
+                $.each(val, function(idx2, val2){
+                    html += "<td class='"+idx2+"'>"+val2+"</td>";
+                });
+                html += "</tr>";
+                $("#dataTable1 tbody ").append(html);
+            });
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+            if(jqXHR.responseJSON) {
+                console.log(jqXHR.responseJSON.result.msg);
+            } else {
+                console.log(textStatus+' : '+errorThrown);
+            }
+        });
+    });
+    </script>
+</body>
+</html>

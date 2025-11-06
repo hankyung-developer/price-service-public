@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}
+</head>
+<body>
+	{#left}
+	{#header}
+	<main class="container">
+        <div role="document">
+			<div role="heading">전송처 관리</div>
+			<section class="section-search">
+                <form role="search" name="searchForm" id="searchForm">
+                    <input type="hidden" name="coId" id="coId" value="{_SESSION.coId}"/>
+                    <select name="mediaType" id="mediaType">
+                        <option value="">전송처 종류 선택</option>
+                        <option value="PORTAL" {? _GET.mediaType == 'PORTAL'}selected{/}>PORTAL</option>
+                        <option value="HTS" {? _GET.mediaType == 'HTS'}selected{/}>HTS</option>
+                        <option value="ETC" {? _GET.mediaType == 'ETC'}selected{/}>ETC</option>
+                    </select>
+                    <div class="search-input">
+                        <input type="text" name="searchText" id="searchText" value="{? _GET.searchText}{_GET.searchText}{/}" placeholder="검색어를 입력하세요">
+                        <button id="searchBtn" class="btn-search" type="button"><i class="fa-light fa-magnifying-glass"></i></button>
+                    </div>
+					<button type="button" class="btn" id="insertBtn">추가</button>
+                </form>
+            </section>
+			<section role="list">
+                <div class="list-cont">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>전송처 ID</th>
+                                <th>전송처 이름</th>
+                                <th>전송처 종류</th>
+                                <th>사용여부</th>
+                                <th>전송 action</th>
+                                <th>전송 시작일</th>
+                                <th>입력/수정</th>
+                                <th>전송기사</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {@ result.items}
+                            <tr>
+                                <td><strong><a href="javascript:editor('{.id}');">{.id}</a></strong></td>
+                                <td><strong><a href="javascript:editor('{.id}');">{.name}</a></strong></td>
+                                <td>{? .mediaType}{.mediaType}{/}</td>
+                                <td>{? .isUse}사용{:}중지{/}</td>
+                                <td>{@ .action}<span>{..value_}</span>{/}</td>
+                                <td>{.startDate}</td>
+                                <td>
+                                    {? .insert.date}<p>입력: {.insert.date}({.insert.managerId})</p>{/}
+                                    {? !empty(.update.date)}<p>수정: {.update.date}({.update.managerId})</p>{/}
+                                </td>
+                                <td><button type="button" class="btn btn-yello" onclick="javascript:articleList('{.id}');">전송기사</button></td>
+                            </tr>
+                            {/}
+                        </tbody>
+                    </table>
+                </div>
+                {#paging}
+            </section>
+        </div>
+    </main>
+
+    <!-- ########## START : INLINE SCRIPT ########## -->
+    <script type="text/javascript">
+		$(document).ready(()=>{
+            // 버튼 : 검색
+            $('#searchBtn').on('click', ()=>{
+                searchList();
+            });
+
+            // 입력
+			$('#insertBtn').on('click', ()=>{
+				location.href = '/send/editor';
+			});
+		});
+
+        // event : select change
+        $('#searchForm select:not(#searchItem)').on('change',function() {
+            searchList();
+        });
+
+
+        // 
+		function editor(id){
+			location.href = '/send/editor?id='+id;
+		}
+
+        // 기사 목록
+		function articleList(id){
+			location.href = '/article/list?publishMediaId='+id;
+		}
+
+        function searchList() {
+            // 검색 버튼 비활성화
+            $('#searchText').prop('readonly',true);
+            $('#searchBtn').prop('disabled',true);
+            $('#searchBtn').addClass('loading-black');
+
+            $('#searchForm').submit();
+        }
+
+	</script>
+    <!-- ########## END : INLINE SCRIPT ########## -->
+</body>
+</html>

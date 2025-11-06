@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+    {# head}
+
+    <script src="/lib/tinymce/tinymce.min.js"></script>
+    <!-- <link href="/lib/dropzone/dropzone.css" rel="stylesheet" type="text/css" /> -->
+    <script src="/lib/dropzone/dropzone-min.js" type="text/javascript"></script>
+    <link href="/css/upload.css" rel="stylesheet" type="text/css" />
+    <script src="/js/upload.js" type="text/javascript"></script>
+    <!-- datetimepicker -->
+    <link rel="stylesheet" href="/lib/tempusdominus-bootstrap/tempusdominus-bootstrap-4.min.css" />
+    <script type="text/javascript" src="/lib/tempusdominus-bootstrap/tempusdominus-bootstrap-4.min.js"></script>
+    <script src='/lib/locale/ko.js'></script>
+    <!-- //datetimepicker -->
+    <style>
+        .tox-tinymce {min-height: 600px;}
+    </style>
+</head>
+<body>
+    {# header}
+    {# left}
+
+    <main class="container">
+        <div role="document">
+            {? result.info.name}<div role="heading">{? result.info.program.name}{result.info.program.name} - {/}{result.info.name}</div>{/}
+            <section>
+                <form name="inputForm" id="inputForm" method="post" role="form" enctype="multipart/form-data" class="spacing">
+                    <input type="hidden" id="coId" name="coId" value="{_SESSION.coId}"/>
+                    <input type="hidden" id="id" name="id" value="{_GET.id}"/>
+                    <input type="hidden" id="no" name="no" value="{_GET.no}"/>
+                    <input type="hidden" id="pno" name="pno" value="{? !empty(_GET.pno)}{_GET.pno}{:}{result.item.pno}{/}"/>
+                    <input type="hidden" id="sno" name="sno" value="{? !empty(_GET.sno)}{_GET.sno}{:}{result.item.sno}{/}"/>
+                    <input type="hidden" id="depth" name="depth" value="{? !empty(_GET.depth)}{_GET.depth}{:}{result.item.depth}{/}"/>
+                    <input type="hidden" id="sortNum" name="sortNum" value="{result.item.sortNum}"/>
+                    <input type="hidden" id="broadcastType" name="broadcastType" value="{result.info.broadcastType}"/>
+                    <input type="hidden" id="programBoardType" name="programBoardType" value="{result.info.programBoardType}"/>
+
+                    <div class="title">
+                        {? !empty(result.pItem)}
+                        <small>{? result.pItem.isSecret=="on"}<i class="fa fa-lock"></i>{/} [RE] {result.pItem.title} </small>
+                        <small>(작성자 : {? !empty(result.pItem.insert.memberName)}{result.pItem.insert.memberName}{:}{result.pItem.insert.managerName}{/} / {result.pItem.insert.date})</small>
+                        {/}
+                    </div>
+                    <div class="grid grid2-1">
+                        <label for="title">제목<input type="text" id="title" name="title" placeholder="제목 입력" value="{result.item.title}"></label>
+                        <label for="publishDate" data-target-input="#publishDate" id="datetimepicker1" class="datetimepicker-input">
+                            <span class="icon-calendar" data-target="#datetimepicker1" data-toggle="datetimepicker">예약발행 <i class="fa-duotone fa-calendar-day"></i></span>
+                            <input type="text" data-target="#datetimepicker1" id="publishDate" name="publishDate" value="{result.item.publishDate}" placeholder="시작 일시" autocomplete="off">
+                        </label>
+                    </div>
+                    <div class="flex spacing">
+                        {? ( !empty(_GET.depth) && _GET.depth == 0 ) || ( empty(_GET.depth) && result.item.depth == 0)}
+                        <label for="isNotice"><input name="isNotice" id="isNotice" type="checkbox" value="1"  {? result.item.isNotice}checked{/}>공지</label>
+                        {/}
+                        {? result.info.useSecret}
+                        <label for=""><input type="checkbox" id="isSecret" name="isSecret" value="{? !empty(_GET.isSecret)}{_GET.isSecret}{:}{result.item.isSecret}{/}" {? _GET.isSecret == 'on' || result.item.isSecret == 'on'}checked{/}/>비밀글</label>
+                        {/}
+                    </div>
+                    {? result.info.wcmsSkin == 'calendar'}
+                    <div class="flex spacing">
+                        <label for="startDate" data-target-input="#startDate" id="datetimepicker_startDate" class="datetimepicker-input">
+                            <span class="icon-calendar" data-target="#datetimepicker_startDate" data-toggle="datetimepicker">일정 시작일 <i class="fa-duotone fa-calendar-day"></i></span>
+                            <input type="text" id="startDate" name="startDate" value="{? _GET.startDate}{_GET.startDate}{:}{result.item.startDate}{/}">
+                        </label>
+                        <label for="endDate" data-target-input="#endDate" id="datetimepicker_endDate" class="datetimepicker-input">
+                            <span class="icon-calendar" data-target="#datetimepicker_endDate" data-toggle="datetimepicker">일정 종료일 <i class="fa-duotone fa-calendar-day"></i></span>
+                            <input type="text" id="endDate" name="endDate" value="{? _GET.endDate}{_GET.endDate}{:}{result.item.endDate}{/}">
+                        </label>
+                    </div>
+                    {/}
+                    <div class="grid grid2-1">
+                        <textarea id="content" name="content" class="spacing" rows="10">{result.item.content}</textarea>
+
+                        <div id="dropzone" class="sortable spacing fileZone">
+                            <small class="boxMessage">파일을 끌어오거나, 클릭하시면 첨부가 가능합니다.</small>
+                        </div>
+                    </div>
+
+                    <div class="grid grid2-1">
+                        <!-- 추가 필드 영역 -->
+                        {? !empty(result.info.field)}
+                        <div class="fieldView spacing">
+                        {@ result.info.field}
+                            {? .inputType == 'text'}
+                            <label for="field_{.id}">
+                                <small>{.name}</small>
+                                <input type="text" id="field_{.id}" name="field[{.id}]" placeholder="{.name} 입력" value="{result.item.field[.id]}">
+                            </label>
+                            {: .inputType == 'date'}
+                            <label for="field_{.id}" data-target-input="#field_{.id}" id="datetimepicker_field_{.id}" class="datetimepicker-input">
+                                <small>{.name}</small>
+                                <div data-target="#datetimepicker_field_{.id}" data-toggle="datetimepicker">
+                                    <i class="fa-duotone fa-calendar-day"></i>
+                                </div>
+                                <input type="text" id="field_{.id}" name="field[{.id}]" value="{result.item.field[.id]}" data-target="#datetimepicker_field_{.id}">
+                            </label>
+                            {: .inputType == 'checkbox'}
+                            <label for="field_{.id}">
+                                <input type="checkbox" id="field_{.id}" name="field[{.id}]" value="1" {? result.item.field[.id]}checked{/}> 
+                                <small>{.name}</small>
+                            </label>
+                            {: .inputType == 'radio'}
+                                {? .codeType == 'category'}
+                                <label>
+                                    <small>{.name}</small>
+                                    <div class="flex">
+                                        {@ result.category}
+                                        <label for="{..id}">
+                                            <input type="radio" name="field[{.id}]" id="{..id}" value="{..id}" {? ..id == result.item.field[.id]}checked{/}><small>{..name}</small>
+                                        </label>
+                                        {/}
+                                    </div>
+                                </label>
+                                {: .codeType == 'department'}
+                                <label>
+                                    <small>{.name}</small>
+                                    <div class="flex">
+                                        {@ result.department}
+                                        <label for="{..id}">
+                                            <input type="radio" name="field[{.id}]" id="{..id}" value="{..id}" {? ..id == result.item.field[.id]}checked{/}><small>{..name}</small>
+                                        </label>
+                                        {/}
+                                    </div>
+                                </label>
+                                {:}
+                                <label>
+                                    <small>{.name}</small>
+                                    <div class="flex">
+                                        {@ result.boardCode[.codeType].item}
+                                        <label for="{..id}">
+                                            <input type="radio" name="field[{.id}]" id="{..id}" value="{..value_.value}" {? ..value_.value == result.item.field[.id]}checked{/}><small>{..value_.name}</small>
+                                        </label>
+                                        {/}
+                                    </div>
+                                </label>
+                                {/}
+                            {: .inputType == 'select'}
+                            <label>
+                                <small>{.name}</small>
+                                <select id="{.id}" name="field[{.id}]" class="select2" style="width: 100%;">
+                                    <option>{.name} 선택</option>
+                                    {? .codeType == 'category'}
+                                        {@ result.category}
+                                        <option value="{..id}" {? ..id == result.item.field[.id]}selected{/}>{? ..depth == 2}&nbsp;&nbsp;{: ..depth == 3}&nbsp;&nbsp;&nbsp;&nbsp;{/}{..name}</option>
+                                        {/}
+                                    {: .codeType == 'department'}
+                                        {@ result.department}
+                                        <option value="{..id}" {? ..id == result.item.field[.id]}selected{/}>{? ..depth == 2}&nbsp;&nbsp;{: ..depth == 3}&nbsp;&nbsp;&nbsp;&nbsp;{/}{..name}</option>
+                                        {/}
+                                    {:}
+                                        {@ result.boardCode[.codeType].item}
+                                        <option value="{..value_.value}" data-val="{result.item.field[.id]}" data-val2="{ ..value_.value}" {? result.item.field[.id] == ..value_.value}selected{/}>{..value_.name}</option>
+                                        {/}
+                                    {/}
+                                </select>
+                            </label>
+                            {/}
+                        {/}
+                        </div>
+                        {/}
+                        <!--// 추가 필드 영역 -->
+                        <div class="spacing">
+                            {? !empty(result.item.insert.date)}
+                            <article class="card">
+                                <header>작성일자</header>
+                                <small>
+                                    {result.item.insert.date} -
+                                    {? !empty(result.item.insert.memberName)}
+                                        {result.item.insert.memberName}({result.item.insert.memberId})
+                                    {: !empty(result.item.insert.managerName)}
+                                        {result.item.insert.managerName}({result.item.insert.managerId})
+                                    {:}
+                                        비회원
+                                    {/}
+                                </small>
+                            </article>
+                            {/}
+                            {? !empty(result.item.update.date)}
+                            <article class="card">
+                                <header>수정일자</header>
+                                <small>
+                                    {result.item.update.date} -
+                                    {? !empty(result.item.update.memberName)}
+                                        {result.item.update.memberName}({result.item.update.memberId})
+                                    {: !empty(result.item.update.managerName)}
+                                        {result.item.update.managerName}({result.item.update.managerId})
+                                    {:}
+                                        비회원
+                                    {/}
+                                </small>
+                            </article>
+                            {/}
+                        </div>
+                    </div>
+
+                </form>
+                <div class="flex justify-center">
+                    {? empty(result.item.no) && result.permission.insert}
+                    <button type="button" class="btn btn-md" id="saveBtn"><span>저장</span></button>
+                    <button type="button" class="btn btn-md" id="listBtn"><span>목록</span></button>
+                    {: !empty(result.item.no)}
+                        {? result.permission.update}
+                        <button type="button" class="btn btn-md" id="saveBtn"><span>저장</span></button>
+                        {/}
+                        <button type="button" class="btn btn-md" id="listBtn"><span>목록</span></button>
+                        {? result.permission.delete}
+                        <button type="button" class="btn btn-black btn-md" id="deleteBtn" {? !result.item.no}disabled{/}> 삭 제</button>
+                        {/}
+                    {/}
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script type="text/javascript">
+
+      
+        $('#listBtn').on('click', function(){
+            location.href = '/board/list/{result.info.id}{? !empty(_GET.current)}?page={_GET.current}{/}';
+        });
+
+        // 비밀글 값 처리
+        $(document).on('click','#isSecret',function(){
+            if($(this).prop('checked')){
+                $(this).val('on');
+            }else{
+                $(this).val('');
+            }
+        });
+
+        $('#saveBtn').on('click', function(){
+
+            if(!$('#id').val()){
+                alert('게시판ID가 없습니다.');
+                history.back();
+            }
+
+            if(!$('#title').val()){
+                alert('제목을 입력하세요.');
+                $('#title').focus();
+                return false;
+            }
+
+            $("#content").val(tinyMCE.get('content').getContent());
+            if(!$('#content').val()){
+                alert('내용을 입력하세요.');
+                $('#content').focus();
+                return false;
+            }
+
+            $('textarea[id^="field_"]').each(function(){
+                var id = $(this).attr('id');
+                $("#"+id).val(tinyMCE.get(id).getContent());
+            });
+
+            // 저장
+            // var formData = new FormData($('#inputForm')[0]);
+            $.ajax({
+                url: '/board/save/ajax',
+                method : 'post',
+                data : new FormData($('#inputForm')[0]),
+                dataType : 'json',
+                contentType : false,    // contentType=false : content-type = multipart/form-data
+                processData : false,    // processData=false : data를 string으로 변환하지 않음
+            }).done((data, textStatus, jqXHR)=>{
+                if(data.result.msg){alert(data.result.msg)}
+                location.href = '/board/list/{_GET.id}';   // 이동 페이지
+            }).fail((jqXHR, textStatus, errorThrown)=>{
+                if (!!jqXHR?.responseJSON?.result?.msg) {
+                    alert(jqXHR.responseJSON.result.msg);
+                } else {
+                    alert("오류가 발생하였습니다.\n관리자에게 문의하세요.");
+                }
+            });
+        });
+
+        {? result.item.no}
+            {? result.permission.delete}
+        // 삭제
+        $('#deleteBtn').on('click', ()=>{
+            var id = $('#id').val();
+            if( confirm('삭제하시겠습니까?') ) {
+                $.ajax({
+                    url: '/board/delete/ajax',
+                    method : 'post',
+                    dataType: 'json',
+                    data : {id: '{result.item.id}', no: '{result.item.no}'},
+                }).done(function(data, textStatus, jqXHR) {
+                    if(data.result.msg) {alert(data.result.msg)}
+                    location.href = '/board/list/{_GET.id}';   // 이동 페이지
+                }).fail(function(jqXHR, textStatus, errorThrown) {
+                    if (!!jqXHR?.responseJSON?.result?.msg) {
+                        alert(jqXHR.responseJSON.result.msg);
+                    } else {
+                        alert(textStatus+' : '+errorThrown);
+                    }
+                });
+            }
+        });
+            {/}
+        {/}
+
+        // input text enter시 sumbit 막기
+        $('input[type="text"], textarea').keydown(function() {
+            if (event.keyCode === 13) {
+                event.preventDefault();
+            };
+        });
+
+        // 에디터 세팅
+        var fieldTextareaIds = "{@ result.info.field}{? .inputType == 'textarea'},#field_{.id}{/}{/}";
+        var tinySet = {
+            selector: '#content'+fieldTextareaIds,
+            language_url : '/lib/tinymce/langs/ko_KR.js',
+            language: 'ko_KR',
+            plugins: ['advlist autolink lists link charmap print preview anchor table textcolor colorpicker',
+                'searchreplace visualblocks code fullscreen image movie',
+                'insertdatetime table contextmenu paste'
+            ],
+            contextmenu: "copy cut paste | link image inserttable | cell row column deletetable",
+            toolbar: 'fontselect fontsizeselect forecolor backcolor | bold italic underline strikethrough | alignleft aligncenter alignright | movie link bullist numlist outdent indent | table charmap | code ',
+            menubar: false,
+            toolbar_items_size: 'small',
+            forced_root_block: false,
+            image_caption: true,
+            object_resizing: true,
+            content_css: "/lib/tinymce/skins/lightgray/content.min.css",
+            draggable_modal: true,
+            min_height: 300,
+            max_height: 1200,
+            font_formats: 'Pretendard=Pretendard Variable;노토 산스=Noto Sans KR;굴림=Gulim,GulimChe,Arial;돋움=DotumChe, AppleGothic;바탕=Batang,BatangChe,Verdana;궁서=궁서, Gungsuh, GungSeo',
+            setup: function (editor) {
+                editor.on('init', function () {
+                    editor.execCommand('FontSize', false, '14pt');
+
+                    $('button[title="Fonts"]').width('80');
+                    $('button[title="폰트 사이즈"]').width('48');
+                });
+            },
+            charmap_append: [[0x00B7,'·'],[0x2026,'…'],
+                                    [0x25C7,'◇'],[0x25C6,'◆'],[0x25B3,'△'],[0x25B2,'▲'],[0x25B7,'▷'],[0x25B6,'▶'],
+                                    [0x339D, '㎝'],[0x339C, '㎜'],[0x339E, '㎞'],[0x339B, '㎛'],[0x339A, '㎚'],
+                                    [0x33A0, '㎠'],[0x33A1, '㎡'],[0x33A2, '㎢'],[0x33A3, '㎣'],[0x33A4, '㎥'],[0x33A5, '㎦'],
+                                    [0x338D, '㎍'],[0x338E, '㎎'],[0x338F, '㎏'],
+                                    [0x3395, '㎕'],[0x3396, '㎖'],[0x3397, '㎗'],[0x3398, '㎘']
+            ],
+            table_default_attributes: {
+                'padding' : '0', 'margin' : '0', 'border': '1px solid'
+            },
+            table_default_styles: {
+                width: '100%'
+            }
+        };
+        tinymce.init(tinySet);
+
+        // html 입력
+        function insertHtml(html) {
+            tinymce.execCommand('mceInsertContent', false, html+"<br />");
+        }
+
+        // 추가 필드 : datetimepicker
+        var datetimepickerIds = [];
+        datetimepickerIds.push("#datetimepicker1");
+        {@ result.info.field}
+            {? .inputType == 'date'}
+            datetimepickerIds.push("#datetimepicker_field_{.id}");
+            {/}
+        {/}
+
+        {? result.info.wcmsSkin == 'calendar'}
+        datetimepickerIds.push('#datetimepicker_startDate', '#datetimepicker_endDate');
+        {/}
+
+        if (datetimepickerIds.length > 0) {
+            $(datetimepickerIds.join(',')).datetimepicker({
+                locale:'ko',
+                format: 'L',
+                sideBySide: true,
+                toolbarPlacement: 'bottom',
+                allowInputToggle: true,
+                buttons :{
+                    showToday: true,
+                    showClose: true
+                },
+                icons: {
+                    today : 'far fa-calendar-check'
+                },
+                tooltips: {
+                    today : '초기화(오늘날짜)',
+                    close: '확인'
+                },
+            });
+        }
+
+        // 파일 업로드
+        let init = {
+            uploadId: '#dropzone',
+            uploadDir: 'board/{_GET.id}',
+            coId: $('#coId').val(),
+            maxFiles: {? !empty(result.info.uploadFileNum)}{result.info.uploadFileNum}{:}10{/},
+            funcInsertEditor: insertHtml,
+            files: [],
+        };
+        {? !empty(result.item.files)}
+            {@ result.item.files}
+            init.files.push({
+                path: "{.path}",
+                orgName: "{.orgName}",
+                ext: "{.ext}",
+                type: "{.type}",
+                mimeType: "{.mimeType}",
+                size: "{.size}",
+                width: "{.width}",
+                height: "{.height}",
+            });
+            {/}
+        {/}
+        fileUpload2(init);
+        //  파일 첨부 드래그 설정
+        $(".sortable").sortable();
+
+    </script>
+</body>
+</html>

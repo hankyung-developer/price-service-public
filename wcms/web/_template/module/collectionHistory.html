@@ -1,0 +1,441 @@
+<!-- 히스토리 버튼 -->
+<div class="history-btn-container">
+	<div class="history-btn" id="btn_history">
+		<i class="fas fa-history"></i>
+		<span>히스토리</span>
+	</div>
+</div>
+
+<!-- 히스토리 박스 -->
+<div class="history-box" id="historyBox">
+	<span class="close-btn" id="closeHistory">&times;</span>
+	<h3>히스토리</h3>
+	<div id="historyList"></div>
+</div>
+
+<!-- 비교 모달 -->
+<div class="compare-modal" id="compareModal">
+	<div class="compare-modal-content">
+		<span class="close-btn" id="closeCompare">&times;</span>
+		<h3>데이터 비교</h3>
+		<div class="compare-container">
+			<div class="compare-column">
+				<h4>현재 데이터</h4>
+				<pre id="currentData" class="compare-data"></pre>
+			</div>
+			<div class="compare-column">
+				<h4>히스토리 데이터</h4>
+				<pre id="historyData" class="compare-data"></pre>
+			</div>
+		</div>
+		<div class="compare-legend">
+			<div class="legend-item"><span class="legend-color added"></span> 추가된 항목</div>
+			<div class="legend-item"><span class="legend-color removed"></span> 삭제된 항목</div>
+		</div>
+		<div class="compare-actions">
+			<button id="restoreFromCompare" class="restore-btn">이 버전으로 복원</button>
+		</div>
+	</div>
+</div>
+
+<script src="/js/diff_match_patch.js"></script>
+
+<!-- 히스토리 박스 스크립트 -->
+<script>
+	// 히스토리 목록
+	function loadHistory() {
+		if (!historyParams?.collection || !historyParams?.coId || !historyParams?.id) return;
+
+		$.ajax({
+			url: '/collectionHistory/list/ajax',
+			method: 'GET',
+			data: {
+				collection: historyParams.collection,
+				coId: historyParams.coId,
+				id: historyParams.id,
+			},
+			dataType: 'json',
+			beforeSend: function() {
+				$('#historyList').html('<div class="loading">로딩중...</div>');
+			}
+		}).done(function(response) {
+			// console.log(response);
+			if (response.result && response.result.items) {
+				let html = '';
+				response.result.items.forEach(function(item) {
+					html += 
+						'<div class="history-item">' +
+							'<div class="date">' + item.insert.date + ' ' + item.insert.managerName + '(' + item.insert.managerId + ')</div>' +
+							'<div class="comment">' + item.comment + '</div>' +
+							'<div class="history-actions">' +
+								'<button class="history-compare-btn" data-history-id="' + item._id.$oid + '">비교</button>' +
+								'<button class="history-restore-btn" data-history-id="' + item._id.$oid + '">복원</button>' +
+							'</div>' +
+						'</div>';
+				});
+				$('#historyList').html(html);
+
+				// 복원 버튼에 이벤트 바인딩
+				$('.history-restore-btn').on('click', function() {
+					const historyId = $(this).data('history-id');
+					// console.log('history-restore-btn', historyId);
+					restoreHistory(historyId);
+				});
+
+				// 비교 버튼에 이벤트 바인딩
+				$('.history-compare-btn').on('click', function() {
+					const historyId = $(this).data('history-id');
+					// console.log('history-compare-btn', historyId);
+					compareHistory(historyId);
+				});
+			}
+		});
+	}
+
+	// 히스토리 복원 함수
+	function restoreHistory(historyId) {
+		if (confirm('선택한 버전으로 복원하시겠습니까?\n복원 후 서비스 반영을 위해 저장을 해주시기 바랍니다.')) {
+			$.ajax({
+				url: '/collectionHistory/restore/ajax',
+				method: 'POST',
+				data: { historyId: historyId },
+				dataType: 'json'
+			}).done(function(response) {
+				if (response.result) {
+					// if (document.getElementById('toastContainer')) {
+					//     showToast('복원이 완료되었습니다.\n서비스 반영을 위해 저장을 해주시기 바랍니다.', 'success');
+					// }
+					location.reload();
+				} else {
+					// showToast가 있는지 확인
+					if (document.getElementById('toastContainer')) {
+						showToast('복원에 실패했습니다.', 'error');
+					}
+				}
+			});
+		}
+	}
+
+	// 히스토리 비교 함수
+	function compareHistory(historyId) {
+		$.ajax({
+			url: '/collectionHistory/compare/ajax',
+			method: 'GET',
+			data: { historyId: historyId },
+			dataType: 'json'
+		}).done(function(response) {
+			// console.log(response);
+			if (response.result) {
+				// 비교 모달에 데이터 표시
+				$('#currentData').text(response.result.current);
+				$('#historyData').text(response.result.history);
+				$('#compareModal').addClass('active');
+				let diff = getDiffHistory(response.result.current, response.result.history);
+				$('#historyData').html(diff);
+				
+				// 복원 버튼에 히스토리 ID 저장
+				$('#restoreFromCompare').data('history-id', historyId);
+			} else {
+				if (document.getElementById('toastContainer')) {
+					showToast('데이터 비교에 실패했습니다.', 'error');
+				}
+			}
+		});
+	}
+
+	// 히스토리 비교 데이터 생성
+	let dmp = new diff_match_patch();
+    function getDiffHistory(text1, text2) {
+        dmp.Diff_Timeout = 2;
+        dmp.Diff_EditCost = 4;
+
+        let d = dmp.diff_main(text1, text2);
+        dmp.diff_cleanupSemantic(d);
+        dmp.diff_cleanupEfficiency(d);
+
+        let ds = dmp.diff_prettyHtml(d);
+		return ds.replaceAll('&para;','');
+    }
+
+	// 히스토리 박스 토글
+	$('#btn_history').click(function(e) {
+		e.stopPropagation();
+		$('#historyBox').addClass('active');
+		loadHistory();
+	});
+
+	$('#closeHistory').click(function(e) {
+		e.stopPropagation();
+		$('#historyBox').removeClass('active');
+	});
+
+	// 비교 모달 닫기
+	$('#closeCompare').click(function(e) {
+		e.stopPropagation();
+		$('#compareModal').removeClass('active');
+	});
+
+	// 비교 모달에서 복원 버튼 클릭
+	$('#restoreFromCompare').click(function() {
+		const historyId = $(this).data('history-id');
+		restoreHistory(historyId);
+	});
+
+	// 히스토리 박스 내부 클릭 시 이벤트 전파 중단
+	$('#historyBox').click(function(e) {
+		e.stopPropagation();
+	});
+
+	// 비교 모달 내부 클릭 시 이벤트 전파 중단
+	$('#compareModal').click(function(e) {
+		e.stopPropagation();
+	});
+
+	// 바탕 클릭 시 히스토리 박스 닫기
+	$(document).click(function(e) {
+		if ($('#historyBox').hasClass('active')) {
+			$('#historyBox').removeClass('active');
+		}
+		if ($('#compareModal').hasClass('active')) {
+			$('#compareModal').removeClass('active');
+		}
+	});
+</script>
+
+<style>
+	/* 히스토리 버튼 스타일 */
+	.history-btn-container {
+		position: fixed;
+		right: 20px;
+		bottom: 20px;
+		z-index: 100;
+	}
+
+	.history-btn {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		background: #fff;
+		border: 1px solid #ddd;
+		border-radius: 4px;
+		padding: 10px;
+		cursor: pointer;
+		box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+		transition: all 0.3s ease;
+	}
+
+	.history-btn:hover {
+		background: #f8f9fa;
+		box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+	}
+	
+	.history-btn i {
+		font-size: 20px;
+		margin-bottom: 5px;
+	}
+	
+	.history-btn span {
+		font-size: 12px;
+		color: #666;
+	}
+
+	/* 히스토리 박스 스타일 */
+	.history-box {
+		position: fixed;
+		right: 0;
+		top: 0;
+		width: 300px;
+		height: 100vh;
+		background: #fff;
+		box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+		padding: 20px;
+		overflow-y: auto;
+		z-index: 1000;
+		transform: translateX(100%);
+		transition: transform 0.3s ease;
+	}
+	
+	.history-box.active {
+		transform: translateX(0);
+	}
+	
+	.history-box .close-btn {
+		position: absolute;
+		right: 10px;
+		top: 10px;
+		cursor: pointer;
+		font-size: 20px;
+	}
+	
+	.history-item {
+		border-bottom: 1px solid #eee;
+		padding: 10px 0;
+		margin-bottom: 10px;
+	}
+	
+	.history-item .date {
+		font-size: 12px;
+		color: #666;
+	}
+	
+	.history-item .comment {
+		margin: 5px 0;
+		font-size: 14px;
+	}
+	
+	.history-actions {
+		display: flex;
+		gap: 5px;
+		margin-top: 5px;
+	}
+	
+	.history-restore-btn, .history-compare-btn {
+		background: #007bff;
+		color: #fff;
+		border: none;
+		padding: 5px 10px;
+		border-radius: 3px;
+		cursor: pointer;
+	}
+	
+	.history-compare-btn {
+		background: #28a745;
+	}
+	
+	.history-restore-btn:hover {
+		background: #0056b3;
+	}
+	
+	.history-compare-btn:hover {
+		background: #218838;
+	}
+
+	/* 비교 모달 스타일 */
+	.compare-modal {
+		display: none;
+		position: fixed;
+		z-index: 2000;
+		left: 0;
+		top: 0;
+		width: 100%;
+		height: 100%;
+		background-color: rgba(0,0,0,0.5);
+	}
+	
+	.compare-modal.active {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.compare-modal-content {
+		background-color: #fff;
+		width: 90%;
+		height: 80%;
+		border-radius: 5px;
+		box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+		padding: 20px;
+		position: relative;
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+	}
+	
+	.compare-modal .close-btn {
+		position: absolute;
+		right: 10px;
+		top: 10px;
+		cursor: pointer;
+		font-size: 20px;
+	}
+	
+	.compare-container {
+		display: flex;
+		flex: 1;
+		gap: 20px;
+		overflow: hidden;
+	}
+	
+	.compare-column {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+	}
+	
+	.compare-column h4 {
+		margin-top: 0;
+		margin-bottom: 10px;
+		padding-bottom: 5px;
+		border-bottom: 1px solid #eee;
+	}
+	
+	.compare-data {
+		flex: 1;
+		overflow: auto;
+		background: #f8f9fa;
+		margin-bottom: 0;
+		padding: 10px;
+		border-radius: 3px;
+		font-family: monospace;
+		font-size: 12px;
+		white-space: pre-wrap;
+	}
+	
+	/* 범례 스타일 */
+	.compare-legend {
+		display: flex;
+		justify-content: center;
+		gap: 20px;
+		margin-top: 15px;
+	}
+	
+	.legend-item {
+		display: flex;
+		align-items: center;
+		font-size: 12px;
+	}
+	
+	.legend-color {
+		display: inline-block;
+		width: 15px;
+		height: 15px;
+		margin-right: 5px;
+		border-radius: 3px;
+	}
+	
+	.legend-color.added {
+		background-color: rgba(40, 167, 69, 0.2);
+		border: 1px solid #28a745;
+	}
+	
+	.legend-color.removed {
+		background-color: rgba(220, 53, 69, 0.2);
+		border: 1px solid #dc3545;
+	}
+	
+	/* 비교 모달 액션 버튼 스타일 */
+	.compare-actions {
+		display: flex;
+		justify-content: right;
+		margin-top: 15px;
+		padding-top: 10px;
+		border-top: 1px solid #eee;
+	}
+	
+	.restore-btn {
+		background: #007bff;
+		color: #fff;
+		border: none;
+		margin-bottom: 0;
+		padding: 8px 15px;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 14px;
+		transition: background-color 0.3s;
+	}
+	
+	.restore-btn:hover {
+		background: #0056b3;
+	}
+</style>

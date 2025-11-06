@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}
+    <style>
+        h3 {margin-bottom: 0.7rem; font-size: 1rem; font-weight: 500;}
+        h3:before {display: inline-block; width: 4px; height: 1em; background-color: #000; margin-right: 0.5rem;}
+        
+        .btn {margin-right:5px;}
+
+        /* 버튼 그룹 스타일 */
+        .btn-group-small {
+            display: flex;
+            gap: 2px;
+            align-items: center;
+        }
+        
+        .btn-group-small .btn {
+            padding: 2px 6px;
+            font-size: 11px;
+            line-height: 1.2;
+            border-radius: 3px;
+            min-width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn-group-small .btn i {
+            font-size: 10px;
+        }
+        
+        /* 버튼 색상 개선 */
+        .btn-group-small .btn-success {
+            background-color: #28a745;
+            border-color: #28a745;
+            color: white;
+        }
+        
+        .btn-group-small .btn-success:hover {
+            background-color: #218838;
+            border-color: #1e7e34;
+        }
+        
+        .btn-group-small .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+            color: white;
+        }
+        
+        .btn-group-small .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #004085;
+        }
+        
+        .btn-group-small .btn-danger {
+            background-color: #dc3545;
+            border-color: #dc3545;
+            color: white;
+        }
+        
+        .btn-group-small .btn-danger:hover {
+            background-color: #c82333;
+            border-color: #bd2130;
+        }
+        
+        /* 테이블 셀 패딩 조정 */
+        table td {
+            padding: 4px 6px;
+            vertical-align: middle;
+        }
+        
+        /* 버튼이 있는 셀 특별 처리 */
+        table td:last-child {
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        /* 편집 중인 행 스타일 */
+        tr.editing {
+            background-color: #fff3cd;
+            border: 2px solid #ffc107;
+        }
+        
+        tr.new-row {
+            background-color: #d1ecf1;
+            border: 2px solid #17a2b8;
+        }
+        
+        /* Form Edit Toggle 스타일 */
+        .form-readonly {
+            background-color: #f8f9fa !important;
+            color: #6c757d !important;
+            cursor: not-allowed !important;
+            opacity: 0.7;
+        }
+
+        .form-readonly:focus {
+            outline: none !important;
+            box-shadow: none !important;
+            border-color: #ced4da !important;
+        }
+
+        /* 편집 모드 버튼 스타일 */
+        .edit-toggle-btn {
+            background-color: #28a745 !important;
+            color: white !important;
+            border: none !important;
+            padding: 4px 8px !important;
+            border-radius: 3px !important;
+            cursor: pointer !important;
+            transition: background-color 0.3s ease !important;
+            font-size: 11px !important;
+        }
+
+        .edit-toggle-btn:hover {
+            background-color: #218838 !important;
+        }
+
+        .save-toggle-btn {
+            background-color: #dc3545 !important;
+            color: white !important;
+            border: none !important;
+            padding: 4px 8px !important;
+            border-radius: 3px !important;
+            cursor: pointer !important;
+            transition: background-color 0.3s ease !important;
+            margin-right: 4px !important;
+            font-size: 11px !important;
+        }
+
+        .save-toggle-btn:hover {
+            background-color: #c82333 !important;
+        }
+
+        .cancel-toggle-btn {
+            background-color: #6c757d !important;
+            color: white !important;
+            border: none !important;
+            padding: 4px 8px !important;
+            border-radius: 3px !important;
+            cursor: pointer !important;
+            transition: background-color 0.3s ease !important;
+            font-size: 11px !important;
+        }
+
+        .cancel-toggle-btn:hover {
+            background-color: #545b62 !important;
+        }
+
+        /* 편집 모드일 때 폼 스타일 */
+        tr.editing .form-readonly {
+            background-color: white !important;
+            color: inherit !important;
+            cursor: text !important;
+            opacity: 1 !important;
+        }
+
+        tr.editing .form-readonly:focus {
+            outline: 2px solid #28a745 !important;
+            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1) !important;
+            border-color: #28a745 !important;
+        }
+        
+        /* 드래그 앤 드롭 정렬 스타일 */
+        .sortable-table tbody {
+            cursor: move;
+        }
+        
+        .sortable-table tbody tr {
+            transition: all 0.3s ease;
+        }
+        
+        .sortable-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .sortable-table tbody tr.ui-sortable-helper {
+            background-color: #e3f2fd;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transform: rotate(2deg);
+        }
+        
+        .sortable-table tbody tr.ui-sortable-placeholder {
+            background-color: #f0f0f0;
+            border: 2px dashed #ccc;
+            height: 40px;
+            visibility: visible !important;
+        }
+        
+        .sortable-table tbody tr.ui-sortable-placeholder td {
+            border: none;
+        }
+        
+        .drag-handle {
+            cursor: move;
+            color: #666;
+            font-size: 14px;
+            padding: 0 5px;
+        }
+        
+        .drag-handle:hover {
+            color: #333;
+        }
+        
+        /* 토스트 메시지 스타일 */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+        
+        .toast {
+            background-color: #333;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transform: translateX(100%);
+            transition: transform 0.3s ease-in-out;
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+        
+        .toast.show {
+            transform: translateX(0);
+        }
+        
+        .toast.success {
+            background-color: #28a745;
+        }
+        
+        .toast.error {
+            background-color: #dc3545;
+        }
+        
+        .toast.warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        
+        .toast.info {
+            background-color: #17a2b8;
+        }
+        
+        /* 저장/취소 버튼 스타일 */
+        .btn-group-small .btn-secondary {
+            background-color: #6c757d;
+            border-color: #6c757d;
+            color: white;
+        }
+        
+        .btn-group-small .btn-secondary:hover {
+            background-color: #545b62;
+            border-color: #4e555b;
+        }
+    </style>
+</head>
+<body>
+    {# left}
+    {# header}
+    <main class="container">
+        <div role="document">
+			<div role="heading">AI 모델</div>
+			
+            <h3>Open AI</h3><span class="link"><a href="https://platform.openai.com/docs/pricing" target="_blank" rel="noopener">https://platform.openai.com/docs/pricing</a>
+            <section role="list">
+                <div class="list-cont">
+                    <table data-company="OpenAI" class="sortable-table">
+                        <thead>
+                            <tr>
+                                <th width="30"><i class="fa-solid fa-grip-vertical drag-handle"></i></th>
+                                <th>명칭</th>
+                                <th>모델 타입</th>
+                                <th>모델 인식명</th>
+                                <th>input가격</th>
+                                <th>output가격</th>
+                                <th>스케일</th>
+                                <th>단위</th>
+                                <th>사용여부</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><i class="fa-solid fa-grip-vertical drag-handle"></i></td>
+                                <td><input type="text" name="name" id="name" value="" placeholder="명칭(GPT-4o)"></td>
+                                <td><select name="modelType" id="modelType" title="모델 타입 선택">
+                                    <option value="">선택하세요</option>
+                                    <option value="text">텍스트</option>
+                                    <option value="image">이미지</option>
+                                    <option value="audio">오디오</option>
+                                    <option value="video">비디오</option>
+                                </select></td>
+                                <td><input type="text" name="modelName" id="modelName" value="" placeholder="모델 인식명(gpt-4o-2024-05-13)"></td>
+                                <td><input type="text" name="inputPrice" id="inputPrice" value="" placeholder="input가격(5.00)"></td>
+                                <td><input type="text" name="outputPrice" id="outputPrice" value="" placeholder="output가격(15.00)"></td>
+                                <td><input type="text" name="tokenUsageScale" id="tokenUsageScale" value="" placeholder="토큰 사용 스케일(1000000)"></td>
+                                <td><input type="text" name="tokenUsageUnit" id="tokenUsageUnit" value="" placeholder="토큰 사용 단위($)"></td>
+                                <td>
+                                    <select name="isUse" id="isUse" title="사용여부 선택">
+                                        <option value="Y" {?_GET.isUse == "Y"} selected{/}>Y</option>
+                                        <option value="N" {?_GET.isUse == "N"} selected{/}>N</option>
+                                        <option value="A" {?_GET.isUse == "A"} selected{/}>관리자만 사용</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <div class="btn-group-small">
+                                        <button type="button" class="btn btn-sm btn-success insertBtn" title="추가"><i class="fa-light fa-plus"></i></button>
+                                        <button type="button" class="btn btn-sm btn-primary updateBtn" title="수정"><i class="fa-light fa-pencil"></i></button>
+                                        <button type="button" class="btn btn-sm btn-danger deleteBtn" title="삭제"><i class="fa-light fa-trash"></i></button>
+                                    </div>
+                                    <input type="hidden" name="idx" id="idx" value=""/>
+                                    <input type="hidden" name="company" id="company" value="OpenAI"/>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            <h3>Google Gemini</h3><span class="link"><a href="https://ai.google.dev/pricing" target="_blank" rel="noopener">https://ai.google.dev/pricing</a>
+            <section role="list">
+                <div class="list-cont">
+                    <table data-company="Gemini" class="sortable-table">
+                        <thead>
+                            <tr>
+                                <th width="30"><i class="fa-solid fa-grip-vertical drag-handle"></i></th>
+                                <th>명칭</th>
+                                <th>모델 타입</th>
+                                <th>모델 인식명</th>
+                                <th>input가격</th>
+                                <th>output가격</th>
+                                <th>스케일</th>
+                                <th>단위</th>
+                                <th>사용여부</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><i class="fa-solid fa-grip-vertical drag-handle"></i></td>
+                                <td><input type="text" name="name" value="" placeholder="명칭(Gemini Pro)"></td>
+                                <td><select name="modelType" title="모델 타입 선택">
+                                    <option value="">선택하세요</option>
+                                    <option value="text">텍스트</option>
+                                    <option value="image">이미지</option>
+                                    <option value="audio">오디오</option>
+                                    <option value="video">비디오</option>
+                                </select></td>
+                                <td><input type="text" name="modelName" value="" placeholder="모델 인식명(gemini-pro)"></td>
+                                <td><input type="text" name="inputPrice" value="" placeholder="input가격(0.50)"></td>
+                                <td><input type="text" name="outputPrice" value="" placeholder="output가격(1.50)"></td>
+                                <td><input type="text" name="tokenUsageScale" value="" placeholder="토큰 사용 스케일(1000000)"></td>
+                                <td><input type="text" name="tokenUsageUnit" value="" placeholder="토큰 사용 단위($)"></td>
+                                <td>
+                                    <select name="isUse" title="사용여부 선택">
+                                        <option value="Y">Y</option>
+                                        <option value="N">N</option>
+                                        <option value="A">관리자만 사용</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <div class="btn-group-small">
+                                        <button type="button" class="btn btn-sm btn-success insertBtn" title="추가"><i class="fa-light fa-plus"></i></button>
+                                        <button type="button" class="btn btn-sm btn-primary updateBtn" title="수정"><i class="fa-light fa-pencil"></i></button>
+                                        <button type="button" class="btn btn-sm btn-danger deleteBtn" title="삭제"><i class="fa-light fa-trash"></i></button>
+                                    </div>
+                                    <input type="hidden" name="idx" value=""/>
+                                    <input type="hidden" name="company" value="Gemini"/>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            <h3>Anthropic Claude</h3><span class="link"><a href="https://docs.anthropic.com/ko/docs/about-claude/pricing" target="_blank" rel="noopener">https://docs.anthropic.com/claude/pricing</a>
+            <section role="list">
+                <div class="list-cont">
+                    <table data-company="Claude" class="sortable-table">
+                        <thead>
+                            <tr>
+                                <th width="30"><i class="fa-solid fa-grip-vertical drag-handle"></i></th>
+                                <th>명칭</th>
+                                <th>모델 타입</th>
+                                <th>모델 인식명</th>
+                                <th>input가격</th>
+                                <th>output가격</th>
+                                <th>스케일</th>
+                                <th>단위</th>
+                                <th>사용여부</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><i class="fa-solid fa-grip-vertical drag-handle"></i></td>
+                                <td><input type="text" name="name" value="" placeholder="명칭(Claude 3 Sonnet)"></td>
+                                <td><select name="modelType" title="모델 타입 선택">
+                                    <option value="">선택하세요</option>
+                                    <option value="text">텍스트</option>
+                                    <option value="image">이미지</option>
+                                    <option value="audio">오디오</option>
+                                    <option value="video">비디오</option>
+                                </select></td>
+                                <td><input type="text" name="modelName" value="" placeholder="모델 인식명(claude-3-sonnet-20240229)"></td>
+                                <td><input type="text" name="inputPrice" value="" placeholder="input가격(3.00)"></td>
+                                <td><input type="text" name="outputPrice" value="" placeholder="output가격(15.00)"></td>
+                                <td><input type="text" name="tokenUsageScale" value="" placeholder="토큰 사용 스케일(1000000)"></td>
+                                <td><input type="text" name="tokenUsageUnit" value="" placeholder="토큰 사용 단위($)"></td>
+                                <td>
+                                    <select name="isUse" title="사용여부 선택">
+                                        <option value="Y">Y</option>
+                                        <option value="N">N</option>
+                                        <option value="A">관리자만 사용</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <div class="btn-group-small">
+                                        <button type="button" class="btn btn-sm btn-success insertBtn" title="추가"><i class="fa-light fa-plus"></i></button>
+                                        <button type="button" class="btn btn-sm btn-primary updateBtn" title="수정"><i class="fa-light fa-pencil"></i></button>
+                                        <button type="button" class="btn btn-sm btn-danger deleteBtn" title="삭제"><i class="fa-light fa-trash"></i></button>
+                                    </div>
+                                    <input type="hidden" name="idx" value=""/>
+                                    <input type="hidden" name="company" value="Claude"/>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </div>
+	</main>
+	
+	<!-- 토스트 메시지 컨테이너 -->
+	<div class="toast-container" id="toastContainer"></div>
+</body>
+
+<script>
+    var result = [
+                {@ result}
+                {
+                    "company": "{.company}",
+                    "name": "{.name}",
+                    "modelType": "{.modelType}",
+                    "modelName": "{.modelName}",
+                    "inputPrice": "{.inputPrice}",
+                    "outputPrice": "{.outputPrice}",
+                    "tokenUsageScale": "{.tokenUsageScale}",
+                    "tokenUsageUnit": "{.tokenUsageUnit}",
+                    "isUse": "{.isUse}",
+                    "idx": "{.idx}"
+                },
+                {/}];
+    
+    // 페이지 로드 시 이벤트 바인딩
+    $(document).ready(function() {
+        bindEvents();
+        loadDataToTables();
+        initializeFormEditToggle();
+        initializeSortable();
+    });
+    
+    // 토스트 메시지 표시 함수
+    function showToast(message, type = 'info', duration = 3000) {
+        var toastContainer = $('#toastContainer');
+        var toastId = 'toast_' + Date.now();
+        
+        var toastHtml = '<div class="toast ' + type + '" id="' + toastId + '">' + message + '</div>';
+        toastContainer.append(toastHtml);
+        
+        var toast = $('#' + toastId);
+        
+        // 애니메이션으로 표시
+        setTimeout(function() {
+            toast.addClass('show');
+        }, 100);
+        
+        // 자동 제거
+        setTimeout(function() {
+            toast.removeClass('show');
+            setTimeout(function() {
+                toast.remove();
+            }, 300);
+        }, duration);
+    }
+    
+    // 정렬 기능 초기화
+    function initializeSortable() {
+        $('.sortable-table tbody').sortable({
+            handle: '.drag-handle',
+            placeholder: 'ui-sortable-placeholder',
+            helper: 'clone',
+            opacity: 0.8,
+            tolerance: 'pointer',
+            cursor: 'move',
+            update: function(event, ui) {
+                // 정렬 순서 업데이트
+                updateSortOrder($(this));
+            }
+        });
+    }
+    
+    // 정렬 순서 업데이트
+    function updateSortOrder(tbody) {
+        var company = tbody.closest('table').data('company');
+        var sortData = [];
+        
+        tbody.find('tr').each(function(index) {
+            var row = $(this);
+            var idx = row.find('input[name="idx"]').val();
+            if (idx) {
+                sortData.push({
+                    idx: idx,
+                    sortOrder: index + 1
+                });
+            }
+        });
+        
+        if (sortData.length > 0) {
+            // AJAX로 정렬 순서 저장
+            $.ajax({
+                url: '/aiSetting/modelSort/ajax',
+                type: 'POST',
+                data: {
+                    company: company,
+                    sortData: JSON.stringify(sortData)
+                },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.result.success) {
+                        showToast('정렬 순서가 저장되었습니다.', 'success');
+                    } else {
+                        showToast('정렬 순서 저장에 실패했습니다.', 'error');
+                    }
+                },
+                error: function() {
+                    showToast('서버 오류가 발생했습니다.', 'error');
+                }
+            });
+        }
+    }
+    
+    // Form Edit Toggle 초기화
+    function initializeFormEditToggle() {
+        // 모든 테이블의 input, select 요소를 readonly로 설정
+        $('table tbody tr').each(function() {
+            var row = $(this);
+            if (!row.hasClass('new-row') && !row.hasClass('editing')) {
+                setRowReadonly(row, true);
+            }
+        });
+    }
+    
+    // 행의 readonly 상태 설정
+    function setRowReadonly(row, readonly) {
+        row.find('input:not([type="hidden"]), select').each(function() {
+            var element = $(this);
+            if (readonly) {
+                if (element.is('select')) {
+                    element.prop('disabled', true);
+                } else {
+                    element.prop('readonly', true);
+                }
+                element.addClass('form-readonly');
+            } else {
+                if (element.is('select')) {
+                    element.prop('disabled', false);
+                } else {
+                    element.prop('readonly', false);
+                }
+                element.removeClass('form-readonly');
+            }
+        });
+    }
+    
+    // 편집 모드 활성화
+    function enableEditMode(row) {
+        // 기존 값을 저장
+        row.data('originalValues', {
+            name: row.find('input[name="name"]').val(),
+            modelType: row.find('select[name="modelType"]').val(),
+            modelName: row.find('input[name="modelName"]').val(),
+            inputPrice: row.find('input[name="inputPrice"]').val(),
+            outputPrice: row.find('input[name="outputPrice"]').val(),
+            tokenUsageScale: row.find('input[name="tokenUsageScale"]').val(),
+            tokenUsageUnit: row.find('input[name="tokenUsageUnit"]').val(),
+            isUse: row.find('select[name="isUse"]').val()
+        });
+        
+        // readonly 해제
+        setRowReadonly(row, false);
+        
+        // 버튼을 저장/취소로 변경
+        var buttonGroup = row.find('.btn-group-small');
+        buttonGroup.html(`
+            <button type="button" class="btn btn-sm btn-success saveBtn" title="저장"><i class="fa-light fa-save"></i></button>
+            <button type="button" class="btn btn-sm btn-secondary cancelBtn" title="취소"><i class="fa-light fa-times"></i></button>
+        `);
+        
+        // 행에 편집 클래스 추가
+        row.addClass('editing');
+    }
+    
+    // 편집 모드 비활성화 (원본 값으로 복원)
+    function disableEditMode(row, restoreOriginal = true) {
+        // 원본 값으로 복원 (취소 시에만)
+        if (restoreOriginal) {
+            var originalValues = row.data('originalValues');
+            if (originalValues) {
+                row.find('input[name="name"]').val(originalValues.name);
+                row.find('select[name="modelType"]').val(originalValues.modelType);
+                row.find('input[name="modelName"]').val(originalValues.modelName);
+                row.find('input[name="inputPrice"]').val(originalValues.inputPrice);
+                row.find('input[name="outputPrice"]').val(originalValues.outputPrice);
+                row.find('input[name="tokenUsageScale"]').val(originalValues.tokenUsageScale);
+                row.find('input[name="tokenUsageUnit"]').val(originalValues.tokenUsageUnit);
+                row.find('select[name="isUse"]').val(originalValues.isUse);
+            }
+        }
+        
+        // readonly 재설정
+        setRowReadonly(row, true);
+        
+        // 버튼을 원래대로 복원
+        var buttonGroup = row.find('.btn-group-small');
+        buttonGroup.html(`
+            <button type="button" class="btn btn-sm btn-success insertBtn" title="추가"><i class="fa-light fa-plus"></i></button>
+            <button type="button" class="btn btn-sm btn-primary updateBtn" title="수정"><i class="fa-light fa-pencil"></i></button>
+            <button type="button" class="btn btn-sm btn-danger deleteBtn" title="삭제"><i class="fa-light fa-trash"></i></button>
+        `);
+        
+        // 편집 클래스 제거
+        row.removeClass('editing');
+    }
+    
+    // 데이터를 company별 테이블에 로드
+    function loadDataToTables() {
+        if (result && result.length > 0) {
+            result.forEach(function(item) {
+                var company = item.company;
+                var table = $('table[data-company="' + company + '"]');
+                
+                if (table.length > 0) {
+                    var tbody = table.find('tbody');
+                    var existingRow = tbody.find('tr').first();
+                    
+                    // 기존 행이 비어있으면 데이터로 채우기
+                    if (isRowEmpty(existingRow)) {
+                        fillRowWithData(existingRow, item);
+                        // 데이터 로드 후 readonly 적용
+                        setRowReadonly(existingRow, true);
+                    } else {
+                        // 새 행 추가
+                        var newRow = createRowWithData(company, item);
+                        tbody.append(newRow);
+                        // 데이터가 있는 행은 readonly 적용
+                        setRowReadonly(newRow, true);
+                    }
+                }
+            });
+        }
+    }
+    
+    // 행을 데이터로 채우기
+    function fillRowWithData(row, data) {
+        row.find('input[name="name"]').val(data.name || '');
+        row.find('select[name="modelType"]').val(data.modelType || '');
+        row.find('input[name="modelName"]').val(data.modelName || '');
+        row.find('input[name="inputPrice"]').val(data.inputPrice || '');
+        row.find('input[name="outputPrice"]').val(data.outputPrice || '');
+        row.find('input[name="tokenUsageScale"]').val(data.tokenUsageScale || '');
+        row.find('input[name="tokenUsageUnit"]').val(data.tokenUsageUnit || '');
+        row.find('select[name="isUse"]').val(data.isUse || 'Y');
+        row.find('input[name="idx"]').val(data.idx || '');
+    }
+    
+    // 데이터가 포함된 새 행 생성
+    function createRowWithData(company, data) {
+        var rowHtml = ''
+            + '<tr>'
+            +     '<td><i class="fa-solid fa-grip-vertical drag-handle"></i></td>'
+            +     '<td><input type="text" name="name" value="' + (data.name || '') + '" placeholder="명칭 입력"></td>'
+            +     '<td><select name="modelType" title="모델 타입 선택">'
+            +         '<option value="">선택하세요</option>'
+            +         '<option value="text"' + (data.modelType === 'text' ? ' selected' : '') + '>텍스트</option>'
+            +         '<option value="image"' + (data.modelType === 'image' ? ' selected' : '') + '>이미지</option>'
+            +         '<option value="audio"' + (data.modelType === 'audio' ? ' selected' : '') + '>오디오</option>'
+            +         '<option value="video"' + (data.modelType === 'video' ? ' selected' : '') + '>비디오</option>'
+            +     '</select></td>'
+            +     '<td><input type="text" name="modelName" value="' + (data.modelName || '') + '" placeholder="모델 인식명 입력"></td>'
+            +     '<td><input type="text" name="inputPrice" value="' + (data.inputPrice || '') + '" placeholder="input가격 입력"></td>'
+            +     '<td><input type="text" name="outputPrice" value="' + (data.outputPrice || '') + '" placeholder="output가격 입력"></td>'
+            +     '<td><input type="text" name="tokenUsageScale" value="' + (data.tokenUsageScale || '') + '" placeholder="토큰 사용 스케일 입력"></td>'
+            +     '<td><input type="text" name="tokenUsageUnit" value="' + (data.tokenUsageUnit || '') + '" placeholder="토큰 사용 단위 입력"></td>'
+            +     '<td>'
+            +         '<select name="isUse" title="사용여부 선택">'
+            +             '<option value="Y"' + (data.isUse === 'Y' ? ' selected' : '') + '>Y</option>'
+            +             '<option value="N"' + (data.isUse === 'N' ? ' selected' : '') + '>N</option>'
+            +             '<option value="A"' + (data.isUse === 'A' ? ' selected' : '') + '>관리자만 사용</option>'
+            +         '</select>'
+            +     '</td>'
+            +     '<td>'
+            +         '<div class="btn-group-small">'
+            +             '<button type="button" class="btn btn-sm btn-success insertBtn" title="추가"><i class="fa-light fa-plus"></i></button>'
+            +             '<button type="button" class="btn btn-sm btn-primary updateBtn" title="수정"><i class="fa-light fa-pencil"></i></button>'
+            +             '<button type="button" class="btn btn-sm btn-danger deleteBtn" title="삭제"><i class="fa-light fa-trash"></i></button>'
+            +         '</div>'
+            +         '<input type="hidden" name="idx" value="' + (data.idx || '') + '"/>'
+            +         '<input type="hidden" name="company" value="' + company + '"/>'
+            +     '</td>'
+            + '</tr>';
+        return $(rowHtml);
+    }
+    
+    // 이벤트 바인딩
+    function bindEvents() {
+        // 추가 버튼 클릭
+        $(document).on('click', '.insertBtn', function() {
+            addNewRow($(this));
+        });
+        
+        // 수정 버튼 클릭
+        $(document).on('click', '.updateBtn', function() {
+            editRow($(this));
+        });
+        
+        // 삭제 버튼 클릭
+        $(document).on('click', '.deleteBtn', function() {
+            deleteRow($(this));
+        });
+        
+        // 저장 버튼 클릭
+        $(document).on('click', '.saveBtn', function() {
+            saveRow($(this));
+        });
+        
+        // 취소 버튼 클릭
+        $(document).on('click', '.cancelBtn', function() {
+            cancelEdit($(this));
+        });
+        
+        // ESC 키로 편집 취소
+        $(document).on('keydown', function(e) {
+            if (e.key === 'Escape') {
+                var editingRow = $('tr.editing');
+                if (editingRow.length > 0) {
+                    disableEditMode(editingRow, true);
+                }
+            }
+        });
+    }
+    
+    // 새 행 추가
+    function addNewRow(button) {
+        var table = button.closest('table');
+        var tbody = table.find('tbody');
+        var company = table.data('company');
+        
+        // 현재 행의 데이터가 비어있는지 확인
+        var currentRow = button.closest('tr');
+        if (isRowEmpty(currentRow)) {
+            showToast('현재 행에 데이터를 입력하세요.', 'warning');
+            // 첫 번째 입력 필드에 포커스
+            currentRow.find('input[name="name"]').focus();
+            return;
+        }
+        
+        var newRow = createNewRow(company);
+        tbody.append(newRow);
+        
+        // 새 행은 readonly 적용하지 않음 (편집 가능한 상태로 유지)
+        setRowReadonly(newRow, false);
+        
+        // 정렬 기능 다시 초기화
+        initializeSortable();
+        
+        // 새로 추가된 행의 입력 필드에 포커스
+        newRow.find('input[name="name"]').focus();
+    }
+    
+    // 행이 비어있는지 확인하는 함수
+    function isRowEmpty(row) {
+        var name = row.find('input[name="name"]').val().trim();
+        var modelName = row.find('input[name="modelName"]').val().trim();
+        var inputPrice = row.find('input[name="inputPrice"]').val().trim();
+        var outputPrice = row.find('input[name="outputPrice"]').val().trim();
+        var tokenUsageScale = row.find('input[name="tokenUsageScale"]').val().trim();
+        var tokenUsageUnit = row.find('input[name="tokenUsageUnit"]').val().trim();
+        
+        // 모든 필드가 비어있으면 true 반환
+        return !name && !modelName && !inputPrice && !outputPrice && !tokenUsageScale && !tokenUsageUnit;
+    }
+    
+    // 새 행 HTML 생성
+    function createNewRow(company) {
+        // 문자열로 HTML을 안전하게 생성 (줄바꿈 포함)
+        var rowHtml = ''
+            + '<tr class="new-row">'
+            +     '<td><i class="fa-solid fa-grip-vertical drag-handle"></i></td>'
+            +     '<td><input type="text" name="name" value="" placeholder="명칭 입력"></td>'
+            +     '<td><select name="modelType" title="모델 타입 선택">'
+            +         '<option value="">선택하세요</option>'
+            +         '<option value="text">텍스트</option>'
+            +         '<option value="image">이미지</option>'
+            +         '<option value="audio">오디오</option>'
+            +         '<option value="video">비디오</option>'
+            +     '</select></td>'
+            +     '<td><input type="text" name="modelName" value="" placeholder="모델 인식명 입력"></td>'
+            +     '<td><input type="text" name="inputPrice" value="" placeholder="input가격 입력"></td>'
+            +     '<td><input type="text" name="outputPrice" value="" placeholder="output가격 입력"></td>'
+            +     '<td><input type="text" name="tokenUsageScale" value="" placeholder="토큰 사용 스케일 입력"></td>'
+            +     '<td><input type="text" name="tokenUsageUnit" value="" placeholder="토큰 사용 단위 입력"></td>'
+            +     '<td>'
+            +         '<select name="isUse" title="사용여부 선택">'
+            +             '<option value="Y">Y</option>'
+            +             '<option value="N">N</option>'
+            +             '<option value="A">관리자만 사용</option>'
+            +         '</select>'
+            +     '</td>'
+            +     '<td>'
+            +         '<div class="btn-group-small">'
+            +             '<button type="button" class="btn btn-sm btn-success saveBtn" title="저장"><i class="fa-light fa-save"></i></button>'
+            +             '<button type="button" class="btn btn-sm btn-secondary cancelBtn" title="취소"><i class="fa-light fa-times"></i></button>'
+            +         '</div>'
+            +         '<input type="hidden" name="idx" value=""/>'
+            +         '<input type="hidden" name="company" value="' + company + '"/>'
+            +     '</td>'
+            + '</tr>';
+        return $(rowHtml);
+    }
+    
+    // 행 수정 모드로 전환
+    function editRow(button) {
+        var row = button.closest('tr');
+        var company = row.find('input[name="company"]').val();
+        var idx = row.find('input[name="idx"]').val();
+        
+        // idx가 비어있으면 저장 처리
+        if (!idx || idx.trim() === '') {
+            // 현재 행의 데이터가 비어있는지 확인
+            if (isRowEmpty(row)) {
+                showToast('현재 행에 데이터를 입력하세요.', 'warning');
+                row.find('input[name="name"]').focus();
+                return;
+            }
+            
+            // 저장 처리
+            saveRow(button);
+            return;
+        }
+        
+        // 편집 모드 활성화
+        enableEditMode(row);
+    }
+    
+    // 행 저장
+    function saveRow(button) {
+        var row = button.closest('tr');
+        var company = row.find('input[name="company"]').val();
+        var idx = row.find('input[name="idx"]').val();
+        
+        // 폼 데이터 수집
+        var formData = {
+            company: company,
+            name: row.find('input[name="name"]').val(),
+            modelType: row.find('select[name="modelType"]').val(),
+            modelName: row.find('input[name="modelName"]').val(),
+            inputPrice: row.find('input[name="inputPrice"]').val(),
+            outputPrice: row.find('input[name="outputPrice"]').val(),
+            tokenUsageScale: row.find('input[name="tokenUsageScale"]').val(),
+            tokenUsageUnit: row.find('input[name="tokenUsageUnit"]').val(),
+            isUse: row.find('select[name="isUse"]').val(),
+            action: idx ? 'modify' : 'insert'
+        };
+        
+        if (idx) {
+            formData.idx = idx;
+        }
+        
+        // 유효성 검사
+        if (!formData.name || !formData.modelName) {
+            showToast('명칭과 모델 인식명은 필수 입력 항목입니다.', 'error');
+            return;
+        }
+        
+        // AJAX로 저장
+        $.ajax({
+            url: '/aiSetting/model' + (idx ? 'Modify' : 'Insert')+'/ajax',
+            type: 'POST',
+            data: formData,
+            dataType: 'json',
+            success: function(response) {
+                console.log(response);
+                if (response.result.success) {
+                    showToast(idx ? '모델이 수정되었습니다.' : '모델이 등록되었습니다.', 'success');
+                    
+                    // 새 행이면 idx 업데이트
+                    if (!idx && response.result.idx) {
+                        row.find('input[name="idx"]').val(response.result.idx);
+                    }
+                    
+                    // 편집 모드 해제하고 readonly로 설정 (원본 값으로 복원하지 않음)
+                    disableEditMode(row, false);
+                    
+                    // 새 행 클래스 제거 (푸른색 배경 제거)
+                    row.removeClass('new-row');
+                } else {
+                    showToast('저장에 실패했습니다: ' + (response.msg || '알 수 없는 오류'), 'error');
+                }
+            },
+            error: function() {
+                showToast('서버 오류가 발생했습니다.', 'error');
+            }
+        });
+    }
+    
+    // 편집 취소
+    function cancelEdit(button) {
+        var row = button.closest('tr');
+        
+        if (row.hasClass('new-row')) {
+            // 새 행이면 삭제
+            row.remove();
+        } else {
+            // 기존 행이면 편집 모드 비활성화 (원본 값으로 복원)
+            disableEditMode(row, true);
+        }
+    }
+    
+    // 행 삭제
+    function deleteRow(button) {
+        var row = button.closest('tr');
+        var idx = row.find('input[name="idx"]').val();
+        var name = row.find('input[name="name"]').val();
+        
+        if (!idx) {
+            // 새 행이면 바로 삭제
+            row.remove();
+            return;
+        }
+        
+        if (confirm('정말로 "' + name + '" 모델을 삭제하시겠습니까?')) {
+            $.ajax({
+                url: '/aiSetting/modelDelete/ajax',
+                type: 'POST',
+                data: { idx: idx },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.result.success) {
+                        showToast('모델이 삭제되었습니다.', 'success');
+                        row.remove();
+                    } else {
+                        showToast('삭제에 실패했습니다: ' + (response.msg || '알 수 없는 오류'), 'error');
+                    }
+                },
+                error: function() {
+                    showToast('서버 오류가 발생했습니다.', 'error');
+                }
+            });
+        }
+    }
+    
+</script>
+
+</html> 

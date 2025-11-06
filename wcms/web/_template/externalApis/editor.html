@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}
+</head>
+<body>
+    {# left}
+    {# header}
+
+
+	<!-- ########## START: MAIN PANEL ########## -->
+	<div class="br-mainpanel">
+		<div class="br-pagebody">
+			<div class="br-section-wrapper pd-5-force">
+				<input type="hidden" name="referer" id="referer" value="{ _SERVER['HTTP_REFERER']}"/>
+				<form method="post" name="apiFrm" id="apiFrm" role="form">
+				<div class="form-layout form-layout-4 pd-5 d-flex flex-wrap tx-black tx-normal">
+					<div class="row col-xl-6 mg-y-5">
+						<label class="col-sm-4 form-control-label">API ID<span class="tx-danger">*</span></label>
+						<div class="col-sm-8 mg-t-10 mg-sm-t-0">
+							<input type="text" class="form-control" placeholder="Please enter the API ID[alpabet, number,-,_, No Space]" name="id" id="id" autocomplete="off" maxlength="60" value="{? !empty(result.item.id)}{result.item.id}{/}">
+							<span id="idResult"></span>
+						</div>
+					</div>
+					<div class="row col-xl-6 mg-y-5">
+						<label class="col-sm-4 form-control-label">API Title <span class="tx-danger">*</span></label>
+						<div class="col-sm-8 mg-t-10 mg-sm-t-0">
+							<input type="text" class="form-control" placeholder="Please enter the Api Title" name="title" id="title" autocomplete="off" maxlength="60" value="{? !empty(result.item.title)}{result.item.title}{/}">
+							<span id="idResult"></span>
+						</div>
+					</div>
+					<div class="row col-xl-6 mg-b-5">
+						<label class="col-sm-4 form-control-label">Provider<span class="tx-danger">*</span></label>
+						<div class="col-sm-8 mg-t-10 mg-sm-t-0">
+							<input type="text" class="form-control" placeholder="Please enter the Provider" name="provider" id="provider" value="{? !empty(result.item.provider)}{result.item.provider}{/}">
+						</div>
+					</div>
+					<div class="row col-xl-6 mg-b-5">
+						<label class="col-sm-4 form-control-label">Return Type<span class="tx-danger">*</span></label>
+						<div class="col-sm-8 mg-t-10 mg-sm-t-0">
+							<select id="returnType" name="returnType" class="select2 wd-200">
+								<option value="JSON">JSON</option>
+								<option value="XML">XML</option>
+							</select>
+						</div>
+					</div>	
+					<div class="row col-xl-6 mg-b-5">
+						<label class="col-sm-4 form-control-label">API Key<span class="tx-danger">*</span></label>
+						<div class="col-sm-8 mg-t-10 mg-sm-t-0">
+							<input type="text" class="form-control" placeholder="Please enter the API Key" name="key" id="key" value="{? !empty(result.item.key)}{result.item.key}{/}">
+						</div>
+					</div>
+					<div class="row col-xl-6 mg-y-5">
+						<label class="col-sm-4 form-control-label">API Url<span class="tx-danger">*</span></label>
+						<div class="col-sm-8 mg-t-10 mg-sm-t-0 input-group">
+							<input type="text" class="form-control" placeholder="Please enter the URL" aria-describedby="button-addon1" name="url" id="url" value="{? !empty(result.item.url)}{result.item.url}{/}">
+							<div class="input-group-prepend">
+								<button class="btn btn-outline-secondary" type="button" id="bnt_dataCheck">Data check</button>
+							</div>
+						</div>
+					</div>
+					<div class="row col-xl-6 mg-b-5">
+						<label class="col-sm-4 form-control-label">Date Character</label>
+						<div class="col-sm-8 mg-t-10 mg-sm-t-0">
+							<input type="text" class="form-control" placeholder="PHP Date Value (20200801 => 'Ymd', 2020-08-01 => 'Y-m-d')" name="dateChar" id="dateChar" value="{? !empty(result.item.dateChar)}{=htmlentities(result.item.dateChar)}{/}">
+						</div>
+					</div>				
+					<div class="row col-xl-6 mg-b-5">
+						<label class="col-sm-4 form-control-label">List Tag(xml only or json 2,3 depth item)</label>
+						<div class="col-sm-8 mg-t-10 mg-sm-t-0">
+							<input type="text" class="form-control" placeholder="Tag in case of XML [channel][item]" name="listTag" id="listTag" value="{? !empty(result.item.listTag)}{result.item.listTag}{/}">
+						</div>
+					</div>
+					
+					<div class="row col-xl-6 mg-b-5">
+						<label class="col-sm-4 form-control-label">Run week</label>
+						<div class="col-sm-8 mg-t-10 mg-sm-t-0 ">
+							<table class="table table-bordered bg-light text-center">
+								<tr>
+									<th class="text-center text-danger font-weight-bolder"><label for="sun ">일</label></th>
+									<th class="text-center"><label for="mon">월</label></th>
+									<th class="text-center"><label for="tue">화</label></th>
+									<th class="text-center"><label for="wed">수</label></th>
+									<th class="text-center"><label for="thu">목</label></th>
+									<th class="text-center"><label for="fri">금</label></th>
+									<th class="text-center text-primary font-weight-bolder"><label for="sat">토</label></th>
+								</tr>
+								<tr>
+									<td><input type="checkbox" id="sun" name="week[]" value="0"></td>
+									<td><input type="checkbox" id="mon" name="week[]" value="1"></td>
+									<td><input type="checkbox" id="tue" name="week[]" value="2"></td>
+									<td><input type="checkbox" id="wed" name="week[]" value="3"></td>
+									<td><input type="checkbox" id="thu" name="week[]" value="4"></td>
+									<td><input type="checkbox" id="fri" name="week[]" value="5"></td>
+									<td><input type="checkbox" id="sat" name="week[]" value="6"></td>
+								</tr>
+							</table>
+						</div>
+					</div>
+
+					<div class="row col-xl-6 mg-b-5">
+						<label class="col-sm-4 form-control-label">Running time zone</label>
+						<div class="col-sm-8 mg-t-10 mg-sm-t-0 align-middle" style="display: flex;">
+							<input type="text" class="form-control mg-r-5" placeholder="Start Time (09:00)" name="startTime" id="startTime" value="{? !empty(result.item.startTime)}{result.item.startTime}{/}">~
+							<input type="text" class="form-control mg-l-5" placeholder="End Time (18:00)" name="endTime" id="endTime" value="{? !empty(result.item.endTime)}{result.item.endTime}{/}">
+						</div>
+					</div>
+
+					<div class="row col-xl-6 mg-b-5">
+						<label class="col-sm-4 form-control-label">Every few minutes</label>
+						<div class="col-sm-8 mg-t-10 mg-sm-t-0">
+							<input type="text" class="form-control" placeholder="Run every few minutes" name="efm" id="efm" value="{? !empty(result.item.efm)}{result.item.efm}{/}">
+						</div>
+					</div>
+
+					<div class="row col-xl-6 mg-b-5">
+						<label class="col-sm-4 form-control-label">Database Name</label>
+						<div class="col-sm-8 mg-t-10 mg-sm-t-0">
+							<input type="text" class="form-control" placeholder="Please enter the Database Name" name="datebase" id="datebase" value="data" readonly>
+						</div>
+					</div>
+					<div class="row col-xl-6 mg-b-5">
+						<label class="col-sm-4 form-control-label">Collection Name<span class="tx-danger">*</span></label>
+						<div class="col-sm-8 mg-t-10 mg-sm-t-0">
+							<input type="text" class="form-control" placeholder="Please enter the Collection Name" name="collection" id="collection" value="{? !empty(result.item.collection)}{result.item.collection}{/}">
+						</div>
+					</div>
+
+					<div class="row col-sm-12">
+						<label class="col-sm-2 form-control-label">Collection Field Setting <button class="btn btn-success mg-l-10 btn-addRow" type="button">+</button></label>
+						<div class="col-sm-9">
+							<table id="collectionField" class="table table-striped">
+								<tr>
+									<th>No.</th>
+									<th>Data Tag Name</th>
+									<th>Collection Field Name</th>
+									<th>Key Field</th>
+									<th>Default value</th>
+									<th>Remark</th>
+								</tr>
+								<tr class="tmp_row">
+									<td class="no"></td>
+									<td><input type="text" class="form-control" placeholder="Please enter the Data Tag Name" name="tag[]" id="collection[]"></td>
+									<td><input type="text" class="form-control" placeholder="Please enter the Collection Field Name" name="field[]" id="collection[]"></td>
+									<td><input type="checkbox" class="form-control" name="keyField[]" id="keyField[]" value=""></td>
+									<td><input type="text" class="form-control" placeholder="Please enter the Default Value" name="value[]" id="value[]"></td>
+									<td class="d-flex flex-row">
+										<input type="text" class="form-control" placeholder="Please enter the Remark" name="remark[]" id="remark[]">
+									</td>
+								</tr>
+
+								{? !empty(result.item.tag)}
+								{@ result.item.tag}
+								{? !(.value_ =="" && result.item.field[.index_] == "")}
+								<tr class="tr_row">
+									<td class="no">{.index_+1}</td>
+									<td><input type="text" class="form-control" placeholder="Please enter the Data Tag Name" name="tag[]" id="collection[]" value="{.value_}"></td>
+									<td><input type="text" class="form-control" placeholder="Please enter the Collection Field Name" name="field[]" id="collection[]" value="{result.item.field[.index_]}"></td>
+									<td><input type="checkbox" class="form-control" name="keyField[]" id="keyField_{.index_}" value="{.index_}"></td>
+									<td><input type="text" class="form-control" placeholder="Please enter the Default Value" name="value[]" id="value[]" value="{=htmlentities(result.item.value[.index_])}"></td>
+									<td class="d-flex flex-row">
+										<input type="text" class="form-control" placeholder="Please enter the Remark" name="remark[]" id="remark[]" value="{result.item.remark[.index_]}">
+									</td>
+								</tr>
+								{/}
+								{/}
+								{/}
+							</table>
+						</div>
+					</div>
+				
+					<div class="row col-xl-12 d-md-flex pd-y-20 pd-md-y-0 align-items-center justify-content-end">
+						<button type="button" class="btn btn-info pd-y-7 pd-x-10 bd-0 mg-md-l-10 mg-t-10 tx-uppercase tx-13 tx-spacing-2" id="listBtn" name="listBtn">목 록</button>
+						<button type="button" class="btn btn-success pd-y-7 pd-x-10 bd-0 mg-md-l-10 mg-t-10 tx-uppercase tx-13 tx-spacing-2" name="insertProcBtn" id="insertProcBtn">API Insert</button>
+					</div>
+				</div>
+				</form>
+			</div>
+		</div>
+
+	</div>
+</div>
+
+<script type="text/javascript">
+{? empty(_GET['id'])}
+	var action='insert';
+{:}
+	var action='modify';
+	$("#insertProcBtn").text('API Update');
+{/}
+
+var row = $(".tmp_row").clone();
+$(".tmp_row").remove();
+
+$("#bnt_dataCheck").click(function (){
+	var key = $("#key").val();
+	var rt = $("#returnType").val();
+	var apiUrl = $("#url").val();
+	apiUrl = apiUrl.replace(/[{]key[}]/i,key);
+	apiUrl = escape(apiUrl.replace(/[{]date[}]/i,'20200804'));
+
+	$.ajax({
+		crossOrigin: true,
+		url: '/getApi.php?url='+apiUrl,
+		method : 'GET',
+		returnType : "json",
+		success : function(data) {
+			// obj = eval(data);
+			obj = JSON.parse(data);
+
+			if(obj?.RESULT?.CODE == "INFO-200"){
+
+			}else{
+				var listTag = $("#listTag").val();
+				if(listTag!=""){
+					eval("obj = obj"+listTag);
+				}
+				var index = 1;
+				$(".tr_row").remove();
+
+				$.each(obj[0],function(key,value){
+					var rowTmp = row.clone();
+					rowTmp.find(".no").text(index++);
+					rowTmp.find("[name^='tag']").val(key);
+					rowTmp.find("[name^='keyField']").val(index-2);
+					rowTmp.find("[name^='remark']").val(value);
+					$("#collectionField").append(rowTmp);
+				});
+			}
+		}
+	});
+});
+
+$(document).on('click','.btn-addRow',function (){
+	var rowTmp = row.clone();
+	rowTmp.find(".no").text($("#collectionField").find("tr").length);
+	$("#collectionField").append(rowTmp);
+});
+
+$("#insertProcBtn").click(function (){
+    if($('#apiTitle').val()==''){
+        alert('Please enter the API Title');
+        $('#apiTitle').focus();
+        return;
+    }
+    if($('#provider').val()==''){
+        alert('Please enter the Provider');
+        $('#apiTitle').focus();
+        return;
+    }
+    if($('#key').val()==''){
+        alert('Please enter the API key');
+        $('#apiTitle').focus();
+        return;
+    }
+    if($('#url').val()==''){
+        alert('Please enter the URL');
+        $('#apiTitle').focus();
+        return;
+    }
+    if($('#collection').val()==''){
+        alert('Please enter the Collection name');
+        $('#apiTitle').focus();
+        return;
+    }
+
+    $.ajax({
+        url: '/apis/'+action+'/ajax',
+        method : 'POST',
+        data : $('#apiFrm').serialize()
+    }).done(function() {
+		alert('저장되었습니다.');
+		goList();
+    });
+});
+
+$("#listBtn").click(()=>{
+	goList();
+});
+
+$(document).ready(function() {
+{@result.item.week}
+	$("[name^='week'][value='{.value_}']").attr("checked", true);
+{/}
+
+{@result.item.keyField}
+	$("[name^='keyField'][value='{.value_}']").attr("checked", true);
+{/}
+});
+
+</script>
+</body>
+</html>

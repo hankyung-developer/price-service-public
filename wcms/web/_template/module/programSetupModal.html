@@ -1,0 +1,378 @@
+<!-- program Setup Modal -->
+<dialog id="programModal">
+    <article class="card">
+        <header class="flex nowrap justify-between align-center mr-0">
+			<h6></h6>
+            <a href="#close" aria-label="Close" title="닫기" data-target="programModal" onclick="toggleModal(event)"><i class="fa-light fa-circle-xmark fa-lg"></i></a>
+        </header>
+		<!-- layoutInput -->
+		<div class="layoutInput">
+			<input type="hidden" id="objId">
+			<div class="row">
+				<span class="label">제목</span>
+				<input type="text" id="title" placeholder="화면에 표출될 박스 명입니다." />
+			</div>
+			<div class="row">
+				<span class="label">제목링크</span>
+				<input type="text" id="moreUrl" placeholder="제목링크입니다.(옵션)" />
+			</div>
+			<div class="row">
+				<span class="label">custom boxId</span>
+				<input type="text" id="customBoxId" placeholder="사용자 지정 boxId (옵션)" />
+			</div>
+			<div class="grid grid3">
+				<div class="row">
+					<span class="label">목록타입</span>
+					<input type="checkbox" role="switch" id="listType" data-on="자동" data-off="수동" checked/>
+					<span class="switch-label">자동</span>
+				</div>
+				<div class="row">
+					<span class="label">자동그룹</span>
+					<select id="autoGroupType">
+						<option value="broadcastType">방송타입</option>
+						<option value="vodChannel">유튜브 채널</option>
+						<option value="syncBox">박스연동</option>
+					</select>
+				</div>
+				<div class="row">
+					<span class="label">목록합치기</span>
+					<input type="checkbox" role="switch" id="listMerge" data-on="ON" data-off="OFF" checked/>
+					<span class="switch-label">자동</span>
+				</div>
+				<div class="row">
+					<span class="label">목록정렬</span>
+					<input type="checkbox" role="switch" id="listSort" data-on="ON" data-off="OFF" checked/>
+					<span class="switch-label">자동</span>
+				</div>
+			</div>
+			<div class="row areas broadcastTypeArea">
+				<span class="label">방송타입</span>
+				<select class="select2" data-placeholder="방송타입 선택" id="broadcastType" multiple="multiple">
+					{@ result.broadcastType}
+					<option value="{.id}">{.name}</option>
+					{/}
+				</select>
+			</div>
+			<div class="grid grid2 areas syncBoxArea">
+				<div class="row">
+					<span class="label">면 선택</span>
+					<select id="syncLayoutId" data-placeholder="면 선택">
+						<option value="">선택 없음</option>
+						{@ result.layoutKind}
+						<option value="{.id}">{.title}</option>
+						{/}
+					</select>
+				</div>
+				<div class="row">
+					<span class="label">박스연동</span>
+					<select id="syncBoxId" data-placeholder="박스 선택">
+						<option value="">선택 없음</option>
+					</select>
+				</div>
+			</div>
+			<div class="group">
+				<div class="label">PC설정</div>
+				<div class="grid grid1-2">
+					<div>
+						<div class="row">
+							<span class="label">노출</span>
+							<input type="checkbox" role="switch" class="" id="showPC" data-on="ON" data-off="OFF" checked/>
+							<span class="switch-label">ON</span>
+						</div>
+						<div class="row">
+							<span class="label">갯수</span>
+							<input type="text" class="showArticleCountPC" id="showArticleCountPC" data-type='num'/>
+						</div>
+						<div class="row">
+							<span class="label">본문글자수</span>
+							<input type="text" class="contentCutNumPC" id="contentCutNumPC" data-type='num'/>
+						</div>
+						<div class="row">
+							<span class="label">썸네일 노출</span>
+							<input type="checkbox" role="switch" class="" id="showThumbPC" data-on="ON" data-off="OFF" checked/>
+							<span class="switch-label">ON</span>
+						</div>
+						<div class="row">
+							<span class="label">썸네일 W/H</span>
+							<input type="text" class="thumbwidthpc" id="thumbWidthPC" placeholder="가로px" />
+							<input type="text" class="thumbheightpc" id="thumbHeightPC" placeholder="세로px" />
+						</div>
+					</div>
+					<div>
+						<div class="row">
+							<span class="label">PC Skin</span>
+							<select class="select2" id="pcSkin">
+								<option value="">안보이기</option>
+							</select>
+						</div>
+						<div class="row" style="height: 200px;max-height: 200px;justify-content: center;">
+							<img id="pcSkinPreview" src="" onError="this.src='/img/skin/show-hidden-icons.png';" style="width: auto;height: auto;max-width: 100%;max-height: 200px;">
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="group">
+				<div class="label">MOBILE설정</div>
+				<div class="grid grid1-2">
+					<div>
+						<div class="row">
+							<span class="label">노출</span>
+							<input type="checkbox" role="switch" class="" id="showMobile" data-on="ON" data-off="OFF" checked/>
+							<span class="switch-label">ON</span>
+						</div>
+						<div class="row">
+							<span class="label">갯수</span>
+							<input type="text" class="showArticleCountMobile" id="showArticleCountMobile" data-type='num'/>
+						</div>
+						<div class="row">
+							<span class="label">본문글자수</span>
+							<input type="text" class="contentCutNumMobile" id="contentCutNumMobile" data-type='num'/>
+						</div>
+						<div class="row">
+							<span class="label">썸네일 노출</span>
+							<input type="checkbox" role="switch" class="" id="showThumbMobile" data-on="ON" data-off="OFF" checked/>
+							<span class="switch-label">ON</span>
+						</div>
+						<div class="row">
+							<span class="label">썸네일 W/H</span>
+							<input type="text" class="thumbWidthMobile" id="thumbWidthMobile" placeholder="가로px" />
+							<input type="text" class="thumbHeightMobile" id="thumbHeightMobile" placeholder="세로px" />
+						</div>
+					</div>
+					<div>
+						<div class="row">
+							<span class="label">MOBILE Skin</span>
+							<select class="select2" id="mobileSkin">
+								<option value="">안보이기</option>
+							</select>
+						</div>
+						<div class="row" style="height: 200px;max-height: 200px;justify-content: center;">
+							<img id="mobileSkinPreview" src="" onError="this.src='/img/skin/show-hidden-icons.png';" style="width: auto;height: auto;max-width: 100%;max-height: 200px;">
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!--// layoutInput -->
+		<footer class="flex justify-end">
+			<button type="button" class="btn btn-md"  id="btn_programObjSetup">저장</button>
+			<button type="button" class="btn btn-md btn-gray"  data-target="programModal" onclick="toggleModal(event);">취소</button>
+		</footer>
+	</article>
+</dialog>
+<!-- //program Setup Modal -->
+
+<script>
+/*******************************************************************************
+ * 프로그램 박스 설정
+ */
+
+// 프로그램 box 설정 모달창
+$('#layoutBase').on("click",".programMoreBt",function(){
+	var obj = $(this).closest('.object');
+
+	var modal = $('#programModal');
+	openModal(document.getElementById('programModal'));
+
+	// skin select 로딩
+	setSelectSkin(modal.find('select#pcSkin'), $(this).closest('[data-dinnum]').data('dinnum'), 'pc', obj.attr('data-objecttype'));
+	setSelectSkin(modal.find('select#mobileSkin'), $(this).closest('[data-dinnum]').data('dinnum'), 'mobile', obj.attr('data-objecttype'));
+
+	modal.find('article.card').attr('data-objectType',obj.attr('data-objectType'));
+	modal.find('header h6').html((obj.attr('data-title')?obj.attr('data-title'):'프로그램')+' <small>(objId : '+obj.attr('data-objid')+')</small>');
+	modal.find('#objId').val(obj.attr('data-objId'));
+	modal.find('#title').val(obj.attr('data-title'));
+	modal.find('#moreUrl').val(obj.attr('data-moreUrl'));
+	modal.find('#customBoxId').val(obj.attr('data-customboxid'));
+	modal.find('#listType').prop('checked',obj.attr('data-listType')=="M"?false:true);
+	modal.find('#autoGroupType').val(obj.attr('data-autoGroupType')?obj.attr('data-autoGroupType'):'broadcastType');
+	modal.find('#listMerge').prop('checked',obj.attr('data-listMerge')=="N"?false:true);
+	modal.find('#listSort').prop('checked',obj.attr('data-listSort')=="N"?false:true);
+	modal.find('#broadcastType').val(obj.attr('data-broadcastType')==undefined?[]:obj.attr('data-broadcastType').split(','));
+	modal.find('#showPC').prop('checked',obj.attr('data-showPC')=="N"?false:true);
+	modal.find('#showMobile').prop('checked',obj.attr('data-showMobile')=="N"?false:true);
+	modal.find('#showArticleCountPC').val(obj.attr('data-showArticleCountPC'));
+	modal.find('#showArticleCountMobile').val(obj.attr('data-showArticleCountMobile'));
+	modal.find('#showThumbPC').prop('checked',obj.attr('data-showThumbPC')=="N"?false:true);
+	modal.find('#showThumbMobile').prop('checked',obj.attr('data-showThumbMobile')=="N"?false:true);
+	modal.find('#thumbWidthPC').val(obj.attr('data-thumbWidthPC'));
+	modal.find('#thumbHeightPC').val(obj.attr('data-thumbHeightPC'));
+	modal.find('#thumbWidthMobile').val(obj.attr('data-thumbWidthMobile'));
+	modal.find('#thumbHeightMobile').val(obj.attr('data-thumbHeightMobile'));
+	modal.find('#contentCutNumPC').val(obj.attr('data-contentCutNumPC'));
+	modal.find('#contentCutNumMobile').val(obj.attr('data-contentCutNumMobile'));
+	modal.find('#pcSkin').val(obj.attr('data-pcSkin'));
+	modal.find('#mobileSkin').val(obj.attr('data-mobileSkin'));
+	modal.find('#syncLayoutId').val(obj.attr('data-syncLayoutId'));
+	if (!!obj.attr('data-syncLayoutId')) modal.find('#syncBoxId').html(getSelectBoxId(obj.attr('data-syncLayoutId'), 'program', obj.attr('data-objId')));
+	modal.find('#syncBoxId').val(obj.attr('data-syncBoxId'));
+
+	setProgramListType();
+	setProgramAutoGroupType(modal.find('#autoGroupType').val());
+
+	if(obj.attr('data-listType')=="M"){
+		modal.find('.areas').hide();
+	}
+
+	// 각각의 체크박스에 대해 초기값 설정
+	$('input[role="switch"]').each(function(){
+		var checked = $(this).prop('checked');
+		var row = $(this).closest('.row');
+		var on = $(this).data('on');
+		var off = $(this).data('off');
+		if (checked) {
+			row.find('.switch-label').empty().append(on);
+		} else {
+			row.find('.switch-label').empty().append(off);
+		}
+	});
+
+	// select2 초기화
+	modal.find('#broadcastType').select2({dropdownParent: modal,sorter : function(data){return data;}});
+	modal.find('#pcSkin').select2({dropdownParent: modal});
+	modal.find('#mobileSkin').select2({dropdownParent: modal});
+
+	setPreview(modal);
+});
+
+// 프로그램 box 설정 저장
+$('#programModal').on('click','#btn_programObjSetup',function(e){
+	let modal = $(this).closest('#programModal');
+	
+	let dataObject = new Object();
+	dataObject['objId'] = modal.find("#objId").val();
+	dataObject['title'] = modal.find('#title').val();
+	dataObject['moreUrl'] = modal.find('#moreUrl').val();
+	dataObject['customBoxId'] = modal.find('#customBoxId').val();
+	dataObject['listType'] = modal.find('#listType').prop('checked')?"A":"M";
+	dataObject['autoGroupType'] = modal.find('#autoGroupType').val();
+	dataObject['listMerge'] = modal.find('#listMerge').prop('checked')?"Y":"N";
+	dataObject['listSort'] = modal.find('#listSort').prop('checked')?"Y":"N";
+	dataObject['broadcastType'] = modal.find('#broadcastType').val().toString();
+	dataObject['showPC'] = modal.find('#showPC').prop('checked')?"Y":"N";
+	dataObject['showMobile'] = modal.find('#showMobile').prop('checked')?"Y":"N";
+	dataObject['showArticleCountPC'] = modal.find('#showArticleCountPC').val();
+	dataObject['showArticleCountMobile'] = modal.find('#showArticleCountMobile').val();
+	dataObject['showThumbPC'] = modal.find('#showThumbPC').prop('checked')?"Y":"N";
+	dataObject['showThumbMobile'] = modal.find('#showThumbMobile').prop('checked')?"Y":"N";
+	dataObject['thumbWidthPC'] = modal.find('#thumbWidthPC').val();
+	dataObject['thumbHeightPC'] = modal.find('#thumbHeightPC').val();
+	dataObject['thumbWidthMobile'] = modal.find('#thumbWidthMobile').val();
+	dataObject['thumbHeightMobile'] = modal.find('#thumbHeightMobile').val();
+	dataObject['contentCutNumPC'] = modal.find('#contentCutNumPC').val();
+	dataObject['contentCutNumMobile'] = modal.find('#contentCutNumMobile').val();
+	dataObject['pcSkin'] = modal.find('#pcSkin').val();
+	dataObject['mobileSkin'] = modal.find('#mobileSkin').val();
+	dataObject['syncLayoutId'] = modal.find('#syncLayoutId').val();
+	dataObject['syncBoxId'] = modal.find('#syncBoxId').val();
+	
+	let selectBox = $('[data-objId="'+dataObject['objId']+'"]');
+	selectBox.find('header > h6').text(dataObject['title']);
+
+	for (const [key, value] of Object.entries(dataObject)) {
+		selectBox.attr('data-'+key.toLowerCase() , value);
+	}
+
+	dataObject['pageId'] = $("#layoutSelect").val();
+	$.ajax({
+		url: '/layout/boxSave/ajax',
+		type: 'POST',
+		data: JSON.stringify(dataObject),
+		dataType: "json",
+		success: function (data) {
+			if(dataObject['listType']=="A"){
+				$(selectBox).find('.card-body').empty();
+				$(selectBox).find(".card-body").addClass('disable');
+				$(selectBox).find('.card-body').removeClass('programObjSortable ui-sortable');
+			}else{
+				$(selectBox).find(".card-body").removeClass('disable');
+				$(selectBox).find('.card-body').addClass('programObjSortable ui-sortable');
+			}
+			alert('저장완료');
+			closeModal(document.getElementById('programModal'));
+		},
+		error: function (){
+			alert('저장 시 오류가 발생했습니다.\n다시 저장을 해주세요.\n계속해서 오류가 발생되면 관리자에게 연락해주세요');
+			closeModal(document.getElementById('programModal'));
+		}
+	});
+});
+
+// 프로그램 선택 : 수동 / 자동
+$('#programModal #listType').on('change', function() {
+	setProgramListType();
+});
+let setProgramListType = (autoGroupType)=>{
+	var modal = $('#programModal');
+	if (modal.find('#listType').prop('checked')) {
+		setProgramAutoGroupType(modal.find('#autoGroupType').val());
+        modal.find('#autoGroupType').prop('disabled', false);
+		modal.find('#listMerge').prop('disabled', false);
+		if (modal.find('#listMerge').prop('checked')) {
+			modal.find('#listSort').prop('disabled', true);
+		} else {
+			modal.find('#listSort').prop('disabled', false);
+		}
+    } else {
+		modal.find('.areas').hide();
+		modal.find('#autoGroupType').prop('disabled', true);
+		modal.find('#listMerge').prop('disabled', true);
+		modal.find('#listSort').prop('disabled', true);
+    }
+};
+
+// 프로그램 자동그룹 선택
+$('#programModal #autoGroupType').on('change',function(){
+	setProgramAutoGroupType($(this).val());
+});
+let setProgramAutoGroupType = (autoGroupType)=>{
+	var modal = $('#programModal');
+	modal.find('.areas').hide();
+	if(autoGroupType == "broadcastType"){
+		modal.find('.broadcastTypeArea').show();
+	}else if(autoGroupType == "vodChannel"){
+		modal.find('.broadcastTypeArea').show();
+	}else if(autoGroupType=="syncBox"){
+		modal.find('.syncBoxArea').show();
+	// }else if(autoGroupType=="programId"){
+	}else{
+		modal.find('.broadcastTypeArea').show();
+	}
+}
+
+// [event] 박스연동 면 선택
+$("#programModal #syncLayoutId").on('change',function(e){
+	let modal = $(this).closest('article');
+	modal.find('#syncBoxId').html(getSelectBoxId($(this).val(), 'program', modal.find('#objId').val()));
+});
+
+// skin 선택시 처리
+$("#programModal #pcSkin").on('change',function(e){
+	var modal = $('#programModal');
+	setPreview(modal);
+	if($(this).val()){
+		var json = modal.find('#pcSkin option:selected').data('json');
+		modal.find('#showArticleCountPC').val(json.articleCount);
+		modal.find('#thumbWidthPC').val(json.thumbnail.pc.width);
+		modal.find('#thumbHeightPC').val(json.thumbnail.pc.height);
+		modal.find('#contentCutNumPC').val(json.contentCutNum);
+		if(json.showThumbnail == 'Y'){
+			modal.find('#showThumbPC').prop('checked',json.showThumbnail=='Y'?true:false);
+		}
+	}
+});
+$("#programModal #mobileSkin").on('change',function(e){
+	var modal = $('#programModal');
+	setPreview(modal);
+	if($(this).val()){
+		var json = modal.find('#mobileSkin option:selected').data('json');
+		modal.find('#showArticleCountMobile').val(json.articleCount);
+		modal.find('#thumbWidthMobile').val(json.thumbnail.mobile.width);
+		modal.find('#thumbHeightMobile').val(json.thumbnail.mobile.height);
+		modal.find('#contentCutNumMobile').val(json.contentCutNum);
+		if(json.showThumbnail == 'Y'){
+			modal.find('#showThumbMobile').prop('checked',json.showThumbnail=='Y'?true:false);
+		}
+	}
+});
+</script>

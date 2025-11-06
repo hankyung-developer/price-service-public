@@ -1,0 +1,52 @@
+<dialog id="artDiffModal">
+    <article class="card" style="overflow-y: auto;">
+        <header>
+            <a href="#close" aria-label="Close" class="close" data-target="artDiffModal" onclick="toggleModal(event)"></a>
+            <h6>기사비교</h6>
+        </header>
+        <div class="grid">
+            <label for="text1">현재기사<textarea id="text1" style="width: 100%;" rows="15">{=strip_tags(result.article.content)}</textarea></label>
+            <label for="text2">비교기사<textarea id="text2" style="width: 100%;" rows="15"></textarea></label>
+        </div>
+        <div id="outputdiv" class="scroll-box scroll-box-lg"></div>
+        <footer class="flex justify-end">
+            <button type="button" class="btn btn-md" data-target="artDiffModal" onclick="toggleModal(event)">닫기</button>
+        </footer>
+    </article>
+</dialog>    
+<script src="/js/diff_match_patch.js"></script>
+<script>
+    /********************************************************************************
+    * 히스토리
+    */
+    var dmp = new diff_match_patch();
+
+    function launch() {
+        var text1 = document.getElementById('text2').value;
+        var text2 = document.getElementById('text1').value;
+        dmp.Diff_Timeout = 2;
+        dmp.Diff_EditCost = 4;
+
+        var ms_start = (new Date()).getTime();
+        var d = dmp.diff_main(text1, text2);
+        var ms_end = (new Date()).getTime();
+        dmp.diff_cleanupSemantic(d);
+        dmp.diff_cleanupEfficiency(d);
+
+        var ds = dmp.diff_prettyHtml(d);
+        document.getElementById('outputdiv').innerHTML = ds.replaceAll('&para;','');
+    }
+
+    function diff(historyId){
+        $('#outputdiv').html('');
+        $('#text2').html($('#diffcontent_'+historyId).data('content'));
+
+        launch();    
+    }
+
+    function restore(historyId, lang){
+        if(confirm("정말 복구하시겠습니까??")){
+            tinymce.get('content').setContent($('#restorecontent_'+historyId).data('content'));
+        }
+    }
+</script>

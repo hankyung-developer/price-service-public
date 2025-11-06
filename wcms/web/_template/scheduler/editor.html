@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- datetimepicker -->
+    <link rel="stylesheet" href="/lib/tempusdominus-bootstrap/tempusdominus-bootstrap-4.min.css" />
+    <script type="text/javascript" src="/lib/tempusdominus-bootstrap/tempusdominus-bootstrap-4.min.js"></script>
+    <script src='/lib/locale/ko.js'></script>
+    
+    <style>
+        .schedule-options {margin-top: 10px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9;}
+        .schedule-options.hidden {display: none;}
+        .time-picker {display: inline-block; margin-right: 10px;}
+        .day-selector {margin-top: 10px;}
+        .day-selector label {display: inline-block; margin-right: 15px;}
+        .month-selector {margin-top: 10px;}
+        .month-selector select {margin-right: 10px;}
+        .quarter-selector {margin-top: 10px;}
+        .quarter-selector select {margin-right: 10px;}
+        .year-selector {margin-top: 10px;}
+        .year-selector select {margin-right: 10px;}
+        .form-group {margin-bottom: 15px;}
+        .form-group label {display: block; margin-bottom: 5px; font-weight: bold;}
+        .form-group input, .form-group select, .form-group textarea {width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;}
+        .btn-group {margin-top: 20px;}
+        .btn-group button {margin-right: 10px;}
+    </style>
+</head>
+<body>
+
+    {# header}
+    {# left}
+
+    <main class="container">
+        <div role="document">
+            <div role="heading" aria-level="1">
+                <span>{? result.info.id}스케줄러 수정{:}스케줄러 등록{/}</span> 
+                <a role="button" class="btn btn-lg" href="/scheduler/list" title="목록으로 돌아가기">
+                    <span>목록</span><i class="fa-light fa-list"></i>
+                </a>
+            </div>
+            
+            <form id="schedulerForm" method="post" action="/scheduler/save">
+                <input type="hidden" id="id" name="id" value="{? result.info.id}{result.info.id}{/}">
+                <input type="hidden" id="coId" name="coId" value="{_SESSION.coId}">
+
+                <section class="form-section">
+                    <div class="form-group">
+                        <label for="name">스케줄러명 *</label>
+                        <input type="text" id="name" name="name" value="{? result.info.name}{result.info.name}{/}" 
+                               placeholder="스케줄러 이름을 입력하세요" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">설명</label>
+                        <textarea id="description" name="description" rows="3" 
+                                  placeholder="스케줄러에 대한 설명을 입력하세요">{? result.info.description}{result.info.description}{/}</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="type">스케줄 타입 *</label>
+                        <select id="type" name="type" required>
+                            <option value="">스케줄 타입을 선택하세요</option>
+                            <option value="daily" {? result.info.type == 'daily'}selected{/}>일간</option>
+                            <option value="weekly" {? result.info.type == 'weekly'}selected{/}>주간</option>
+                            <option value="monthly" {? result.info.type == 'monthly'}selected{/}>월간</option>
+                            <option value="quarterly" {? result.info.type == 'quarterly'}selected{/}>분기</option>
+                            <option value="yearly" {? result.info.type == 'yearly'}selected{/}>년간</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="status">상태</label>
+                        <select id="status" name="status">
+                            <option value="active" {? result.info.status == 'active'}selected{/}>활성</option>
+                            <option value="inactive" {? result.info.status == 'inactive'}selected{/}>비활성</option>
+                            <option value="pending" {? result.info.status == 'pending'}selected{/}>대기</option>
+                        </select>
+                    </div>
+
+                    <!-- 스케줄 옵션 영역 -->
+                    <div id="scheduleOptions" class="schedule-options hidden">
+                        <!-- 일간 스케줄 옵션 -->
+                        <div id="dailyOptions" class="schedule-type-options hidden">
+                            <h4>일간 스케줄 설정</h4>
+                            <div class="time-picker">
+                                <label for="dailyTime">실행 시간:</label>
+                                <input type="time" id="dailyTime" name="dailyTime" 
+                                       value="{? result.info.dailyTime}{result.info.dailyTime}{:}09:00{/}">
+                            </div>
+                        </div>
+
+                        <!-- 주간 스케줄 옵션 -->
+                        <div id="weeklyOptions" class="schedule-type-options hidden">
+                            <h4>주간 스케줄 설정</h4>
+                            <div class="time-picker">
+                                <label for="weeklyTime">실행 시간:</label>
+                                <input type="time" id="weeklyTime" name="weeklyTime" 
+                                       value="{? result.info.weeklyTime}{result.info.weeklyTime}{:}09:00{/}">
+                            </div>
+                            <div class="day-selector">
+                                <label>실행 요일:</label><br>
+                                <label><input type="checkbox" name="weeklyDays[]" value="1" {? result.info.weeklyDays && result.info.weeklyDays.includes('1')}checked{/}> 월요일</label>
+                                <label><input type="checkbox" name="weeklyDays[]" value="2" {? result.info.weeklyDays && result.info.weeklyDays.includes('2')}checked{/}> 화요일</label>
+                                <label><input type="checkbox" name="weeklyDays[]" value="3" {? result.info.weeklyDays && result.info.weeklyDays.includes('3')}checked{/}> 수요일</label>
+                                <label><input type="checkbox" name="weeklyDays[]" value="4" {? result.info.weeklyDays && result.info.weeklyDays.includes('4')}checked{/}> 목요일</label>
+                                <label><input type="checkbox" name="weeklyDays[]" value="5" {? result.info.weeklyDays && result.info.weeklyDays.includes('5')}checked{/}> 금요일</label>
+                                <label><input type="checkbox" name="weeklyDays[]" value="6" {? result.info.weeklyDays && result.info.weeklyDays.includes('6')}checked{/}> 토요일</label>
+                                <label><input type="checkbox" name="weeklyDays[]" value="0" {? result.info.weeklyDays && result.info.weeklyDays.includes('0')}checked{/}> 일요일</label>
+                            </div>
+                        </div>
+
+                        <!-- 월간 스케줄 옵션 -->
+                        <div id="monthlyOptions" class="schedule-type-options hidden">
+                            <h4>월간 스케줄 설정</h4>
+                            <div class="time-picker">
+                                <label for="monthlyTime">실행 시간:</label>
+                                <input type="time" id="monthlyTime" name="monthlyTime" 
+                                       value="{? result.info.monthlyTime}{result.info.monthlyTime}{:}09:00{/}">
+                            </div>
+                            <div class="month-selector">
+                                <label for="monthlyDay">실행 일자:</label>
+                                <select id="monthlyDay" name="monthlyDay">
+                                    {# 1일부터 31일까지 옵션 생성}
+                                    {@ Array.from({length: 31}, (_, i) => i + 1)}
+                                    <option value="{.}" {? result.info.monthlyDay == .}selected{/}>{.}일</option>
+                                    {/}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 분기 스케줄 옵션 -->
+                        <div id="quarterlyOptions" class="schedule-type-options hidden">
+                            <h4>분기 스케줄 설정</h4>
+                            <div class="time-picker">
+                                <label for="quarterlyTime">실행 시간:</label>
+                                <input type="time" id="quarterlyTime" name="quarterlyTime" 
+                                       value="{? result.info.quarterlyTime}{result.info.quarterlyTime}{:}09:00{/}">
+                            </div>
+                            <div class="quarter-selector">
+                                <label for="quarterlyMonth">실행 월:</label>
+                                <select id="quarterlyMonth" name="quarterlyMonth">
+                                    <option value="1" {? result.info.quarterlyMonth == '1'}selected{/}>1월 (1분기)</option>
+                                    <option value="4" {? result.info.quarterlyMonth == '4'}selected{/}>4월 (2분기)</option>
+                                    <option value="7" {? result.info.quarterlyMonth == '7'}selected{/}>7월 (3분기)</option>
+                                    <option value="10" {? result.info.quarterlyMonth == '10'}selected{/}>10월 (4분기)</option>
+                                </select>
+                                <label for="quarterlyDay">실행 일자:</label>
+                                <select id="quarterlyDay" name="quarterlyDay">
+                                    {# 1일부터 31일까지 옵션 생성}
+                                    {@ Array.from({length: 31}, (_, i) => i + 1)}
+                                    <option value="{.}" {? result.info.quarterlyDay == .}selected{/}>{.}일</option>
+                                    {/}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 년간 스케줄 옵션 -->
+                        <div id="yearlyOptions" class="schedule-type-options hidden">
+                            <h4>년간 스케줄 설정</h4>
+                            <div class="time-picker">
+                                <label for="yearlyTime">실행 시간:</label>
+                                <input type="time" id="yearlyTime" name="yearlyTime" 
+                                       value="{? result.info.yearlyTime}{result.info.yearlyTime}{:}09:00{/}">
+                            </div>
+                            <div class="year-selector">
+                                <label for="yearlyMonth">실행 월:</label>
+                                <select id="yearlyMonth" name="yearlyMonth">
+                                    {@ Array.from({length: 12}, (_, i) => i + 1)}
+                                    <option value="{.}" {? result.info.yearlyMonth == .}selected{/}>{.}월</option>
+                                    {/}
+                                </select>
+                                <label for="yearlyDay">실행 일자:</label>
+                                <select id="yearlyDay" name="yearlyDay">
+                                    {# 1일부터 31일까지 옵션 생성}
+                                    {@ Array.from({length: 31}, (_, i) => i + 1)}
+                                    <option value="{.}" {? result.info.yearlyDay == .}selected{/}>{.}일</option>
+                                    {/}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="command">실행 명령 *</label>
+                        <textarea id="command" name="command" rows="5" 
+                                  placeholder="실행할 명령어나 스크립트를 입력하세요" required>{? result.info.command}{result.info.command}{/}</textarea>
+                        <small>예: php /path/to/script.php, curl http://example.com/api, /usr/bin/python3 /path/to/script.py</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="workingDirectory">작업 디렉토리</label>
+                        <input type="text" id="workingDirectory" name="workingDirectory" 
+                               value="{? result.info.workingDirectory}{result.info.workingDirectory}{/}" 
+                               placeholder="/path/to/working/directory">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="environment">환경 변수</label>
+                        <textarea id="environment" name="environment" rows="3" 
+                                  placeholder="환경 변수를 KEY=VALUE 형식으로 입력하세요">{? result.info.environment}{result.info.environment}{/}</textarea>
+                        <small>예: NODE_ENV=production, DB_HOST=localhost</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="timeout">타임아웃 (초)</label>
+                        <input type="number" id="timeout" name="timeout" min="1" max="3600" 
+                               value="{? result.info.timeout}{result.info.timeout}{:}300{/}" 
+                               placeholder="300">
+                        <small>기본값: 300초 (5분)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="retryCount">재시도 횟수</label>
+                        <input type="number" id="retryCount" name="retryCount" min="0" max="10" 
+                               value="{? result.info.retryCount}{result.info.retryCount}{:}0{/}" 
+                               placeholder="0">
+                        <small>실패 시 재시도할 횟수 (기본값: 0)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="retryDelay">재시도 간격 (초)</label>
+                        <input type="number" id="retryDelay" name="retryDelay" min="1" max="3600" 
+                               value="{? result.info.retryDelay}{result.info.retryDelay}{:}60{/}" 
+                               placeholder="60">
+                        <small>재시도 간격 (기본값: 60초)</small>
+                    </div>
+                </section>
+
+                <div class="btn-group">
+                    <button type="submit" class="btn btn-primary">저장</button>
+                    <button type="button" class="btn" onclick="location.href='/scheduler/list'">취소</button>
+                    {? result.info.id}
+                    <button type="button" class="btn btn-warning" onclick="testScheduler()">테스트 실행</button>
+                    {/}
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        $(document).ready(function() {
+            // 스케줄 타입 변경 시 옵션 표시/숨김
+            $('#type').change(function() {
+                var selectedType = $(this).val();
+                
+                // 모든 옵션 숨김
+                $('.schedule-type-options').addClass('hidden');
+                $('#scheduleOptions').addClass('hidden');
+                
+                if (selectedType) {
+                    $('#scheduleOptions').removeClass('hidden');
+                    $('#' + selectedType + 'Options').removeClass('hidden');
+                }
+            });
+
+            // 페이지 로드 시 현재 선택된 타입에 따라 옵션 표시
+            var currentType = $('#type').val();
+            if (currentType) {
+                $('#type').trigger('change');
+            }
+
+            // 폼 제출 전 유효성 검사
+            $('#schedulerForm').submit(function(e) {
+                var type = $('#type').val();
+                var command = $('#command').val().trim();
+                
+                if (!type) {
+                    alert('스케줄 타입을 선택해주세요.');
+                    e.preventDefault();
+                    return false;
+                }
+                
+                if (!command) {
+                    alert('실행 명령을 입력해주세요.');
+                    e.preventDefault();
+                    return false;
+                }
+
+                // 주간 스케줄의 경우 요일 선택 확인
+                if (type === 'weekly') {
+                    var selectedDays = $('input[name="weeklyDays[]"]:checked');
+                    if (selectedDays.length === 0) {
+                        alert('주간 스케줄의 경우 최소 하나의 요일을 선택해주세요.');
+                        e.preventDefault();
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+        });
+
+        function testScheduler() {
+            var id = $('#id').val();
+            if (!id) {
+                alert('저장 후 테스트를 실행할 수 있습니다.');
+                return;
+            }
+
+            if (confirm('스케줄러를 테스트 실행하시겠습니까?')) {
+                $.ajax({
+                    url: '/scheduler/test',
+                    type: 'POST',
+                    data: {id: id},
+                    success: function(response) {
+                        if (response.success) {
+                            alert('테스트 실행이 완료되었습니다.\n결과: ' + response.message);
+                        } else {
+                            alert('테스트 실행 중 오류가 발생했습니다.\n오류: ' + response.message);
+                        }
+                    },
+                    error: function() {
+                        alert('테스트 실행 중 오류가 발생했습니다.');
+                    }
+                });
+            }
+        }
+    </script>
+
+</body>
+</html> 

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}
+</head>
+<body>
+    {# left}
+    {# header}
+	<style>
+		#subTitle {
+			resize: vertical;
+			min-height: 2.5em;
+		}
+	</style>
+    <main class="container">
+        <div role="document">
+			<div role="heading">AI 템플릿</div>
+			<section>
+				<input type="hidden" name="referer" id="referer" value="{ _SERVER['HTTP_REFERER']}"/>
+				<form id="inputForm" method="post" role="form" class="spacing">
+					<input type="hidden" id="coId" name="coId" value="{? result.item.coId}{result.item.coId}{:}{_SESSION.coId}{/}">
+                    <input type="hidden" name="idx" value="{? result.item.idx}{result.item.idx}{:}{/}">
+					<input type="hidden" name="action" value="{? result.item.id}update{:}insert{/}">
+					<div class="grid">
+						<label for="title">
+                            템플릿 명칭<span class="red">*</span>
+                            <input type="text" placeholder="템플릿 명칭을 입력하세요" name="subject" id="subject" autocomplete="off" maxlength="60" value="{? !empty(result.item.subject)}{result.item.subject}{/}">
+							<span id="idResult"></span>
+						</label>
+					</div>
+					<div class="grid">
+						<label for="isUse">
+                            사용여부 
+                            <select id="isUse" name="isUse">
+                                <option value="Y" selected="selected">사용</option>
+								<option value="N">미사용</option>
+                            </select>
+                        </label>
+					</div>
+					<div class="grid">
+						<label for="content">
+                            기사제목 <span class="red">*</span>
+                            <input type="text" placeholder="기사제목을 입력하세요" name="title" id="title" autocomplete="off" maxlength="60" value="{? !empty(result.item.title)}{result.item.title}{/}">
+							<span id="idResult"></span>
+						</label>
+					</div>
+					<div class="grid">
+						<label for="content">
+                            기사부제목 <span class="red">*</span>
+							<textarea name="subTitle" id="subTitle" placeholder="기사부제목을 입력하세요" rows="2">{? !empty(result.item.subTitle)}{result.item.subTitle}{/}</textarea>
+							<span id="idResult"></span>
+						</label>
+					</div>
+					<div class="grid">
+						<label for="content">
+                            내용 <span class="red">*</span>
+                            <textarea name="content" id="content" placeholder="내용을 입력하세요" rows="10">{? !empty(result.item.content)}{result.item.content}{/}</textarea>
+							<span id="idResult"></span>
+						</label>
+					</div>
+				</form>
+				<div class="flex justify-center">
+					<button type="button" class="btn btn-md" id="saveBtn">템플릿 저장</button>
+					<button type="button" class="btn btn-md" id="listBtn">목록</button>
+				</div>
+			</section>
+		</div>
+	</main>
+
+<script type="text/javascript">
+{? empty(_GET['idx'])}
+	var action='Insert';
+{:}
+	var action='Modify';
+	$("#saveBtn").text('템플릿 수정');
+{/}
+
+$("#saveBtn").click(function (){
+    if($('#title').val()==''){
+        alert('Please enter the API Title');
+        $('#title').focus();
+        return;
+    }
+    if($('#content').val()==''){
+        alert('Please enter the Provider');
+        $('#content').focus();
+        return;
+    }
+
+    $.ajax({
+        url: '/aiSetting/template'+action+'/ajax',
+        method : 'POST',
+        data : $('#inputForm').serialize()
+    }).done(function() {
+		alert('저장되었습니다.');
+		goList();
+    });
+});
+
+$("#listBtn").click(()=>{
+	goList();
+});
+
+// 리스트 함수
+let goList = ()=>{
+	location.href = '/aiSetting/templateList';
+}
+</script>
+</body>
+</html>

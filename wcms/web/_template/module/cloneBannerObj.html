@@ -1,0 +1,110 @@
+<style>
+    .card.bannerObj {padding: 0.4rem 0.5rem;margin-bottom: 0.5rem;overflow: unset;}
+    .bannerObj .imgArea {position: relative;width: 100%;height: fit-content;min-width: 200px;min-height: 92px;display: inline-flex;align-items: center;justify-content: center;overflow: hidden;border-radius: var(--border-radius);border: none;}
+    .bannerObj .imgArea img {width: auto;height: auto;max-width: 100%;max-height: 100%;object-fit:contain;}
+    .bannerObj .imgArea .textArea {line-height: normal;background-color: #0006;padding: 0.3rem;position: absolute;width: 100%;;bottom: 0;color:#FFF !important;}
+    .bannerObj .textArea .title {font-size: var(--font-size-xs);word-wrap: break-word;word-break: break-all;}
+    .bannerObj .textArea .date {font-size: var(--font-size-xs)}
+    .bannerObj .infoArea {display: flex;align-items: center;line-height: normal;margin-top: 0.2rem;}
+    .bannerObj .infoArea span {margin-right: 0.3rem;line-height: normal;display: flex;align-items: center;justify-content: center;}
+    .bannerObj .infoArea span:last-child {margin-right: 0;}
+</style>
+<!-- cloneBannerObj -->
+<div class="cloneBannerObj" style="display: none;">
+    <article class="bannerObj card panel" data-bnid="">
+        <div class="imgArea thumb">
+            <img src="/img/videoDefault.png" alt="Image">
+            <div class="text-center codeType" style="display: none;min-height: 80px;"><i class="fa-regular fa-rectangle-code fa-lg" aria-hidden="true"></i> 코드형 배너</div>
+            <div class="textArea">
+                <div>
+                    <span class="title">배너제목</span>
+                    <span class="date" data-tooltip="게재기간" data-placement="top">( 2024-01-01 ~ 2024-01-31 )</span>
+                </div>
+                <div class="infoArea">
+                    <!-- 진행전 : bg-black, 진행중 : bg-pink, 종료 : bg-purple -->
+                    <span class="status" style="white-space: nowrap;" data-progress="" data-tooltip="상태" data-placement="top">상태</span>
+                    <span class="status bg-black" data-type="pc" style="white-space: nowrap;" data-tooltip="노출기기:PC" data-placement="top">PC</span>
+                    <span class="status bg-black" data-type="mobile" style="white-space: nowrap;" data-tooltip="노출기기:MOBILE" data-placement="top">MOBILE</span>
+                </div>
+            </div>
+        </div>
+    </article>
+</div>
+<!--// cloneBannerObj -->
+
+<script>
+    /*******************************************************************************
+	 * 배너 리스트
+	 */
+	$("[data-list='#bannerList']").click(function(){
+		getBannerList();
+	});
+
+	// keyword enter 처리
+	$("#bannerKeyword").keypress(function( event ) {
+		if ( event.which == 13 ) {
+			getBannerList();
+		}
+	});
+    
+	$("#device").change(function() {
+		getBannerList();
+	});
+
+    $("#serviceType").change(function() {
+		getBannerList();
+	});
+
+	$("#btn_bannerSearch").click(function () {
+		getBannerList();
+	});
+	
+	let getBannerList = (page)=>{
+		let searchItem="title";
+		if(page==undefined){
+			page=1;
+		}
+		var params = {
+			page: page,
+			noapp: 14,
+			pageNavCnt: 5,
+			returnType: 'ajax',
+			device: $("#device").val(),
+			serviceType: $("#serviceType").val(),
+			searchItem: 'title',
+			searchText: $("#bannerKeyword").val(),
+		};
+		$.ajax({
+			url: '/banner/list/ajax',
+			type: 'GET',
+			data: params,
+			dataType: "json",
+			beforeSend: function(){
+				$("#bannerList #searchList").empty();
+				$("#bannerList #pageNavigation").empty();
+			},
+			success: function (data) {
+				if (!!data?.result?.items && data.result.items.length > 0) {
+                    var cloneBannerObj = '';
+					$(data.result.items).each(function (i, obj) {
+						let html = getHtmlManualBox(obj, 'banner');
+						if (!!html) {
+							$("#bannerList #searchList").append(html);
+						}
+					});
+				} else {
+					$("#bannerList #searchList").append('검색 결과가 없습니다.');
+				}
+
+				$("#bannerList #pageNavigation").append(getPageNavHtml('getBannerList',data.result.page));
+			},
+			error: function (){
+				$("#bannerList #searchList").empty().append('검색 오류가 발생하였습니다.');
+			},
+			complete : function(){
+				$('#bannerList #searchList').scrollTop(0);
+			}
+		});
+	}
+	
+</script>

@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}
+
+    <link href="/lib/datatables/jquery.dataTables.css" rel="stylesheet">
+    <script src="/lib/datatables/jquery.dataTables.js"></script>
+    <script src="/lib/datatables-responsive/dataTables.responsive.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.15.6/xlsx.full.min.js"></script>
+    <style>
+        #content img{max-height:900px;max-width:900px;}
+        @media screen and (max-width: 992px){
+            #content img{max-height:auto;max-width:100%;}
+        }
+        .loading-bar {position: fixed;z-index: 2000;top: 0;left: 0;width: 100%;height: 100%;display: flex;align-items: center;justify-content: center;background-color: #0002;}
+        .loading-bar img {width: fit-content;height: fit-content;}
+        #spamModal .select2-results__option {text-align: left !important;}
+    </style>
+</head>
+<body>
+    
+    {# header}
+    {# left}
+    
+    <main class="container">
+        <div role="document">
+            <div role="heading">{? result.info.program.name}{result.info.program.name} - {/}{result.info.name}</div>
+            <div class="grid grid2-1">
+                <!-- <section>
+                </section>     -->
+                <div class="view">
+                    <article class="card">
+                        <header>
+                            {? !empty(result.pItem)}
+                            <small>{? result.pItem.isSecret=="on"}<i class="fa fa-lock"></i>{/} [RE] {result.pItem.title} </small>
+                            <small>(작성자 : {? !empty(result.pItem.insert.memberName)}{result.pItem.insert.memberName}{:}{result.pItem.insert.managerName}{/} / {result.pItem.insert.date})</small>
+                            {/}
+                            <h6>
+                                {? result.item.isNotice=="1"}[공지]{/} 
+                                {? result.item.isSecret=="on"}<i class="fa fa-lock"></i>{/} 
+                                {? result.item.delete.is}<del>{/}{result.item.title}{? result.item.delete.is}</del>{/}
+                            </h6>
+                        </header>
+                        <div id="content" name="content" class="content spacing">{=nl2br(result.item.content)}</div>
+                    </article>
+                    <!-- 추가 필드 영역 -->
+                    {? !empty(result.info.field)}
+                    <article class="card">
+                        <div class="fieldView spacing">
+                            {@ result.info.field}
+                                {? .inputType == 'text'}
+                                <label for="field_{.id}">
+                                    <small>{.name}{? .required=='Y'} *{/}</small>
+                                    <input type="text" id="field_{.id}" name="field[{.id}]"  value="{result.item.field[.id]}" disabled>
+                                </label>
+                                {: .inputType == 'date'}
+                                <label for="field_{.id}">
+                                    <small>{.name}{? .required=='Y'} *{/}</small>
+                                    <input type="text" id="field_{.id}" name="field[{.id}]" value="{result.item.field[.id]}" disabled>
+                                </label>
+                                {: .inputType == 'checkbox'}
+                                <label for="field_{.id}">
+                                    <input type="checkbox" id="field_{.id}" name="field[{.id}]" value="1" {? result.item.field[.id]}checked{/} disabled> 
+                                    <small>{.name}{? .required=='Y'} *{/}</small>
+                                </label>
+                                {: .inputType == 'radio'}
+                                    {? .codeType == 'category'}
+                                    <label>
+                                        <small>{.name}{? .required=='Y'} *{/}</small>
+                                        <div class="flex">
+                                            {@ result.category}
+                                            <label for="{..id}">
+                                                <input type="radio" name="field[{.id}]" id="{..id}" value="{..id}" {? ..id == result.item.field[.id]}checked{/} disabled><small>{..name}</small>
+                                            </label>
+                                            {/}
+                                        </div>
+                                    </label>
+                                    {: .codeType == 'department'}
+                                    <label>
+                                        <small>{.name}{? .required=='Y'} *{/}</small>
+                                        <div class="flex">
+                                            {@ result.department}
+                                            <label for="{..id}">
+                                                <input type="radio" name="field[{.id}]" id="{..id}" value="{..id}" {? ..id == result.item.field[.id]}checked{/} disabled><small>{..name}</small>
+                                            </label>
+                                            {/}
+                                        </div>
+                                    </label>
+                                    {:}
+                                    <label>
+                                        <small>{.name}{? .required=='Y'} *{/}</small>
+                                        <div class="flex">
+                                            {@ result.boardCode[.codeType].item}
+                                            <label for="{..id}">
+                                                <input type="radio" name="field[{.id}]" id="{..id}" value="{..value_.value}" {? ..value_.value == result.item.field[.id]}checked{/} disabled><small>{..value_.name}</small>
+                                            </label>
+                                            {/}
+                                        </div>
+                                    </label>
+                                    {/}
+                                {: .inputType == 'select'}
+                                <label>
+                                    <small>{.name}{? .required=='Y'} *{/}</small>
+                                    <select id="{.id}" name="field[{.id}]" class="select2" disabled style="width: 100%;">
+                                        <option>{.name} 선택</option>
+                                        {? .codeType == 'category'}
+                                            {@ result.category}
+                                            <option value="{..id}" {? ..id == result.item.field[.id]}selected{/}>{? ..depth == 2}&nbsp;&nbsp;{: ..depth == 3}&nbsp;&nbsp;&nbsp;&nbsp;{/}{..name}</option>
+                                            {/}
+                                        {: .codeType == 'department'}
+                                            {@ result.department}
+                                            <option value="{..id}" {? ..id == result.item.field[.id]}selected{/}>{? ..depth == 2}&nbsp;&nbsp;{: ..depth == 3}&nbsp;&nbsp;&nbsp;&nbsp;{/}{..name}</option>
+                                            {/}
+                                        {:}
+                                            {@ result.boardCode[.codeType].item}
+                                            <option value="{..value_.value}" data-val="{result.item.field[.id]}" data-val2="{ ..value_.value}" {? result.item.field[.id] == ..value_.value}selected{/}>{..value_.name}</option>
+                                            {/}
+                                        {/}
+                                    </select>
+                                </label>
+                                {/}
+                            {/}
+                        </div>
+                    </article>
+                    {/}
+                    <!--// 추가 필드 영역 -->
+                    <!-- 댓글 comment-->
+                    {? result.info.useComment}
+                    <article class="card">
+                    <details open>
+                        <summary class="secondary">댓글({result.item.comment.totalCount})</summary>
+                        <form id="commentForm">
+                            <label for="comment">댓글 입력
+                                <div class="flex column align-end nowrap mr-0">
+                                    <input type="hidden" id="managerId" name="managerId" value="{? !empty(_SESSION.managerId)}{_SESSION.managerId}{/}">
+                                    <input type="hidden" name="aid" id="aid" value="{result.item.id}_{result.item.no}">
+                                    <input type="hidden" name="title" value="{result.item.title}">
+                                    <textarea name="comment" id="comment" placeholder="댓글을 입력해주세요." style="margin-bottom: calc(var(--spacing) * 0.5);"></textarea>
+                                    <button type="button" class="btn" id="insertComment">댓글 등록</button>
+                                </div>
+                            </label>
+                        </form>
+                        <div class="list-cont">
+                            <label for="commentList">댓글 목록</label>
+                            <table id="commentList">
+                                <colgroup>
+                                    <col width="15%"><col width="*"><col width="20%"><col width="10%"><col width="10%">
+                                </colgroup>
+                                <thead>
+                                    <tr>
+                                        <th>작성자</th>
+                                        <th>comment</th>
+                                        <th>등록일</th>
+                                        <th>삭제</th>
+                                        <th>수정</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {@ result.item.comment.items}
+                                    <tr id="{.cid};{.aid}">
+                                        <td>
+                                            {? !empty(.managerId)}
+                                                <i class="fa fa-bullhorn"></i><strong> {.nickName}</strong>
+                                            {:}
+                                                {? !empty(.nickName)}{.nickName}{:}{.writeName}{/}
+                                            {/}
+                                        </td>
+                                        <td class="comment-cont" data-comment="{.comment}">{=nl2br(.comment)}</td>
+                                        <td><p>{.writeDate}</p>{? !empty(.update.date)}<p>(수정: {.update.date})</p>{/}</td>
+                                        <td>
+                                            <button type="button" class="btn btn-black btn-sm" id="commentDel"><span>삭제</span></button>
+                                        </td>
+                                        <td>
+                                            {? _SESSION.managerId == .managerId}
+                                            <button type="button" class="btn btn-blue btn-sm" id="commentEdit">수정</button>
+                                            {/}
+                                        </td>
+                                    </tr>
+                                    {/}
+                                </tbody>
+                            </table>
+                        </div>
+                    </details>
+                    </article>
+                    {/}
+                    <!--// 댓글 comment-->
+                </div>
+                
+                <div>
+                    <!-- 게시물 정보 -->
+                    <article class="card">
+                        <header>게시물 정보</header>
+                        {? result.info.wcmsSkin == 'calendar'}
+                        <label>일정 시작일<input type="text" value="{result.item.startDate}" readonly></label>
+                        <label>일정 종료일<input type="text" value="{result.item.endDate}" readonly></label>
+                        {/}
+                        <label>작성자
+                            {? !empty(result.item.insert.memberName)}
+                            <input type="text" value="{result.item.insert.memberName}({result.item.insert.memberId})" readonly>
+                            {: !empty(result.item.insert.managerName)}
+                            <input type="text" value="{result.item.insert.managerName}({result.item.insert.managerId})" readonly>
+                            {:}
+                            <input type="text" value="비회원" readonly>
+                            {/}
+                        </label>
+                        <label>작성일자<input type="text" value="{result.item.insert.date}" readonly></label>
+                        {? !empty(result.item.update.date)}
+                        <label>수정자
+                            {? !empty(result.item.update.memberName)}
+                            <input type="text" value="{result.item.update.memberName}({result.item.update.memberId})" aria-describedby="basic-addon3" readonly>
+                            {:}
+                            <input type="text" value="{result.item.update.managerName}({result.item.update.managerId})" aria-describedby="basic-addon3" readonly>
+                            {/}
+                        </label>
+                        <label>수정일자<input type="text" value="{result.item.update.date}" readonly></label>
+                        {/}
+                        <label>PV<input type="text" value="{result.item.pv}" readonly></label>
+                    </article>
+                    <!--// 게시물 정보 -->
+                    <!-- 첨부파일 -->
+                    <article class="card">
+                        <header>첨부파일</header>
+                        {@ result.item.files}
+                        <a href="/file/download?path={.path}&orgName={.orgName}" style="display: block;">{.orgName}</a>
+                        {/}
+                    </article>
+                    <!--// 첨부파일 -->
+                </div>
+
+            </div>
+
+            <div class="flex justify-center">
+                <button type="button" id="listBtn" class="btn"><span>목록</span><i class="fa-light fa-list"></i></button>
+                {? !result.item.delete.is}
+                    {? result.permission.insert}
+                        {? result.info.useReply}
+                        <button type="button" id="replyBtn" class="btn"><span>답글</span><i class="fa-light fa-reply"></i></button>
+                        {/}
+                    {/}
+                    {? result.permission.update}
+                    <button type="button" id="editBtn" class="btn"><span>수정</span><i class="fa-light fa-pen-to-square"></i></button>
+                    {/}
+                {/}
+                {? result.permission.delete}
+                    {? result.item.delete.is}
+                        <button type="button" id="restoreBtn" class="btn"><span>삭제복구</span><i class="fa-light fa-recycle"></i></button>
+                        <button type="button" id="removeBtn" class="btn btn-red"><span>완전삭제</span><i class="fa-light fa-trash-can"></i></button>
+                    {:}
+                    <button type="button" id="deleteBtn" class="btn btn-black"><span>삭제</span><i class="fa-light fa-trash-can"></i></button>
+                    {/}
+                {/}
+            </div>
+        </div>
+    </main>
+
+    <script type="text/javascript">
+        $(document).ready(function(){
+            $('#commentList').DataTable({
+                searching: false,
+				paging: true,
+				scrollX: false,
+				info: false,  
+                order: [[2,'desc']]
+            })
+
+            // 목록
+            $('#listBtn').on('click', function(){
+                location.href = '/board/list/{_GET.id}{? !empty(_GET.current)}?page={_GET.current}{/}';
+            });
+
+            // 수정
+            {? result.permission.update}
+            $('#editBtn').on('click',function(){
+                location.href = '/board/editor/{_GET.id}?no={_GET.no}&sno={_GET.sno}{? !empty(_GET.current)}&current={_GET.current}{/}';
+            });
+            {/}
+
+            // 답글
+            {? result.permission.insert}
+            $('#replyBtn').on('click',function(){
+                location.href = "/board/editor?id={result.item.id}&pno={result.item.pno}&sno={result.item.no}&depth={result.item.depth + 1}&isSecret={result.item.isSecret}";
+            });
+            {/}
+
+            // 삭제
+            {? result.permission.delete}
+            $('#deleteBtn').on('click', ()=>{
+                var id = $('#id').val();
+                if( confirm('삭제하시겠습니까?') ) {
+                    $.ajax({
+                        url: '/board/delete/ajax',
+                        method : 'post',
+                        dataType: 'json',
+                        data : {id: '{result.item.id}', no: '{result.item.no}'},
+                    }).done((data, textStatus, jqXHR)=>{
+                        alert('삭제가 완료되었습니다.');
+                        location.href = '/board/list?id={_GET.id}';   // 이동 페이지
+                    }).fail((jqXHR, textStatus, errorThrown)=>{
+                        if (!!jqXHR?.responseJSON?.result?.msg) {
+                            alert(jqXHR.responseJSON.result.msg);
+                        } else {
+                            alert(textStatus+' : '+errorThrown);
+                        }
+                    });
+                }
+            });
+
+            $('#removeBtn').on('click', ()=>{
+                var id = $('#id').val();
+                if( confirm('해당 게시글을 완전히 삭제하시겠습니까? 완전히 삭제할 경우 복구할 수 없습니다.') ) {
+                    $.ajax({
+                        url: '/board/remove/ajax',
+                        method : 'post',
+                        dataType: 'json',
+                        data : {id: '{result.item.id}', no: '{result.item.no}'},
+                    }).done(function(data, textStatus, jqXHR) {
+                        if(data.result.msg) {alert(data.result.msg)}
+                        location.href = '/board/list?id={_GET.id}';   // 이동 페이지
+                    }).fail(function(jqXHR, textStatus, errorThrown) {
+                        if (!!jqXHR?.responseJSON?.result?.msg) {
+                            alert(jqXHR.responseJSON.result.msg);
+                        } else {
+                            alert(textStatus+' : '+errorThrown);
+                        }
+                    });
+                }
+            });
+            
+
+            $("#restoreBtn").on('click', ()=>{
+                var id = $('#id').val();
+                if( confirm('복구하시겠습니까?') ) {
+                    $.ajax({
+                        url: '/board/restore/ajax',
+                        method : 'post',
+                        dataType: 'json',
+                        data : {id: '{result.item.id}', no: '{result.item.no}'},
+                    }).done(function(data, textStatus, jqXHR) {
+                        if(data.result.msg) {alert(data.result.msg)}
+                        location.reload();   // 이동 페이지
+                    }).fail(function(jqXHR, textStatus, errorThrown) {
+                        if (!!jqXHR?.responseJSON?.result?.msg) {
+                            alert(jqXHR.responseJSON.result.msg);
+                        } else {
+                            alert(textStatus+' : '+errorThrown);
+                        }
+                    });
+                }
+            });
+            {/}
+        });
+
+            $(document).on('click','.modalClose',function(){
+                location.reload();
+            });
+            
+            function fieldListModal(){
+                $('#fieldHistoryList').modal();
+            }
+
+            // fieldHistory 엑셀파일 생성, 다운로드
+            function excelDownload(){
+                let date = moment().format('YYYYMMDD');
+                let fileName = '{result.info.name}.xlsx';
+                let wb = XLSX.utils.table_to_book(document.getElementById('fieldHistoryList'), {sheet:'{result.info.name}'+ date, raw: true});
+                XLSX.writeFile(wb, fileName);
+            }
+
+        // 댓글 삭제
+        $(document).on('click','#commentDel',function(){
+            var aid = $(this).closest('tr').attr('id');
+            // console.log(aid)
+            commentDelete(aid);
+        });
+
+        // 댓글 삭제
+        function commentDelete(comment){
+            if(confirm('선택한 댓글을 삭제하시겠습니까?') ){
+                $.ajax({
+                    url: '/comment/delete/ajax',
+                    method : 'POST',
+                    dataType: 'json',
+                    data : {commentSelect : comment}
+                }).done((data, textStatus, jqXHR)=>{
+                    if(data.result.msg){alert(data.result.msg)}
+                    location.reload();
+                }).fail((jqXHR, textStatus, errorThrown)=>{
+                    if (!!jqXHR?.responseJSON?.result?.msg) {
+                        alert(jqXHR.responseJSON.result.msg);
+                    } else {
+                        alert("오류가 발생하였습니다.\n관리자에게 문의하세요.");
+                    }
+                });
+            }
+        }
+
+        // 댓글 저장
+        $(document).on('click','#insertComment',function(e){
+            e.preventDefault();
+            var $form = $('#commentForm');
+            if(!$form.find('#managerId').val()){
+                alert('로그인을 해주세요.');
+            }else if(!$.trim($form.find('#comment').val())){
+                alert('댓글을 입력하세요.');
+                $form.find('#comment').focus();
+            }else{
+                $.ajax({
+                    url : '/comment/insert',
+                    data : $form.serialize(),
+                    type : 'post',
+                    dataType : "json",
+                    async : false
+                })
+                .done(function (data, textStatus, errorThrown) {
+                    if(data.result == 'success'){
+                        alert('댓글이 등록되었습니다.');
+                        location.reload();
+                    }else{
+                        alert(data.msg);
+                    }
+                });
+                $('#comment').val('');
+            }
+        });
+
+        // 댓글 수정하기 버튼 클릭
+        $(document).on('click','#commentEdit',function(){
+            var row = $(this).closest('tr');
+            var rowId = row.attr('id').split(';');
+            var cid = rowId[0];
+            var aid = rowId[1];
+            var orgComment = $(row.children('.comment-cont')).data('comment');
+
+            // 1. 댓글 수정 입력폼, 수정완료 버튼 생성
+            var editHtml = '';
+            editHtml += '<form id="editCommentForm" style="min-width:400px;">';
+            editHtml += '   <input type="hidden" id="managerId" name="managerId" value="{? !empty(_SESSION.managerId)}{_SESSION.managerId}{/}">';
+            editHtml += '   <input type="hidden" name="aid" id="aid" value="'+aid+'">';
+            editHtml += '   <input type="hidden" name="cid" id="cid" value="'+cid+'">';
+            editHtml += '   <textarea id="comment" name="comment" style="margin-bottom:0;">'+orgComment+'</textarea>';
+            editHtml += '   <div class="text-right"><button class="btn btn-sm" type="button" id="btnEditComment" style="--bs-bg-opacity: .5;">수정완료</button></div>';
+            editHtml += '</form>';
+            $(row.children('.comment-cont')).html(editHtml);
+            $(this).after('<button class="btn btn-sm btn-blue" type="button" id="editCancel" style="--bs-bg-opacity: .5;">수정취소</button>');
+            $(this).prop('disabled',true);
+        });
+
+        // 댓글 수정완료 처리
+        $(document).on('click','#btnEditComment',function(e){
+            e.preventDefault();
+            var editForm = $(this).closest('#editCommentForm');
+
+            if(!editForm.find('#managerId').val()){
+                console.log(editForm.find('#managerId').val());
+                alert('로그인을 해주세요.');
+            }else if(!$.trim(editForm.find('#comment').val())){
+                alert('댓글을 입력하세요.');
+                editForm.find('#comment').focus();
+            }else{
+                commentEdit(editForm.serialize());
+            }
+        });
+        
+        // 댓글 수정완료 처리
+        function commentEdit(editData){
+            if(confirm('수정한 댓글을 저장하시겠습니까?') ){
+                $.ajax({
+                    url: '/comment/edit/ajax',
+                    method : 'POST',
+                    dataType: 'json',
+                    data : editData
+                }).done((data, textStatus, jqXHR)=>{
+                    if(data.result.msg){alert(data.result.msg)}
+                    location.reload();
+                }).fail((jqXHR, textStatus, errorThrown)=>{
+                    if (!!jqXHR?.responseJSON?.result?.msg) {
+                        alert(jqXHR.responseJSON.result.msg);
+                    } else {
+                        alert("오류가 발생하였습니다.\n관리자에게 문의하세요.");
+                    }
+                });
+            }
+        }
+
+        // 댓글 수정 취소 처리
+        $(document).on('click','#editCancel',function(){
+            if(confirm('댓글 수정을 취소하시겠습니까?')){
+                var row = $(this).closest('tr');
+                var commentCont = $(row.children('.comment-cont'));
+                commentCont.html(commentCont.data('comment'));
+                $(this).siblings('button').prop('disabled',false);
+                $(this).remove();
+            }
+        });
+
+    </script>
+</body>
+</html>
+
+

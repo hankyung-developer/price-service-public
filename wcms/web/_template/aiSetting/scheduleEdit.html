@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}
+    <style>
+        /* 섹션 구분 스타일 */
+        .form-section {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 0 0 20px 0;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #3b82f6;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: #3b82f6;
+            display: inline-block;
+        }
+        
+        /* 버튼 스타일 개선 */
+        .btn-select {
+            padding: 10px 20px;
+            border: 2px solid #3b82f6;
+            background: #fff;
+            color: #3b82f6;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-select:hover {
+            background: #3b82f6;
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
+        }
+        
+        .btn-select.selected {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-select-item {
+            padding: 10px 20px;
+            border: 2px solid #10b981;
+            background: #fff;
+            color: #10b981;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-select-item:hover {
+            background: #10b981;
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);
+        }
+        
+        .btn-select-item.selected {
+            background: #10b981;
+            color: white;
+        }
+        
+        /* 선택 표시 영역 */
+        .selection-display {
+            margin-top: 12px;
+            padding: 12px;
+            background: #f9fafb;
+            border: 1px dashed #d1d5db;
+            border-radius: 6px;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .selection-display.has-value {
+            background: #eff6ff;
+            border-color: #3b82f6;
+            border-style: solid;
+        }
+        
+        .selection-placeholder {
+            color: #9ca3af;
+            font-size: 13px;
+        }
+        
+        /* 스케줄 탭 스타일 */
+        .schedule-tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 2px solid #e5e7eb;
+            margin-bottom: 20px;
+        }
+        
+        .schedule-tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            border: none;
+            background: #f3f4f6;
+            color: #6b7280;
+            font-weight: 500;
+            border-radius: 6px 6px 0 0;
+            transition: all 0.2s ease;
+        }
+        
+        .schedule-tab:hover {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        
+        .schedule-tab.active {
+            background: #fff;
+            color: #3b82f6;
+            box-shadow: 0 -2px 0 #3b82f6 inset;
+        }
+        
+        .schedule-tab-content {
+            display: none;
+            padding: 20px;
+            background: #fff;
+        }
+        
+        .schedule-tab-content.active {
+            display: block;
+        }
+        
+        /* 가격 변동 색상 */
+        .price-up {
+            color: #dc3545;
+        }
+        
+        .price-down {
+            color: #28a745;
+        }
+        
+        .price-same {
+            color: #6c757d;
+        }
+        
+        /* 시간 설정 */
+        .time-range {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .time-range label {
+            margin: 0;
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        .time-range input[type="time"] {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        /* 체크박스 그룹 */
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin-top: 10px;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        
+        .checkbox-item:hover {
+            background: #f3f4f6;
+        }
+        
+        .checkbox-item input[type="checkbox"] {
+            margin: 0;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .checkbox-item label {
+            cursor: pointer;
+            margin: 0;
+        }
+        
+        /* 선택된 항목 표시 */
+        .selected-items {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f3f4f6;
+            border-radius: 6px;
+        }
+        
+        .selected-item {
+            display: inline-block;
+            background: #3b82f6;
+            color: white;
+            padding: 6px 12px;
+            margin: 4px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .selected-item .remove {
+            margin-left: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            opacity: 0.8;
+        }
+        
+        .selected-item .remove:hover {
+            opacity: 1;
+        }
+        
+        /* 스케줄 요약 */
+        .schedule-summary {
+            padding: 12px 16px;
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #1e40af;
+            font-weight: 500;
+            margin-top: 16px;
+        }
+        
+        /* 저장 버튼 영역 */
+        .action-buttons {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 2px solid #e5e7eb;
+        }
+    </style>
+</head>
+<body>
+    {# left}
+    {# header}
+    <main class="container">
+        <div role="document">
+			<div role="heading" aria-level="1">AI 기사 스케줄러 설정</div>
+			<section>
+				<input type="hidden" name="referer" id="referer" value="{ _SERVER['HTTP_REFERER']}"/>
+				<form id="inputForm" method="post" role="form">
+					<input type="hidden" id="coId" name="coId" value="{? result.item.coId}{result.item.coId}{:}{_SESSION.coId}{/}">
+                    <input type="hidden" name="idx" value="{? result.item.idx}{result.item.idx}{:}{/}">
+					<input type="hidden" name="action" value="{? result.item.id}update{:}insert{/}">
+					<input type="hidden" name="scheduleConfig" id="scheduleConfig" value="">
+					
+					<!-- 1. 기본 정보 섹션 -->
+					<div class="form-section">
+						<h3 class="section-title">기본 정보</h3>
+						
+					<div class="grid">
+						<label for="title">
+                            스케줄러 명칭<span class="red">*</span>
+								<input type="text" placeholder="예: 매일 아침 채소류 가격 동향 기사" name="title" id="title" autocomplete="off" maxlength="60" value="{? !empty(result.item.title)}{result.item.title}{/}">
+							<span id="titleResult"></span>
+						</label>
+					</div>
+
+					<div class="grid">
+							<label for="description">
+								설명
+								<textarea name="description" id="description" placeholder="이 스케줄러의 목적과 실행 내용을 간단히 설명해주세요" rows="3">{? !empty(result.item.description)}{result.item.description}{/}</textarea>
+							</label>
+						</div>
+						
+						<div class="grid">
+							<label for="isUse">
+								사용여부
+								<select id="isUse" name="isUse">
+									<option value="Y" {? result.item.isUse != 'N'}selected{/}>사용</option>
+									<option value="N" {? result.item.isUse == 'N'}selected{/}>미사용</option>
+								</select>
+							</label>
+						</div>
+					</div>
+
+					<!-- 3. 데이터 선택 섹션 -->
+					<div class="form-section">
+						<h3 class="section-title">데이터 선택</h3>
+						<p style="color: #6b7280; font-size: 14px; margin-bottom: 20px;">
+							기사에 사용할 데이터 카테고리, 품목, 조회 기간을 선택하세요.
+						</p>
+						
+						<!-- 카테고리 선택 -->
+						<div class="grid" style="margin-bottom: 20px;">
+						<label>
+								데이터 카테고리<span class="red">*</span>
+								<button type="button" class="btn-select {? !empty(result.item.categoryName)}selected{/}" id="selectCategoryBtn">
+									<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+										<path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zM2.5 2a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zM1 10.5A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3z"/>
+									</svg>
+									카테고리 선택
+								</button>
+								<input type="hidden" id="categoryId" name="categoryId" value="{? !empty(result.item.categoryId)}{result.item.categoryId}{/}">
+								<input type="hidden" id="categoryName" name="categoryName" value="{? !empty(result.item.categoryName)}{result.item.categoryName}{/}">
+								<div id="selectedCategoryDisplay" class="selection-display {? !empty(result.item.categoryName)}has-value{/}">
+									{? !empty(result.item.categoryName)}
+									<span class="selected-item">
+										{result.item.categoryName}
+										<span class="remove" onclick="removeCategorySelection()">×</span>
+									</span>
+									{:}
+									<span class="selection-placeholder">카테고리를 선택해주세요</span>
+									{/}
+								</div>
+							</label>
+						</div>
+						
+						<!-- 품목 선택 -->
+						<div class="grid">
+							<label>
+								품목 선택
+								<button type="button" class="btn-select-item {? !empty(result.item.selectedItems)}selected{/}" id="selectItemsBtn">
+									<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+										<path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+										<path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+									</svg>
+									품목 선택
+								</button>
+							<input type="hidden" id="selectedItems" name="selectedItems" value="">
+							<div id="selectedItemsDisplay" class="selection-display">
+								<span class="selection-placeholder">카테고리를 선택하면 품목을 지정할 수 있습니다</span>
+							</div>
+								<div style="margin-top: 8px; font-size: 12px; color: #6b7280; padding: 8px; background: #fef3c7; border-radius: 4px; border-left: 3px solid #f59e0b;">
+									💡 품목을 선택하지 않으면 카테고리 내 변동폭이 큰 상위 품목이 자동으로 선택됩니다
+								</div>
+							</label>
+						</div>
+						
+						<!-- 데이터 조회 기간 -->
+						<div class="grid">
+							<label for="dataPeriod">
+								데이터 조회 기간
+								<select id="dataPeriod" name="dataPeriod">
+									<option value="7" {? result.item.dataPeriod == '7' || empty(result.item.dataPeriod)}selected{/}>1주일 (기본)</option>
+									<option value="30" {? result.item.dataPeriod == '30'}selected{/}>1개월</option>
+									<option value="90" {? result.item.dataPeriod == '90'}selected{/}>3개월</option>
+									<option value="180" {? result.item.dataPeriod == '180'}selected{/}>6개월</option>
+									<option value="365" {? result.item.dataPeriod == '365'}selected{/}>1년</option>
+								</select>
+								<div style="margin-top: 8px; font-size: 12px; color: #6b7280;">
+									📅 선택한 기간의 데이터를 기반으로 AI가 기사를 작성합니다
+								</div>
+							</label>
+						</div>
+					</div>
+
+					<!-- 4. AI 설정 섹션 -->
+					<div class="form-section">
+						<h3 class="section-title">AI 설정</h3>
+						<p style="color: #6b7280; font-size: 14px; margin-bottom: 20px;">
+							AI가 기사를 생성할 때 사용할 템플릿과 프롬프트를 설정하세요.
+						</p>
+						
+						<!-- 기사 템플릿 -->
+						<div class="grid">
+							<label for="templateId">
+								기사 템플릿<span class="red">*</span>
+								<select id="templateId" name="templateId">
+									<option value="">기사 템플릿을 선택하세요</option>
+									{@ result.template}
+									<option value="{.idx}" {? result.item.templateId == .idx}selected{/}>{.subject}</option>
+									{/}
+								</select>
+							</label>
+						</div>
+
+						<!-- 프롬프트 -->
+						<div class="grid">
+							<label for="promptId">
+								프롬프트<span class="red">*</span>
+								<select id="promptId" name="promptId">
+									<option value="">프롬프트를 선택하세요</option>
+									{@ result.prompt}
+									<option value="{.idx}" {? result.item.promptId == .idx}selected{/}>{.title}</option>
+									{/}
+								</select>
+							</label>
+						</div>
+
+						<!-- 이미지/차트 생성 옵션 -->
+						<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+							<div class="grid">
+								<label for="makeImage">
+									이미지 생성
+									<select id="makeImage" name="makeImage">
+										<option value="generate" {? result.item.makeImage == 'generate' || empty(result.item.makeImage)}selected{/}>생성</option>
+										<option value="no-generate" {? result.item.makeImage == 'no-generate'}selected{/}>생성안함</option>
+									</select>
+								</label>
+							</div>
+						</div>
+					</div>
+
+                    <!-- 2. 스케줄 설정 섹션 -->
+					<div class="form-section">
+						<h3 class="section-title">스케줄 설정</h3>						<p style="color: #6b7280; font-size: 14px; margin-bottom: 20px;">
+							기사를 자동으로 생성할 주기와 시간을 설정하세요.
+						</p>
+						
+                            <div class="schedule-tabs">
+                                <div class="schedule-tab active" data-type="daily">일간</div>
+                                <div class="schedule-tab" data-type="weekly">주간</div>
+                                <div class="schedule-tab" data-type="monthly">월간</div>
+                                <div class="schedule-tab" data-type="quarterly">분기</div>
+                                <div class="schedule-tab" data-type="yearly">년간</div>
+                            </div>
+                            
+                            <!-- 일간 탭 -->
+                            <div class="schedule-tab-content active" id="daily-content">
+                                <p>매일 지정된 시간에 1회 실행됩니다.</p>
+                                <div class="time-range">
+                                    <label>실행 시간: <input type="time" name="dailyTime" id="dailyTime" value="{? result.item.scheduleConfig.daily.time}{result.item.scheduleConfig.daily.time}{:}09:00{/}"></label>
+                                </div>
+                                <div class="schedule-summary" id="daily-summary">
+                                    매일 09:00에 실행됩니다.
+                                </div>
+                            </div>
+                            
+                            <!-- 주간 탭 -->
+                            <div class="schedule-tab-content" id="weekly-content">
+                                <p>선택한 요일에 1회 실행됩니다.</p>
+                                <div class="checkbox-group">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="weekly-1" value="1" name="weeklyDays[]">
+                                        <label for="weekly-1">월요일</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="weekly-2" value="2" name="weeklyDays[]">
+                                        <label for="weekly-2">화요일</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="weekly-3" value="3" name="weeklyDays[]">
+                                        <label for="weekly-3">수요일</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="weekly-4" value="4" name="weeklyDays[]">
+                                        <label for="weekly-4">목요일</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="weekly-5" value="5" name="weeklyDays[]">
+                                        <label for="weekly-5">금요일</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="weekly-6" value="6" name="weeklyDays[]">
+                                        <label for="weekly-6">토요일</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="weekly-0" value="0" name="weeklyDays[]">
+                                        <label for="weekly-0">일요일</label>
+                                    </div>
+                                </div>
+                                <div class="time-range" style="margin-top: 20px;">
+                                    <label>실행 시간: <input type="time" name="weeklyTime" id="weeklyTime" value="{? result.item.scheduleConfig.weekly.time}{result.item.scheduleConfig.weekly.time}{:}09:00{/}"></label>
+                                </div>
+                                <div class="selected-items" id="weekly-selected" style="display: none;">
+                                    <strong>선택된 요일:</strong> <span id="weekly-selected-text"></span>
+                                </div>
+                                <div class="schedule-summary" id="weekly-summary">
+                                    선택된 요일 09:00에 실행됩니다.
+                                </div>
+                            </div>
+                            
+                            <!-- 월간 탭 -->
+                            <div class="schedule-tab-content" id="monthly-content">
+                                <p>매월 선택한 일자에 1회 실행됩니다.</p>
+                                <div class="checkbox-group">
+                                    <!-- 1일부터 31일까지 체크박스 생성 -->
+                                </div>
+                                <div class="time-range" style="margin-top: 20px;">
+                                    <label>실행 시간: <input type="time" name="monthlyTime" id="monthlyTime" value="{? result.item.scheduleConfig.monthly.time}{result.item.scheduleConfig.monthly.time}{:}09:00{/}"></label>
+                                </div>
+                                <div class="selected-items" id="monthly-selected" style="display: none;">
+                                    <strong>선택된 일자:</strong> <span id="monthly-selected-text"></span>
+                                </div>
+                                <div class="schedule-summary" id="monthly-summary">
+                                    매월 선택된 일자 09:00에 실행됩니다.
+                                </div>
+                            </div>
+                            
+                            <!-- 분기 탭 -->
+                            <div class="schedule-tab-content" id="quarterly-content">
+                                <p>선택한 분기 첫날에 1회 실행됩니다. (1월1일, 4월1일, 7월1일, 10월1일)</p>
+                                <div class="checkbox-group">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="quarterly-1" value="1" name="quarterlyMonths[]">
+                                        <label for="quarterly-1">1분기 (1월1일)</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="quarterly-2" value="2" name="quarterlyMonths[]">
+                                        <label for="quarterly-2">2분기 (4월1일)</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="quarterly-3" value="3" name="quarterlyMonths[]">
+                                        <label for="quarterly-3">3분기 (7월1일)</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="quarterly-4" value="4" name="quarterlyMonths[]">
+                                        <label for="quarterly-4">4분기 (10월1일)</label>
+                                    </div>
+                                </div>
+                                <div class="time-range" style="margin-top: 20px;">
+                                    <label>실행 시간: <input type="time" name="quarterlyTime" id="quarterlyTime" value="{? result.item.scheduleConfig.quarterly.time}{result.item.scheduleConfig.quarterly.time}{:}09:00{/}"></label>
+                                </div>
+                                <div class="selected-items" id="quarterly-selected" style="display: none;">
+                                    <strong>선택된 분기:</strong> <span id="quarterly-selected-text"></span>
+                                </div>
+                                <div class="schedule-summary" id="quarterly-summary">
+                                    선택된 분기 첫날 09:00에 실행됩니다.
+                                </div>
+                            </div>
+                            
+                            <!-- 년간 탭 -->
+                            <div class="schedule-tab-content" id="yearly-content">
+                                <p>매년 선택한 월 1일에 1회 실행됩니다.</p>
+                                <div class="checkbox-group">
+                                    <!-- 1월부터 12월까지 체크박스 생성 -->
+                                </div>
+                                <div class="time-range" style="margin-top: 20px;">
+                                    <label>실행 시간: <input type="time" name="yearlyTime" id="yearlyTime" value="{? result.item.scheduleConfig.yearly.time}{result.item.scheduleConfig.yearly.time}{:}09:00{/}"></label>
+                                </div>
+                                <div class="selected-items" id="yearly-selected" style="display: none;">
+                                    <strong>선택된 월:</strong> <span id="yearly-selected-text"></span>
+                                </div>
+                                <div class="schedule-summary" id="yearly-summary">
+                                    매년 선택된 월 1일 09:00에 실행됩니다.
+                                </div>
+                            </div>
+					</div>
+				</form>
+
+			<!-- 저장 버튼 영역 -->
+			<div class="action-buttons">
+				<div class="flex justify-center" style="gap: 12px;">
+					<button type="button" class="btn btn-md" id="saveBtn" style="background: #3b82f6; min-width: 150px;">
+						스케줄 저장
+					</button>
+					{? !empty(_GET["idx"])}
+					<button type="button" class="btn btn-md" id="deleteBtn" style="background: #ef4444; min-width: 150px;">
+						삭제
+					</button>
+					{/}
+					<button type="button" class="btn btn-md" id="listBtn" style="background: #6b7280; min-width: 150px;">
+						목록으로
+					</button>
+				</div>
+			</div>
+			</section>
+		</div>
+	</main>
+
+<script type="text/javascript">
+// 전역 변수
+var action = '{? empty(_GET["idx"])}Insert{:}Modify{/}';
+var currentScheduleType = 'daily';
+var selectedItemsData = []; // 선택된 품목 데이터
+var availableItems = []; // 카테고리별 전체 품목 리스트
+
+// PHP에서 전달받은 저장된 품목 데이터 (수정 모드)
+var savedSelectedItems = {? !empty(result.item.selectedItems)}{=json_encode(result.item.selectedItems)}{:}null{/};
+
+// 페이지 로드 시 초기화
+$(document).ready(function() {
+    if(action === 'Modify') {
+        $("#saveBtn").text('스케줄 수정');
+    }
+    
+    // 월간 체크박스 생성
+    generateMonthlyCheckboxes();
+    
+    // 년간 체크박스 생성
+    generateYearlyCheckboxes();
+
+    // 이벤트 바인딩
+    bindEvents();
+    
+    // 카테고리 선택 버튼 이벤트
+    $('#selectCategoryBtn').click(function(){
+        openCategoryPopup();
+    });
+    
+    // 품목 선택 버튼 이벤트
+    $('#selectItemsBtn').click(function(){
+        if(!$('#categoryId').val()){
+            alert('먼저 카테고리를 선택해주세요.');
+            return;
+        }
+        showItemSelectionModal();
+    });
+    
+    // 데이터 기간 선택 변경 이벤트
+    $('#dataPeriod').change(function(){
+        var categoryId = $('#categoryId').val();
+        if(categoryId){
+            // 카테고리가 선택되어 있으면 품목 데이터 다시 가져오기
+            fetchItemsByCategory(categoryId);
+        }
+    });
+    
+    // 팝업에서 카테고리 선택 메시지 수신
+    window.addEventListener('message', function(event) {
+        // 보안: 신뢰할 수 있는 도메인에서 온 메시지인지 확인
+        // 개발 환경에서는 모든 origin 허용, 프로덕션에서는 특정 도메인만 허용
+        // if (event.origin !== "https://datacms.hankyung.com") return;
+        
+        if (event.data.type === 'fromCategory') {
+            // 카테고리 팝업에서 전달받은 데이터
+            var categories = event.data.result;
+            
+            if (categories && categories.length > 0) {
+                // 첫 번째 카테고리만 사용 (스케줄러는 단일 카테고리)
+                var category = categories[0];
+                
+                // selectCategory 함수 호출
+                selectCategory(categories);
+            }
+        }
+    });
+    
+    // 수정 모드일 때 기존 데이터 로드
+    if(action === 'Modify'){
+        loadScheduleData();
+        
+        // 카테고리가 있으면 품목 데이터 로드
+        var categoryId = $('#categoryId').val();
+        var categoryName = $('#categoryName').val();
+        
+        if(categoryId && categoryName){
+            // 카테고리 UI는 이미 HTML 템플릿에서 설정되어 있음
+            // 품목 API 데이터를 가져온 후 저장된 품목 로드
+            fetchItemsByCategory(categoryId, function(){
+                console.log('API 품목 로드 완료, 저장된 품목 표시 시작');
+                loadSelectedItems();
+            });
+        } else {
+            // 카테고리가 없어도 품목 데이터가 있을 수 있으므로 로드 시도
+            loadSelectedItems();
+        }
+    }
+    
+    // 초기 스케줄 요약 업데이트
+    updateScheduleSummary();
+});
+
+// 기존 스케줄 데이터 로드 (수정 모드)
+function loadScheduleData(){
+    var scheduleConfigStr = '{? !empty(result.item.scheduleConfig)}{=json_encode(result.item.scheduleConfig)}{/}';
+    
+    if(!scheduleConfigStr){
+        return;
+    }
+    
+    try {
+        var scheduleConfig = JSON.parse(scheduleConfigStr);
+        
+        if(scheduleConfig.type){
+            currentScheduleType = scheduleConfig.type;
+            switchTab(scheduleConfig.type);
+        }
+        
+        // 주간 요일 체크
+        if(scheduleConfig.weekly && scheduleConfig.weekly.days){
+            scheduleConfig.weekly.days.forEach(function(day){
+                $('#weekly-' + day).prop('checked', true);
+            });
+            updateSelectedDisplay('weekly');
+        }
+        
+        // 월간 일자 체크 (dates로 변경)
+        if(scheduleConfig.monthly && scheduleConfig.monthly.dates){
+            scheduleConfig.monthly.dates.forEach(function(date){
+                $('#monthly-' + date).prop('checked', true);
+            });
+            updateSelectedDisplay('monthly');
+        }
+        
+        // 하위 호환성: 기존 days 형식도 지원 (향후 제거 가능)
+        else if(scheduleConfig.monthly && scheduleConfig.monthly.days){
+            scheduleConfig.monthly.days.forEach(function(day){
+                $('#monthly-' + day).prop('checked', true);
+            });
+            updateSelectedDisplay('monthly');
+        }
+        
+        // 분기 체크
+        if(scheduleConfig.quarterly && scheduleConfig.quarterly.quarters){
+            scheduleConfig.quarterly.quarters.forEach(function(quarter){
+                $('#quarterly-' + quarter).prop('checked', true);
+            });
+            updateSelectedDisplay('quarterly');
+        }
+        
+        // 년간 월 체크
+        if(scheduleConfig.yearly && scheduleConfig.yearly.months){
+            scheduleConfig.yearly.months.forEach(function(month){
+                $('#yearly-' + month).prop('checked', true);
+            });
+            updateSelectedDisplay('yearly');
+        }
+        
+    } catch(e) {
+        console.error('스케줄 설정 로드 오류:', e);
+    }
+}
+
+// 월간 체크박스 생성
+function generateMonthlyCheckboxes() {
+    var container = $('#monthly-content .checkbox-group');
+    container.empty();
+    
+    for(var i = 1; i <= 31; i++) {
+        var item = $('<div class="checkbox-item">' +
+            '<input type="checkbox" id="monthly-' + i + '" value="' + i + '" name="monthlyDays[]">' +
+            '<label for="monthly-' + i + '">' + i + '일</label>' +
+            '</div>');
+        container.append(item);
+    }
+}
+
+// 년간 체크박스 생성
+function generateYearlyCheckboxes() {
+    var container = $('#yearly-content .checkbox-group');
+    container.empty();
+    
+    for(var i = 1; i <= 12; i++) {
+        var item = $('<div class="checkbox-item">' +
+            '<input type="checkbox" id="yearly-' + i + '" value="' + i + '" name="yearlyMonths[]">' +
+            '<label for="yearly-' + i + '">' + i + '월</label>' +
+            '</div>');
+        container.append(item);
+    }
+}
+
+
+// 이벤트 바인딩
+function bindEvents() {
+    // 탭 클릭 이벤트
+    $('.schedule-tab').click(function() {
+        var type = $(this).data('type');
+        switchTab(type);
+    });
+    
+    // 체크박스 변경 이벤트
+    $('input[type="checkbox"]').change(function() {
+        var type = $(this).closest('.schedule-tab-content').attr('id').replace('-content', '');
+        updateSelectedDisplay(type);
+        updateScheduleSummary();
+    });
+    
+    // 시간 변경 이벤트
+    $('input[type="time"]').change(function() {
+        updateScheduleSummary();
+    });
+}
+
+// 탭 전환
+function switchTab(type) {
+    currentScheduleType = type;
+    
+    // 탭 활성화
+    $('.schedule-tab').removeClass('active');
+    $('.schedule-tab[data-type="' + type + '"]').addClass('active');
+    
+    // 컨텐츠 활성화
+    $('.schedule-tab-content').removeClass('active');
+    $('#' + type + '-content').addClass('active');
+    
+    // 스케줄 요약 업데이트
+    updateScheduleSummary();
+}
+
+// 선택된 항목 표시 업데이트
+function updateSelectedDisplay(type) {
+    var selectedItems = [];
+    var container = $('#' + type + '-content');
+    
+    container.find('input[type="checkbox"]:checked').each(function() {
+        var value = $(this).val();
+        var label = $(this).next('label').text();
+        selectedItems.push({value: value, text: label});
+    });
+    
+    var selectedContainer = $('#' + type + '-selected');
+    var selectedText = $('#' + type + '-selected-text');
+    
+    if(selectedItems.length > 0) {
+        selectedText.empty();
+        selectedItems.forEach(function(item) {
+            selectedText.append('<span class="selected-item">' + item.text + '</span>');
+        });
+        selectedContainer.show();
+    } else {
+        selectedContainer.hide();
+    }
+}
+
+// 스케줄 요약 업데이트
+function updateScheduleSummary() {
+    var summary = '';
+    var time = $('#' + currentScheduleType + 'Time').val() || '09:00';
+    
+    switch(currentScheduleType) {
+        case 'daily':
+            summary = '매일 ' + time + '에 실행됩니다.';
+            break;
+        case 'weekly':
+            var selectedDays = [];
+            $('#weekly-content input[type="checkbox"]:checked').each(function() {
+                selectedDays.push($(this).next('label').text());
+            });
+            if(selectedDays.length > 0) {
+                summary = selectedDays.join(', ') + ' ' + time + '에 실행됩니다.';
+            } else {
+                summary = '선택된 요일 ' + time + '에 실행됩니다.';
+            }
+            break;
+        case 'monthly':
+            var selectedDays = [];
+            $('#monthly-content input[type="checkbox"]:checked').each(function() {
+                selectedDays.push($(this).next('label').text());
+            });
+            if(selectedDays.length > 0) {
+                summary = '매월 ' + selectedDays.join(', ') + ' ' + time + '에 실행됩니다.';
+            } else {
+                summary = '매월 선택된 일자 ' + time + '에 실행됩니다.';
+            }
+            break;
+        case 'quarterly':
+            var selectedQuarters = [];
+            $('#quarterly-content input[type="checkbox"]:checked').each(function() {
+                selectedQuarters.push($(this).next('label').text());
+            });
+            if(selectedQuarters.length > 0) {
+                summary = selectedQuarters.join(', ') + ' ' + time + '에 실행됩니다.';
+            } else {
+                summary = '선택된 분기 첫날 ' + time + '에 실행됩니다.';
+            }
+            break;
+        case 'yearly':
+            var selectedMonths = [];
+            $('#yearly-content input[type="checkbox"]:checked').each(function() {
+                selectedMonths.push($(this).next('label').text());
+            });
+            if(selectedMonths.length > 0) {
+                summary = '매년 ' + selectedMonths.join(', ') + ' 1일 ' + time + '에 실행됩니다.';
+            } else {
+                summary = '매년 선택된 월 1일 ' + time + '에 실행됩니다.';
+            }
+            break;
+    }
+    
+    $('#' + currentScheduleType + '-summary').text(summary);
+}
+
+// 몽고DB용 스케줄 설정 JSON 생성 (선택된 탭만 저장)
+function generateScheduleConfig() {
+    var config = {
+        type: currentScheduleType
+    };
+    
+    // 선택된 탭의 설정만 저장
+    switch(currentScheduleType) {
+        case 'daily':
+    config.daily = {
+                time: $('#dailyTime').val() || '09:00'
+    };
+            break;
+    
+        case 'weekly':
+    var weeklyDays = [];
+    $('#weekly-content input[type="checkbox"]:checked').each(function() {
+        weeklyDays.push(parseInt($(this).val()));
+    });
+    config.weekly = {
+        days: weeklyDays,
+                time: $('#weeklyTime').val() || '09:00'
+    };
+            break;
+    
+        case 'monthly':
+    var monthlyDates = [];
+    $('#monthly-content input[type="checkbox"]:checked').each(function() {
+        monthlyDates.push(parseInt($(this).val()));
+    });
+    config.monthly = {
+        dates: monthlyDates,  // days → dates로 변경 (날짜를 의미)
+                time: $('#monthlyTime').val() || '09:00'
+    };
+            break;
+    
+        case 'quarterly':
+    var quarterlyQuarters = [];
+    $('#quarterly-content input[type="checkbox"]:checked').each(function() {
+        quarterlyQuarters.push(parseInt($(this).val()));
+    });
+    config.quarterly = {
+        quarters: quarterlyQuarters,
+                time: $('#quarterlyTime').val() || '09:00'
+    };
+            break;
+    
+        case 'yearly':
+    var yearlyMonths = [];
+    $('#yearly-content input[type="checkbox"]:checked').each(function() {
+        yearlyMonths.push(parseInt($(this).val()));
+    });
+    config.yearly = {
+        months: yearlyMonths,
+                time: $('#yearlyTime').val() || '09:00'
+    };
+            break;
+    }
+    
+    return config;
+}
+
+// 저장 버튼 클릭 이벤트
+$("#saveBtn").click(function (){
+    // 필수 필드 검증
+    if($('#title').val().trim() == ''){
+        alert('스케줄러 명칭을 입력해주세요.');
+        $('#title').focus();
+        return;
+    }
+    
+    if($('#templateId').val() == ''){
+        alert('기사 템플릿을 선택해주세요.');
+        $('#templateId').focus();
+        return;
+    }
+    
+    if($('#promptId').val() == ''){
+        alert('프롬프트를 선택해주세요.');
+        $('#promptId').focus();
+        return;
+    }
+    
+    if($('#categoryId').val() == ''){
+        alert('데이터 카테고리를 선택해주세요.');
+        $('#categoryId').focus();
+        return;
+    }
+    
+    // 스케줄 타입별 검증
+    if(!validateScheduleSettings()){
+        return;
+    }
+
+    // 몽고DB용 스케줄 설정 JSON 생성
+    var scheduleConfig = generateScheduleConfig();
+    $('#scheduleConfig').val(JSON.stringify(scheduleConfig));
+
+    // AJAX 요청
+    $.ajax({
+        url: '/aiSetting/schedule' + action + '/ajax',
+        method : 'POST',
+        data : $('#inputForm').serialize(),
+        dataType: 'json'
+    }).done(function(response) {
+        // 문자열로 들어온 경우 JSON 파싱
+        if(typeof response === 'string'){
+            try {
+                response = JSON.parse(response);
+            } catch(e) {
+                console.error('JSON 파싱 오류:', e);
+                alert('서버 응답 처리 중 오류가 발생했습니다.');
+                return;
+            }
+        }
+        
+        if(response.result.success) {
+            alert('저장되었습니다.');
+            goList();
+        } else {
+            alert(response.message || '저장 중 오류가 발생했습니다.');
+        }
+    }).fail(function(jqXHR, textStatus, errorThrown) {
+        console.error('AJAX 오류:', textStatus, errorThrown);
+        console.error('응답:', jqXHR.responseText);
+        alert('저장 중 오류가 발생했습니다.');
+    });
+});
+
+// 스케줄 설정 검증
+function validateScheduleSettings() {
+    var currentContent = $('#' + currentScheduleType + '-content');
+    
+    switch(currentScheduleType) {
+        case 'daily':
+            if(!$('#dailyTime').val()) {
+                alert('실행 시간을 설정해주세요.');
+                $('#dailyTime').focus();
+                return false;
+            }
+            break;
+        case 'weekly':
+            if(currentContent.find('input[type="checkbox"]:checked').length === 0) {
+                alert('최소 하나의 요일을 선택해주세요.');
+                return false;
+            }
+            if(!$('#weeklyTime').val()) {
+                alert('실행 시간을 설정해주세요.');
+                $('#weeklyTime').focus();
+                return false;
+            }
+            break;
+        case 'monthly':
+            if(currentContent.find('input[type="checkbox"]:checked').length === 0) {
+                alert('최소 하나의 일자를 선택해주세요.');
+                return false;
+            }
+            if(!$('#monthlyTime').val()) {
+                alert('실행 시간을 설정해주세요.');
+                $('#monthlyTime').focus();
+                return false;
+            }
+            break;
+        case 'quarterly':
+            if(currentContent.find('input[type="checkbox"]:checked').length === 0) {
+                alert('최소 하나의 분기를 선택해주세요.');
+                return false;
+            }
+            if(!$('#quarterlyTime').val()) {
+                alert('실행 시간을 설정해주세요.');
+                $('#quarterlyTime').focus();
+                return false;
+            }
+            break;
+        case 'yearly':
+            if(currentContent.find('input[type="checkbox"]:checked').length === 0) {
+                alert('최소 하나의 월을 선택해주세요.');
+                return false;
+            }
+            if(!$('#yearlyTime').val()) {
+                alert('실행 시간을 설정해주세요.');
+                $('#yearlyTime').focus();
+                return false;
+            }
+            break;
+    }
+    
+    return true;
+}
+
+// 목록 버튼 클릭 이벤트
+$("#listBtn").click(function(){
+    goList();
+});
+
+// 삭제 버튼 클릭 이벤트
+$("#deleteBtn").click(function(){
+    if(!confirm('정말 삭제하시겠습니까?\n삭제된 스케줄은 복구할 수 없습니다.')) {
+        return;
+    }
+    
+    var idx = '{? !empty(_GET["idx"])}{=_GET["idx"]}{/}';
+    if(!idx) {
+        alert('삭제할 스케줄을 찾을 수 없습니다.');
+        return;
+    }
+    
+    $.ajax({
+        url: '/aiSetting/scheduleDelete/ajax',
+        method: 'POST',
+        data: { idx: idx },
+        dataType: 'json'
+    }).done(function(response) {
+        // 문자열로 들어온 경우 JSON 파싱
+        if(typeof response === 'string'){
+            try {
+                response = JSON.parse(response);
+            } catch(e) {
+                console.error('JSON 파싱 오류:', e);
+                alert('서버 응답 처리 중 오류가 발생했습니다.');
+                return;
+            }
+        }
+        
+        if(response.result.success) {
+            alert('삭제되었습니다.');
+            goList();
+        } else {
+            alert(response.result.message || '삭제 중 오류가 발생했습니다.');
+        }
+    }).fail(function(jqXHR, textStatus, errorThrown) {
+        console.error('AJAX 오류:', textStatus, errorThrown);
+        console.error('응답:', jqXHR.responseText);
+        alert('삭제 중 오류가 발생했습니다.');
+    });
+});
+
+// 리스트 페이지로 이동
+function goList() {
+    location.href = '/aiSetting/scheduleList';
+}
+
+// ============================================
+// 카테고리 관련 함수
+// ============================================
+
+// 카테고리 팝업 열기
+function openCategoryPopup() {
+    var popupWidth = 1000;
+    var popupHeight = 700;
+    var left = (window.screen.width - popupWidth) / 2;
+    var top = (window.screen.height - popupHeight) / 2;
+    
+    // 선택 가능한 카테고리 개수 설정 (기본값: 1개, 스케줄러는 단일 카테고리만 선택)
+    var maxSelections = 1;
+    
+    var popup = window.open(
+        '/category/popup?maxSelections=' + maxSelections,
+        'categoryPopup',
+        'width=' + popupWidth + ',height=' + popupHeight + ',left=' + left + ',top=' + top + ',scrollbars=yes,resizable=yes'
+    );
+    
+    if (popup) {
+        popup.focus();
+    } else {
+        alert('팝업이 차단되었습니다. 팝업 차단을 해제해주세요.');
+    }
+}
+
+// 카테고리 선택 콜백 (팝업에서 호출)
+function selectCategory(categories) {
+    if (!categories || categories.length === 0) {
+        return;
+    }
+    
+    // 첫 번째 카테고리만 사용 (스케줄러는 단일 카테고리)
+    var category = categories[0];
+    
+    $('#categoryId').val(category.id);
+    $('#categoryName').val(category.name);
+    
+    updateCategoryDisplay(category);
+    
+    // 카테고리 변경 시 품목 데이터 로드
+    fetchItemsByCategory(category.id);
+}
+
+// 카테고리 표시 업데이트
+function updateCategoryDisplay(category) {
+    var display = $('#selectedCategoryDisplay');
+    display.empty();
+    
+    if (category && category.id) {
+        display.addClass('has-value');
+        $('#selectCategoryBtn').addClass('selected');
+        
+        var tag = $('<span class="selected-item"></span>');
+        tag.text(category.name);
+        
+        var removeBtn = $('<span class="remove">×</span>');
+        removeBtn.click(function(){
+            removeCategorySelection();
+        });
+        
+        tag.append(removeBtn);
+        display.append(tag);
+    } else {
+        display.removeClass('has-value');
+        $('#selectCategoryBtn').removeClass('selected');
+        display.html('<span class="selection-placeholder">카테고리를 선택해주세요</span>');
+    }
+}
+
+// 카테고리 선택 제거
+function removeCategorySelection() {
+    $('#categoryId').val('');
+    $('#categoryName').val('');
+    selectedItemsData = [];
+    availableItems = [];
+    updateCategoryDisplay(null);
+    updateSelectedItemsDisplay();
+}
+
+// ============================================
+// 품목 관련 함수
+// ============================================
+
+// 날짜 계산 (n일 전)
+function getDateBefore(days) {
+    var date = new Date();
+    date.setDate(date.getDate() - days);
+    return date.getFullYear() + '-' + 
+           String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+           String(date.getDate()).padStart(2, '0');
+}
+
+// 카테고리별 품목 가져오기
+function fetchItemsByCategory(categoryId, callback){
+    try {
+        // 선택된 기간 가져오기 (기본값: 7일)
+        var period = parseInt($('#dataPeriod').val()) || 7;
+        var startDate = getDateBefore(period);
+        var url = 'https://price-api.hankyung.com/api/data?categoryId=' + encodeURIComponent(categoryId) + 
+                  '&startDate=' + startDate + '&sortField=prevDayChange&sortOrder=desc';
+        
+        $.ajax({
+            url: url,
+            method: 'GET',
+            dataType: 'json'
+        }).done(function(json){
+            var rawList = [];
+            if (json && json.data && Array.isArray(json.data.data)) {
+                rawList = json.data.data;
+            } else if (Array.isArray(json && json.data)) {
+                rawList = json.data;
+            } else if (Array.isArray(json)) {
+                rawList = json;
+            }
+            
+            availableItems = rawList.map(function(v){
+                return {
+                    id: v.sid || v.id || '',
+                    title: v.name || v.title || v.sid || '',
+                    kind: (v.data && v.data[0] && v.data[0].kind) || '',
+                    grade: (v.data && v.data[0] && v.data[0].grade) || '',
+                    price: (v.data && v.data[0] && v.data[0].price) || '',
+                    prevDayPrice: (v.data && v.data[0] && v.data[0].prevDayPrice) || ''
+                };
+            }).filter(function(item){ return item.id && item.title; });
+            
+            if (availableItems.length === 0) {
+                alert('해당 카테고리의 품목 데이터가 없습니다.');
+                return;
+            }
+            
+            console.log('품목 ' + availableItems.length + '개 로드 완료');
+            
+            // 콜백 실행
+            if(typeof callback === 'function'){
+                callback();
+            }
+            
+        }).fail(function(error){
+            console.error('품목 데이터 로드 오류:', error);
+            alert('품목 데이터를 불러오는 중 오류가 발생했습니다.');
+        });
+        
+    } catch(e) {
+        console.error('fetchItemsByCategory error', e);
+        alert('품목 데이터를 불러오는 중 오류가 발생했습니다.');
+    }
+}
+
+// 선택된 품목 표시 업데이트
+function updateSelectedItemsDisplay(){
+    var display = $('#selectedItemsDisplay');
+    display.empty();
+    
+    if(selectedItemsData.length === 0){
+        display.removeClass('has-value');
+        $('#selectItemsBtn').removeClass('selected');
+        display.html('<span class="selection-placeholder">선택된 품목이 없습니다 (자동 선택됨)</span>');
+        $('#selectedItems').val('');
+        return;
+    }
+    
+    display.addClass('has-value');
+    $('#selectItemsBtn').addClass('selected');
+    
+    selectedItemsData.forEach(function(item){
+        var tag = $('<span class="selected-item"></span>');
+        tag.text(item.title + (item.kind ? ' (' + item.kind + ')' : ''));
+        
+        var removeBtn = $('<span class="remove">×</span>');
+        removeBtn.click(function(){
+            selectedItemsData = selectedItemsData.filter(function(it){ return it.id !== item.id; });
+            updateSelectedItemsDisplay();
+        });
+        
+        tag.append(removeBtn);
+        display.append(tag);
+    });
+    
+    // hidden 필드에 JSON 저장
+    $('#selectedItems').val(JSON.stringify(selectedItemsData));
+}
+
+// 기존 선택 품목 로드 (수정 모드)
+function loadSelectedItems(){
+    console.log('=== loadSelectedItems 시작 ===');
+    console.log('저장된 품목 데이터 (savedSelectedItems):', savedSelectedItems);
+    
+    if(savedSelectedItems && Array.isArray(savedSelectedItems) && savedSelectedItems.length > 0){
+        selectedItemsData = savedSelectedItems;
+        console.log('품목 개수:', selectedItemsData.length);
+        updateSelectedItemsDisplay();
+        console.log('품목 표시 완료');
+    } else {
+        console.log('저장된 품목이 없습니다.');
+    }
+    console.log('=== loadSelectedItems 종료 ===');
+}
+
+// 품목 선택 모달 표시
+function showItemSelectionModal(){
+    if (!availableItems || availableItems.length === 0) {
+        alert('품목 데이터를 먼저 로드해주세요.');
+        return;
+    }
+    
+    // 임시 선택 배열
+    var tempSelectedItems = selectedItemsData.map(function(item){ return item.id; });
+    
+    // 모달 HTML 생성
+    var modalHtml = '<div class="modal" id="itemSelectionModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000;">' +
+        '<div class="modal-content" style="background: white; padding: 30px; border-radius: 10px; max-width: 1000px; width: 90%; max-height: 85vh; overflow-y: auto;">' +
+        '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">' +
+        '<h2 style="margin: 0;">품목 선택</h2>' +
+        '<div id="selectionCount" style="font-size: 14px; color: #007bff; font-weight: 600;">선택: ' + tempSelectedItems.length + '개</div>' +
+        '</div>' +
+        '<input type="text" id="itemSearchBox" placeholder="품목명을 검색하세요..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 15px;">' +
+        '<div style="max-height: 500px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px;">' +
+        '<table class="item-table" style="width: 100%; border-collapse: collapse; font-size: 14px;">' +
+        '<thead style="background: #4f46e5; position: sticky; top: 0; z-index: 1;">' +
+        '<tr>' +
+        '<th style="padding: 12px 8px; text-align: center; color: white; width: 5%;">선택</th>' +
+        '<th style="padding: 12px 8px; text-align: left; color: white; width: 30%;">품목명</th>' +
+        '<th style="padding: 12px 8px; text-align: left; color: white; width: 25%;">종류</th>' +
+        '<th style="padding: 12px 8px; text-align: center; color: white; width: 10%;">등급</th>' +
+        '<th style="padding: 12px 8px; text-align: right; color: white; width: 15%;">가격</th>' +
+        '<th style="padding: 12px 8px; text-align: right; color: white; width: 15%;">변동</th>' +
+        '</tr>' +
+        '</thead>' +
+        '<tbody id="itemTableBody"></tbody>' +
+        '</table>' +
+        '</div>' +
+        '<div style="display: flex; gap: 10px; justify-content: flex-end;">' +
+        '<button type="button" id="closeItemModal" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer;">닫기</button>' +
+        '<button type="button" id="applyItems" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">적용</button>' +
+        '</div>' +
+        '</div>' +
+        '</div>';
+    
+    $('body').append(modalHtml);
+    
+    // 품목 렌더링 함수
+    function renderItems(filterText){
+        var tbody = $('#itemTableBody');
+        tbody.empty();
+        
+        var filtered = availableItems.filter(function(item){
+            return !filterText || item.title.toLowerCase().includes(filterText.toLowerCase());
+        });
+        
+        if(filtered.length === 0){
+            tbody.html('<tr><td colspan="6" style="text-align:center; padding: 20px; color: #999;">검색 결과가 없습니다.</td></tr>');
+            return;
+        }
+        
+        filtered.forEach(function(item){
+            var isSelected = tempSelectedItems.indexOf(item.id) > -1;
+            var price = parseFloat(item.price) || 0;
+            var prevPrice = parseFloat(item.prevDayPrice) || 0;
+            
+            var changePercent = 0;
+            var changeClass = 'price-same';
+            var changeSymbol = '';
+            
+            if(prevPrice > 0){
+                changePercent = ((price - prevPrice) / prevPrice * 100).toFixed(2);
+                if(changePercent > 0){
+                    changeClass = 'price-up';
+                    changeSymbol = '▲';
+                } else if(changePercent < 0){
+                    changeClass = 'price-down';
+                    changeSymbol = '▼';
+                    changePercent = Math.abs(changePercent);
+                }
+            }
+            
+            var tr = $('<tr style="cursor: pointer; transition: background 0.2s;"></tr>');
+            if(isSelected) tr.addClass('selected').css('background', '#bbdefb');
+            
+            tr.html(
+                '<td style="text-align:center; padding: 10px 8px;">' + (isSelected ? '✓' : '') + '</td>' +
+                '<td style="padding: 10px 8px;"><strong>' + (item.title || '-') + '</strong></td>' +
+                '<td style="padding: 10px 8px;">' + (item.kind || '-') + '</td>' +
+                '<td style="text-align:center; padding: 10px 8px;">' + (item.grade || '-') + '</td>' +
+                '<td style="text-align:right; padding: 10px 8px;"><strong>' + price.toLocaleString() + '원</strong></td>' +
+                '<td style="text-align:right; padding: 10px 8px;" class="' + changeClass + '">' +
+                '<strong>' + changeSymbol + ' ' + Math.abs(changePercent) + '%</strong></td>'
+            );
+            
+            tr.click(function(){
+                var index = tempSelectedItems.indexOf(item.id);
+                if(index > -1){
+                    tempSelectedItems.splice(index, 1);
+                    tr.removeClass('selected').css('background', '');
+                    tr.find('td:first').text('');
+                } else {
+                    tempSelectedItems.push(item.id);
+                    tr.addClass('selected').css('background', '#bbdefb');
+                    tr.find('td:first').text('✓');
+                }
+                $('#selectionCount').text('선택: ' + tempSelectedItems.length + '개');
+            });
+            
+            tr.hover(
+                function(){ if(!$(this).hasClass('selected')) $(this).css('background', '#f5f5f5'); },
+                function(){ if(!$(this).hasClass('selected')) $(this).css('background', ''); }
+            );
+            
+            tbody.append(tr);
+        });
+    }
+    
+    // 초기 렌더링
+    renderItems('');
+    
+    // 검색 이벤트
+    $('#itemSearchBox').on('input', function(){
+        renderItems($(this).val());
+    });
+    
+    // 닫기 버튼
+    $('#closeItemModal').click(function(){
+        $('#itemSelectionModal').remove();
+    });
+    
+    // 모달 외부 클릭
+    $('#itemSelectionModal').click(function(e){
+        if(e.target.id === 'itemSelectionModal'){
+            $(this).remove();
+        }
+    });
+    
+    // 적용 버튼
+    $('#applyItems').click(function(){
+        selectedItemsData = [];
+        tempSelectedItems.forEach(function(itemId){
+            var item = availableItems.find(function(i){ return i.id === itemId; });
+            if(item){
+                selectedItemsData.push({
+                    id: item.id,
+                    title: item.title,
+                    kind: item.kind
+                });
+            }
+        });
+        updateSelectedItemsDisplay();
+        $('#itemSelectionModal').remove();
+    });
+}
+</script>
+</body>
+</html>
+</html>

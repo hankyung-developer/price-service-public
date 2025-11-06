@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}
+</head>
+<body>
+    {# left}
+    {# header}
+
+<!-- ########## START: MAIN PANEL ########## -->
+<div class="br-mainpanel">
+	<div class="br-pagebody">
+		<div class="br-section-wrapper pd-10-force">
+            <form id="frm" name="frm">
+			<div class="d-flex align-items-center justify-content-end ht-md-40 mg-b-5">
+                    <input type="text" id="searchText" name="searchText" value="" class="form-control form-control-sm wd-150 mg-r-5" placeholder="">
+                    <button type="button" class="btn btn-info pd-5 bd-0 mg-l-5 mg-t-0 tx-uppercase tx-13 tx-spacing-2" id="searchBtn" name="searchBtn">검색</button>
+                    <button type="button" class="btn btn-success pd-5 bd-0 mg-l-5 mg-t-0 tx-uppercase tx-13 tx-spacing-2" id="insertBtn" name="insertBtn">작성</button>
+			</div>
+        </form>
+			
+			<div class="bd bd-gray-300 rounded table-responsive" data-pattern="priority-columns">
+				<table class="table mg-b-0 tx-black tx-normal w-100p">
+                    <thead>
+                        <tr>
+                            <th><input id="chkSelectAll" type="checkbox"></th>
+							<th>Provider </th>
+                            <th>Title</th>
+							<th>Id</th>
+                            <th>Make Date</th>
+							<th>Update Date</th>
+							<th>Last Date Update</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {@ result.items}
+                        <tr>
+                            <th>
+                                <input type="checkbox" name="apiSelect" id="apiSelect" class="subscriber" value="{.id}">
+                            </th>
+                            <td>{.provider}</td>
+                            <td><strong><a href="/apis/editor?id={.id}">{.title}</a></strong></td>
+							<td>{.collection}</td>
+                            <td>{.insert.date}({.insert.managerName})</td>
+							<td>{? !empty(.update)}{.update.date}({.update.managerName}){/}</td>
+							<td>{.lastItemUpdate}</td>
+                        </tr>
+                        {/}
+                    </tbody>
+                </table>
+			</div>
+			
+			<div class="row">
+			{#paging}
+			</div>
+		</div>
+	</div>
+</div>
+<!-- ########## END: MAIN PANEL ########## -->
+
+<script type="text/javascript">
+    $(document).ready(function(){
+        $('#insertBtn').click(function(){
+            location.href='/apis/editor';
+        });
+    
+        $('#delBtn').click(function(){
+            var chkCompany = '';
+            $("input[name=apiSelect]:checked").each(function(){
+                chkCompany += $(this).val() + '|';
+            });
+    
+            if(chkCompany == '' ){
+                alert('Please select the api information to be deleted.');
+            }else{
+                apiDelete(chkCompany);
+            }
+        });
+    
+        $('#chkSelectAll').click(function(){
+            $("input:checkbox[id='reportSelect']").prop('checked', $("input:checkbox[id='chkSelectAll']").is(":checked"));
+        });
+            
+        $('#searchBtn').click(function(){
+            $('#frm').attr('action','/apis/list').submit();
+        });
+    });
+    
+    function apiDelete(apiId){
+        if( confirm('Are you sure you want to delete the selected API?') ){
+            $.ajax({
+                url: '/apis/delete/ajax',
+                method : 'POST',
+                data : {'apiId': apiId}
+            }).done(function() {
+                alert('API has been removed.');
+                location.href='/apis/list';
+            });
+        }
+    }
+    </script>
+</body>
+</html>

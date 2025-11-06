@@ -1,0 +1,328 @@
+<!-- 템플릿 선택을 위한 hidden input -->
+<input type="hidden" name="selectedTemplate" id="selectedTemplate" value="" />
+
+<!-- 템플릿 미리보기 모달 -->
+<div id="templatePreviewModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2 class="modal-title">템플릿 미리보기</h2>
+        <div class="preview-tabs">
+            <div class="tab-item active" data-view="main">
+                <img src="/img/template/$/main.png" alt="메인" class="tab-icon" />
+                <span>메인</span>
+            </div>
+            <div class="tab-item" data-view="list">
+                <img src="/img/template/$/normal_list.png" alt="일반 리스트" class="tab-icon" />
+                <span>일반 리스트</span>
+            </div>
+            <div class="tab-item" data-view="photo-list">
+                <img src="/img/template/$/photo_list.png" alt="포토 리스트" class="tab-icon" />
+                <span>포토 리스트</span>
+            </div>
+            <div class="tab-item" data-view="article">
+                <img src="/img/template/$/normal_view.png" alt="일반 기사뷰" class="tab-icon" />
+                <span>일반 기사뷰</span>
+            </div>
+            <div class="tab-item" data-view="photo-article">
+                <img src="/img/template/$/photo_view.png" alt="포토 기사뷰" class="tab-icon" />
+                <span>포토 기사뷰</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 이미지 팝업 오버레이 추가 -->
+<div id="imagePopupOverlay" style="display:none; position:fixed; z-index:2000; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.8); justify-content:center; align-items:center;">
+    <img id="popupImage" src="" alt="확대 이미지" style="max-width:90vw; max-height:90vh; border-radius:8px; box-shadow:0 0 20px #000;" />
+</div>
+
+<div class="grid">
+    <ul class="siteTemplateKind" data-template="Template 1" data-template-number="1">
+        <li>Template 1</li>
+        <li class="siteImg"><img src="/img/template/1/main.png" alt="사이트 템플릿 종류" /></li>
+        <li class="tags">자동차 이쁘다</li>
+    </ul>
+    <ul class="siteTemplateKind" data-template="Template 2" data-template-number="2">
+        <li>Template 2</li>
+        <li class="siteImg"><img src="/img/template/2/main.png" alt="사이트 템플릿 종류" /></li>
+        <li class="tags">자동차 이쁘다</li>
+    </ul>
+    <ul class="siteTemplateKind" data-template="Template 3" data-template-number="3">
+        <li>Template 3</li>
+        <li class="siteImg"><img src="/img/template/3/main.png" alt="사이트 템플릿 종류" /></li>
+        <li class="tags">자동차 이쁘다</li>
+    </ul>
+    <ul class="siteTemplateKind" data-template="Template 4" data-template-number="4">
+        <li>Template 4</li>
+        <li class="siteImg"><img src="/img/template/4/main.png" alt="사이트 템플릿 종류" /></li>
+        <li class="tags">자동차 이쁘다</li>
+    </ul>
+</div>
+
+<style>
+.siteTemplateKind {
+    cursor: pointer;
+    border: 2px solid #ddd;
+    padding: 10px;
+    margin: 10px;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
+
+.siteTemplateKind:hover {
+    border-color: #999;
+}
+
+.siteTemplateKind.selected {
+    border-color: #007bff;
+    box-shadow: 0 0 10px rgba(0,123,255,0.3);
+}
+
+/* 모달 스타일 */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.7);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 5% auto;
+    padding: 20px;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 1000px;
+    position: relative;
+}
+
+.close {
+    position: absolute;
+    right: 20px;
+    top: 10px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.modal-title {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.preview-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 20px;
+    margin-bottom: 20px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.tab-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    width: calc(33.333% - 14px); /* 3개씩 배치, gap 고려 */
+    box-sizing: border-box;
+}
+
+.tab-item img {
+    width: 100%;
+    margin-bottom: 8px;
+    opacity: 0.7;
+    transition: all 0.3s ease;
+    aspect-ratio: 1; /* 정사각형 비율 유지 */
+    object-fit: cover; /* 이미지 비율 유지하면서 채우기 */
+}
+
+.tab-item span {
+    font-size: 12px;
+    color: #666;
+    text-align: center;
+}
+
+.tab-item:hover {
+    background: rgba(0,123,255,0.1);
+}
+
+.tab-item:hover img {
+    opacity: 0.9;
+}
+
+.tab-item.active {
+    background: #007bff;
+}
+
+.tab-item.active img {
+    opacity: 1;
+}
+
+.tab-item.active span {
+    color: white;
+}
+
+.preview-content {
+    text-align: center;
+}
+
+.preview-content img {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/* 템플릿 리스트 썸네일 이미지 정사각형, 상단 기준 */
+.siteImg img {
+    width: 120px;         /* 원하는 크기로 조정 */
+    height: 120px;
+    aspect-ratio: 1/1;    /* 지원 브라우저에서 1:1 비율 유지 */
+    object-fit: cover;    /* 넘치는 부분 자르고 채움 */
+    object-position: top; /* 상단부터 보여줌 */
+    border-radius: 8px;
+    background: #f4f4f4;
+    display: block;
+    margin: 0 auto;
+}
+
+/* 모달 미리보기 이미지 정사각형, 상단 기준 */
+#previewImage {
+    width: 320px;         /* 원하는 크기로 조정 */
+    height: 320px;
+    aspect-ratio: 1/1;
+    object-fit: cover;
+    object-position: top;
+    border-radius: 8px;
+    background: #f4f4f4;
+    display: block;
+    margin: 0 auto;
+}
+
+/* 팝업 오버레이 이미지도 동일하게 적용 */
+#imagePopupOverlay img,
+#popupImage {
+    width: 90vw;
+    height: 90vw;
+    max-width: 600px;
+    max-height: 90vh;
+    aspect-ratio: 1/1;
+    object-fit: cover;
+    object-position: top;
+    border-radius: 8px;
+    background: #222;
+    display: block;
+    margin: 0 auto;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const templateItems = document.querySelectorAll('.siteTemplateKind');
+    const selectedTemplateInput = document.getElementById('selectedTemplate');
+    const modal = document.getElementById('templatePreviewModal');
+    const closeBtn = document.querySelector('.close');
+    const previewImage = document.getElementsByClassName('preview-tabs');
+    const tabItems = document.querySelectorAll('.tab-item');
+    const imagePopupOverlay = document.getElementById('imagePopupOverlay');
+    const popupImage = document.getElementById('popupImage');
+    
+    let currentTemplate = '';
+    let currentView = 'main';
+    let currentTemplateNumber = '';
+
+    // 모달 닫기
+    closeBtn.onclick = function() {
+        modal.style.display = "none";
+    }
+
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
+
+    // $ 문자를 템플릿 번호로 치환하는 함수
+    function replaceTemplateNumber(path) {
+        return path.replace(/\$/g, currentTemplateNumber);
+    }
+
+    // 탭 아이콘 이미지 업데이트
+    function updateTabIcons() {
+        tabItems.forEach(item => {
+            const icon = item.querySelector('.tab-icon');
+            icon.src = replaceTemplateNumber(icon.src);
+        });
+    }
+
+    // 탭 아이템 클릭 이벤트
+    tabItems.forEach(item => {
+        item.addEventListener('click', function() {
+            tabItems.forEach(tab => tab.classList.remove('active'));
+            this.classList.add('active');
+            currentView = this.dataset.view;
+            updatePreviewImage();
+        });
+    });
+
+    // 미리보기 이미지 업데이트
+    function updatePreviewImage() {
+        if (currentTemplateNumber) {
+            const imageMap = {
+                'main': 'main.jpg',
+                'list': 'normal_list.jpg',
+                'photo-list': 'photo_list.jpg',
+                'article': 'normal_view.jpg',
+                'photo-article': 'photo_view.jpg'
+            };
+            const imagePath = `/img/template/${currentTemplateNumber}/${imageMap[currentView]}`;
+            previewImage.src = imagePath;
+        }
+    }
+
+    // 미리보기 이미지 클릭 시 팝업 오버레이 띄우기
+    previewImage.addEventListener('click', function() {
+        if (previewImage.src) {
+            popupImage.src = previewImage.src;
+            imagePopupOverlay.style.display = 'flex';
+        }
+    });
+
+    // 팝업 오버레이 클릭 시 닫기
+    imagePopupOverlay.addEventListener('click', function() {
+        imagePopupOverlay.style.display = 'none';
+        popupImage.src = '';
+    });
+
+    templateItems.forEach(item => {
+        item.addEventListener('click', function() {
+            // 이전 선택 제거
+            templateItems.forEach(t => t.classList.remove('selected'));
+            
+            // 현재 항목 선택
+            this.classList.add('selected');
+            
+            // hidden input에 선택된 템플릿 이름 저장
+            selectedTemplateInput.value = this.dataset.template;
+            
+            // 현재 템플릿 번호 저장
+            currentTemplateNumber = this.dataset.templateNumber;
+            
+            // 모달 표시 및 미리보기 이미지 설정
+            modal.style.display = "block";
+            updateTabIcons();
+            updatePreviewImage();
+        });
+    });
+});
+</script>

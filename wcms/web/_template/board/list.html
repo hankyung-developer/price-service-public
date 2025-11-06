@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}
+
+    <!-- datetimepicker -->
+    <link rel="stylesheet" href="/lib/tempusdominus-bootstrap/tempusdominus-bootstrap-4.min.css" />
+    <script type="text/javascript" src="/lib/tempusdominus-bootstrap/tempusdominus-bootstrap-4.min.js"></script>
+    <script src='/lib/locale/ko.js'></script>
+    <style>
+        tr.delete {text-decoration: line-through;background-color: #fcd8d8;}
+    </style>
+    <!-- //datetimepicker -->
+</head>
+<body>
+
+    {# header}
+    {# left}
+
+    <main class="container">
+        <div role="document">
+            <div role="heading">
+                <span>{result.info.name}</span> 
+                <a role="button" class="btn btn-lg" href="/boardInfo/editor?id={result.info.id}">
+                    <span>게시판 관리</span><i class="fa-light fa-gear"></i>
+                </a>
+            </div>
+            <section class="section-search"> 
+                <form role="search" name="frm" id="frm" method="get">
+                    <input type="hidden" id="coId" name="coId" value="{_SESSION.coId}"/>
+                    <input type="hidden" id="id" name="id" value="{_GET.id}"/>
+
+                    <div class="grid">
+                    {@ result.info.field}
+                    {? .useSearch}
+                        {? .inputType == 'text' || .inputType == 'textarea'}
+                        <!-- 추가 필드 : text -->
+                        <div class="input-group input-group-sm mg-r-10">
+                            <label class="input-group-addon" style="height: 31px;">{.name}</label>
+                            <input type="text" class="form-control" id="field_{.id}" name="field_{.id}" placeholder="{.name} 입력" value="{_GET['field_' + .id]}">
+                        </div>
+                        {: .inputType == 'date'}
+                        <!-- 추가 필드 : date -->
+                        <div class="input-group input-group-sm mg-r-10" {? .inputType == 'date'}id="datetimepicker_field_{.id}" data-target-input="#field_{.id}"{/}>
+                            <label class="input-group-addon" style="height: 31px;">{.name}</label>
+                            <input type="text" id="field_{.id}" name="field_{.id}" value="{_GET['field_' + .id]}" data-target="#datetimepicker_field_{.id}" class="form-control datetimepicker-input" />
+                            <div class="input-group-append" data-target="#datetimepicker_field_{.id}" data-toggle="datetimepicker">
+                                <div class="input-group-text"><i class="fa-solid fa-calendar-day"></i></div>
+                            </div>
+                        </div>
+                        {: .inputType == 'checkbox'}
+                        <!-- 추가 필드 : checkbox -->
+                        <div class="input-group input-group-sm mg-r-10">
+                            <label class="input-group-addon" style="height: 31px;">{.name}</label>
+                            <select id="field_{.id}" name="field_{.id}" class="form-control" data-value="{_GET['field_' + .id]}">
+                                <option value="">선택하세요</option>
+                                <option value="1">True</option>
+                            </select>
+                        </div>
+                        {: .inputType == 'select' || .inputType == 'radio'}
+                        <!-- 추가 필드 : select, radio -->
+                        <div class="input-group input-group-sm mg-r-10">
+                            <label class="input-group-addon" style="height: 31px;">{.name}</label>
+                            <select id="field_{.id}" name="field_{.id}" class="form-control" data-value="{_GET['field_' + .id]}">
+                                <option value="">선택하세요</option>
+                            {? .codeType == 'category'}
+                                {@ result.category}
+                                <option value="{..id}">{? ..depth == 2}&nbsp;&nbsp;{: ..depth == 3}&nbsp;&nbsp;&nbsp;&nbsp;{/}{..name}</option>
+                                {/}
+                            {/}
+                            {? .codeType == 'department'}
+                                {@ result.department}
+                                <option value="{..id}">{? ..depth == 2}&nbsp;&nbsp;{: ..depth == 3}&nbsp;&nbsp;&nbsp;&nbsp;{/}{..name}</option>
+                                {/}
+                            {/}
+                            </select>
+                        </div>
+                        {/}
+                    {/}
+                    {/}
+                    </div>
+
+                    <select name="searchItem" id="searchItem">
+                        <option value="text">제목+내용</option>
+                        <option value="insert.memberName">작성자 ID</option>
+                    </select>
+                    <div class="search-input">
+                        <input type="text" name="searchText" id="searchText" value="{? _GET.searchText}{_GET.searchText}{/}" placeholder="검색어를 입력하세요">
+                        <button type="button" class="btn-search" id="searchBtn"><i class="fa-light fa-magnifying-glass"></i></button>
+                    </div>
+                    <button type="button" class="btn" id="insertBtn">입력</button>
+                    <button type="button" class="btn btn-black" id="deleteBtn">삭제</button>
+                </form>
+            </section>
+
+            <section role="list">
+                <div class="list-cont">
+                    <table>
+                        <thead>
+                            <tr>
+                                <td><input id="checkAll" type="checkbox"></td>
+                                <th>제목</th>
+                                <th>작성자</th>
+                                <th>IP</th>
+                                <th>PV</th>
+                                <th>입력</th>
+                                <th>수정</th>
+                                {@ result.info.field}
+                                    {? .useList}
+                                <th>{.name}</th>
+                                    {/}
+                                {/}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {@ result.items}
+                            <tr class="{? .delete.is} delete{/}{? .isNotice == '1'} alert-notice{/}">
+                                <th scope="row" class="check-column">
+                                    <input type="checkbox" name="checkRow" id="checkRow" value="{.no}">
+                                </th>
+                                <td>
+                                    {? .depth > 0}{.depthSign}{/}
+                                    {? .isSecret=="on"}<i class="fa-light fa-lock"></i>{/}
+                                    <a href="/board/view?id={.id}&no={.no}&sno={.sno}{? !empty(_GET.page)}&current={_GET.page}{/}">{? !empty(.resetQuizInfo)}[개인정보 일괄파기 완료]{/} {.title} {? .title==""}xxxxxx{/}</a> 
+                                    {? result.info.useComment}(<i class="fa-light fa-comment-dots"></i> {.comment.totalCount}){/}
+                                </td>
+                                <td>
+                                    {? !empty(.insert.memberName)}
+                                        {.insert.memberName}{? .insert.memberId}( {.insert.memberId} ){/}
+                                    {: !empty(.insert.managerName)}
+                                        {.insert.managerName}{? .insert.managerId}( {.insert.managerId} ){/}
+                                    {:} 비회원 {/}
+                                </td>
+                                <td>{.insert.ip}</td>
+                                <td>{.pv}</td>
+                                <td>
+                                    <small>{.insert.date}</small>
+                                </td>
+                                <td>
+                                    <small>{? !empty(.update)}{.update.date}{/}</small>
+                                    <small>{? !empty(.update)}{.update.managerName}{? .update.managerId}({.update.managerId}){/}{/}</small>
+                                </td>
+                                {@ result.info.field}
+                                    {? ..useList}
+                                <td>{.field[..id]}</td>
+                                    {/}
+                                {/}
+                            </tr>
+                            {/}
+                        </tbody>
+                    </table>
+                </div>
+
+                {#paging}
+
+            </section>
+        </div>
+    </main>
+
+    <!-- ########## END: MAIN PANEL ########## -->
+    <script type="text/javascript">
+        $(document).ready(function(){
+
+            {? !empty(_GET.searchItem)}
+            $('#searchItem').val('{_GET.searchItem}');
+            {/}
+
+            // event : select change
+            $('#frm select:not(#searchItem)').on('change',function() {
+                searchList();
+            });
+
+            // event : searchText enter
+            $("#searchText").on('keyup',(e)=>{
+                if(e.keyCode == 13){
+                    searchList();
+                }
+            });
+
+            // event : 검색버튼 click
+            $('#searchBtn').on('click',function(){
+                searchList();
+            });
+
+            // 입력
+            {? result.permission.insert}
+            $('#insertBtn').click(function(){
+                $('#frm').attr('action','/board/editor/{_GET.id}').submit();
+            });
+            {/}
+
+            // 전체체크
+            $('#checkAll').on('click', function(){
+                $("input:checkbox[id='checkRow']").prop('checked', $("input:checkbox[id='checkAll']").is(":checked"));
+            });
+
+            // 삭제
+            {? result.permission.boardManager}
+            $('#deleteBtn').on('click', function(){
+                var chk = '';
+                $("input[name=checkRow]:checked").each(function() {
+                    chk += (chk?',':'')+$(this).val();
+                });
+        
+                if(chk == ''){
+                    alert('삭제할 게시물을 선택해주세요.');
+                }else{
+                    if( confirm('선택한 게시물을 삭제하시겠습니까?') ){
+                        $.ajax({
+                            url: '/board/delete/ajax',
+                            method : 'POST',
+                            data : {id: $('#id').val(), no: chk},
+                            dataType: 'json'
+                        }).done(function() {
+                            alert('게시물이 삭제되었습니다.');
+                            location.href='/board/list/{_GET.id}';
+                        }).fail(function(jqXHR, textStatus, errorThrown) {
+                            if (!!jqXHR?.responseJSON?.result?.msg) {
+                                alert(jqXHR.responseJSON.result.msg);
+                            } else {
+                                alert(textStatus+' : '+errorThrown);
+                            }
+                        });
+                    }
+                }
+            });
+            {/}
+
+            // 추가 필드 : datetimepicker
+            var datetimepickerIds = "{@ result.info.field}{? .inputType == 'date' && .useSearch}#datetimepicker_field_{.id},{/}{/}";
+            datetimepickerIds = datetimepickerIds.replace(/(^,)|(,$)/, '');
+            if (datetimepickerIds) {
+                $(datetimepickerIds).datetimepicker({
+                    locale:'ko',
+                    format: 'L',
+                    sideBySide: true,
+                    toolbarPlacement: 'bottom',
+                    allowInputToggle: true,
+                    buttons :{
+                        showToday: true,
+                        showClose: true
+                    },
+                    icons: {
+                        today : 'far fa-calendar-check'
+                    },
+                    tooltips: {
+                        today : '초기화(오늘날짜)',
+                        close: '확인'
+                    },
+                });
+            }
+
+            
+
+            $('.blockID').click(function(){
+                if(confirm('해당 사용자를 글쓰기를 금지합니다.?')){
+                    $.ajax({
+                            url: '/boardInfo/blockID/ajax',
+                            method : 'POST',
+                            data : {id: $('#id').val(), spamId: $(this).attr('data-id')}
+                    }).done(function() {
+                            alert('등록되었습니다.');
+                    });
+                }
+            });
+
+            $('.blockIP').click(function(){
+                if(confirm('해당 IP를 글쓰기를 금지합니다.?')){
+                    $.ajax({
+                            url: '/boardInfo/blockIP/ajax',
+                            method : 'POST',
+                            data : {id: $('#id').val(), spamIp: $(this).attr('data-ip')}
+                    }).done(function() {
+                        alert('등록되었습니다.');
+                    });
+                }
+            });
+        });
+
+        function searchList() {
+            // 검색 버튼 비활성화
+            $('#searchText').prop('readonly',true);
+            $('#searchBtn').prop('disabled',true);
+            $('#searchBtn').addClass('loading-black');
+
+            $('#frm').submit();
+        }
+
+
+
+    </script>
+</body>
+</html>

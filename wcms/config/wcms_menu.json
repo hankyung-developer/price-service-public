@@ -1,0 +1,220 @@
+[
+    {
+        "menuId": "Dashboard",
+        "menuName": "Dashboard",
+        "icon": "fa-duotone fa-gauge",
+        "link": "/dashboard",
+        "parent": "0",
+        "depth": 1,
+        "target": "_self",
+        "selector": "dashboard"
+    },
+    {
+        "menuId": "데스크",
+        "menuName": "데스크",
+        "icon": "fa-duotone fa-desktop",
+        "link": "",
+        "parent": "0",
+        "depth": 1,
+        "target": "_self",
+        "child": [
+            {
+                "menuId": "AI기사작성",
+                "menuName": "AI기사작성",
+                "icon": "fa-duotone fa-robot",
+                "link": "/article/aiCreate",
+                "parent": "데스크",
+                "depth": 2,
+                "target": "_self",
+                "datalink": "/article/aiCreate",
+                "selector": "article_aiCreate"
+            },
+            {
+                "menuId": "기사리스트",
+                "menuName": "기사리스트",
+                "icon": "fa-duotone fa-robot",
+                "link": "/article/list",
+                "parent": "데스크",
+                "depth": 2,
+                "target": "_self",
+                "datalink": "/article/editor",
+                "selector": "article_list"
+            },
+            {
+                "menuId": "AI이미지",
+                "menuName": "AI이미지",
+                "icon": "fa-duotone fa-robot",
+                "link": "/image/list",
+                "parent": "데스크",
+                "depth": 2,
+                "target": "_self",
+                "datalink": "/image/editor",
+                "selector": "image_list"
+            }
+        ]
+    },
+    {
+        "menuId": "AI설정",
+        "menuName": "AI설정",
+        "icon": "fa-duotone fa-robot",
+        "link": "",
+        "parent": "0",
+        "depth": 1,
+        "target": "_self",
+        "child": [
+            {
+                "menuId": "기사템플릿",
+                "menuName": "기사 템플릿",
+                "icon": "fa-duotone fa-file-lines",
+                "link": "/aiSetting/templateList",
+                "parent": "AI설정",
+                "depth": 2,
+                "target": "_self",
+                "datalink": "/aiSetting/templateEdit",
+                "selector": "template_list"
+            },
+            {
+                "menuId": "프롬프트",
+                "menuName": "프롬프트",
+                "icon": "fa-duotone fa-terminal",
+                "link": "/aiSetting/promptList",
+                "parent": "AI설정",
+                "depth": 2,
+                "target": "_self",
+                "datalink": "/aiSetting/promptEditor",
+                "selector": "prompt_list"
+            },
+            {
+                "menuId": "스케쥴러",
+                "menuName": "스케쥴러",
+                "icon": "fa-duotone fa-calendar-days",
+                "link": "/aiSetting/scheduleList",
+                "parent": "AI설정",
+                "depth": 2,
+                "target": "_self",
+                "datalink": "/aiSetting/scheduleEditor",
+                "selector": "schedule_list"
+            },
+            {
+                "menuId": "AI모델",
+                "menuName": "AI모델",
+                "icon": "fa-duotone fa-microchip",
+                "link": "/aiSetting/modelList",
+                "parent": "AI설정",
+                "depth": 2,
+                "target": "_self",
+                "datalink": "/aiSetting/modelEditor",
+                "selector": "model_list"
+            },
+            {
+                "menuId": "AI사용량",
+                "menuName": "AI사용량",
+                "icon": "fa-duotone fa-chart-line-up",
+                "link": "/aiSetting/usageList",
+                "parent": "AI설정",
+                "depth": 2,
+                "target": "_self",
+                "datalink": "/aiSetting/usageEditor",
+                "selector": "usage_list"
+            }
+        ]
+    },
+    {
+        "menuId": "데이터 수집",
+        "menuName": "데이터 수집",
+        "icon": "fa-duotone fa-download",
+        "link": "",
+        "parent": "0",
+        "depth": 1,
+        "target": "_self",
+        "child": [
+            {
+                "menuId": "API리스트",
+                "menuName": "API리스트",
+                "icon": "fa-duotone fa-file-lines",
+                "link": "/apis/list",
+                "parent": "데이터 수집",
+                "depth": 2,
+                "target": "_self",
+                "datalink": "/apis/edit",
+                "selector": "api_list"
+            },
+            {
+                "menuId": "API제공업체",
+                "menuName": "API제공업체",
+                "icon": "fa-duotone fa-file-lines",
+                "link": "/apis/providerList",
+                "parent": "데이터 수집",
+                "depth": 2,
+                "target": "_self",
+                "datalink": "/apis/providerEditor",
+                "selector": "api_provider"
+            }
+        ]
+    },
+    {
+        "menuId": "사이트관리",
+        "menuName": "사이트관리",
+        "icon": "fa-duotone fa-gear",
+        "link": "",
+        "parent": "0",
+        "depth": 1,
+        "target": "_self",
+        "child": [
+            {
+                "menuId": "카테고리",
+                "menuName": "카테고리",
+                "icon": "fa-duotone fa-layer-group",
+                "link": "/category/list",
+                "parent": "사이트관리",
+                "depth": 2,
+                "target": "_self",
+                "selector": "category_list"
+            },
+            {
+                "menuId": "관리자",
+                "menuName": "관리자",
+                "icon": "fa-duotone fa-user-pen",
+                "link": "/manager/list",
+                "parent": "사이트관리",
+                "depth": 2,
+                "target": "_self",
+                "datalink": "/manager/editor",
+                "selector": "manager_list"
+            },
+            {
+                "menuId": "WCMS권한",
+                "menuName": "WCMS권한",
+                "icon": "fa-duotone fa-user-shield",
+                "link": "/auth/list",
+                "parent": "사이트관리",
+                "depth": 2,
+                "target": "_self",
+                "datalink": "/auth/editor",
+                "selector": "auth_list"
+            },
+            {
+                "menuId": "전송처관리",
+                "menuName": "전송처 관리",
+                "icon": "fa-duotone fa-paper-plane",
+                "link": "/send/list",
+                "parent": "사이트관리",
+                "depth": 2,
+                "target": "_self",
+                "datalink": "/send/editor",
+                "selector": "send_list"
+            },
+            {
+                "menuId": "게시판관리",
+                "menuName": "게시판 관리",
+                "icon": "fa-duotone fa-newspaper",
+                "link": "/boardInfo/list",
+                "parent": "사이트관리",
+                "depth": 2,
+                "target": "_self",
+                "datalink": "/boardInfo/editor",
+                "selector": "boardInfo_list"
+            }
+        ]
+    }
+]

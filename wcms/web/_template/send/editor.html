@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}
+
+    <!-- datetimepicker -->
+    <link rel="stylesheet" href="/lib/tempusdominus-bootstrap/tempusdominus-bootstrap-4.min.css" />
+    <script type="text/javascript" src="/lib/tempusdominus-bootstrap/tempusdominus-bootstrap-4.min.js"></script>
+    <script src='/lib/locale/ko.js'></script>
+    <!-- //datetimepicker -->
+
+    <!-- CodeMirror -->
+    <link rel="stylesheet" href="/lib/CodeMirror/lib/codemirror.css">
+    <link rel="stylesheet" href="/lib/CodeMirror/theme/3024-night.css">
+    <script src="/lib/CodeMirror/lib/codemirror.js"></script>
+    <script src="/lib/CodeMirror/mode/xml/xml.js"></script>
+    <script src="/lib/CodeMirror/mode/javascript/javascript.js"></script>
+    <script src="/lib/CodeMirror/mode/css/css.js"></script>
+    <script src="/lib/CodeMirror/mode/htmlmixed/htmlmixed.js"></script>
+    <script src="/lib/CodeMirror/mode/htmlembedded/htmlembedded.js"></script>
+    <script src="/lib/CodeMirror/addon/mode/multiplex.js"></script>
+    <!-- <script src="/lib/CodeMirror/addon/edit/matchbrackets.js"></script> -->
+    <!-- //CodeMirror -->
+
+	<style>
+        .form-control-label {line-height: 1.6;padding: 5px;}
+	</style>
+</head>
+<body>
+	{#left}
+	{#header}
+    {#left}
+	{#header}
+	<main class="container">
+        <div role="document">
+			<div role="heading">전송처 관리</div>
+			<section>
+                <!-- form -->
+                <form method="post" name="inputForm" id="inputForm" role="form" class="spacing">
+                    <input type="hidden" id="saveFlag" name="saveFlag" value="{? result.item.id}update{:}insert{/}"/>
+                    <input type="hidden" id="coId" name="coId" value="{result.item.coId}"/>
+                    <!-- 기본정보 -->
+                    <details open>
+                        <summary class="secondary">기본정보</summary>
+                        <div class="grid">
+                            <label for="id">전송처 ID<span class="red">*</span>
+                                <input type="text" name="id" id="id" autocomplete="off" maxlength="60" value="{result.item.id}"/>
+                            </label>
+                            <label for="name">전송처 이름
+                                <input type="text" name="name" id="name" autocomplete="off" maxlength="60" value="{result.item.name}"/>
+                            </label>
+                        </div>
+                        <div class="grid">
+                            <label class="spacing">사용여부
+                                <div class="flex">
+                                    <label for="isUse_true"><input type="radio" name="isUse" id="isUse isUse_true" value="true"/>사용</label>
+                                    <label for="isUse_false"><input type="radio" name="isUse" id="isUse isUse_false" value="false">중지</label>
+                                </div>
+                            </label>
+                            <label class="spacing">전송처 종류
+                                <div class="flex">
+                                    <label for="mediaType_portal"><input type="radio" name="mediaType" id="mediaType mediaType_portal" value='PORTAL'/>PORTAL</label>
+                                    <label for="mediaType_hts"><input type="radio" name="mediaType" id="mediaType mediaType_hts" value='HTS'/>HTS</label>
+                                    <label for="mediaType_etc"><input type="radio" name="mediaType" id="mediaType mediaType_etc" value='ETC'/>ETC</label>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="grid">
+                            <label for="managerInfo">전송처 담당자 정보
+                                <textarea name="managerInfo" id="managerInfo" rows="4">{=htmlspecialchars(result.item.managerInfo)}</textarea>
+                            </label>
+                            <label for="description">설명
+                                <textarea name="description" id="description" rows="4">{=htmlspecialchars(result.item.description)}</textarea>
+                            </label>
+                        </div>
+                        <div class="grid">
+                            <label class="spacing">
+                                <div class="flex">
+                                    전송 카테고리 <span class="blue">(* 체크 된 항목이 없으면 전체선택과 동일) </span>
+                                    <button type="button" class="btn btn-sm btn-blue" onclick="javascript:categoryCheckAll()">전체선택</button>
+                                </div>
+                                <ul class="scroll-box scroll-box-lg">
+                                    {@ result.categoryTree}
+                                    {? .isNews && .isUse}
+                                    <li>
+                                        <label for="in_{.id}"><input value="{.id}" type="checkbox" name="allowCategory[]" id="in_{.id}" value="{.id}" onclick="javascript:categoryCheckChild(this, '{.id}')"> {.name}</label>
+                                        {? !empty(.child)}
+                                        <ul data-parent="{.id}" id="{.id}_child">
+                                            {@ .child}
+                                            {? ..isNews && ..isUse}
+                                            <li>
+                                                <label for="in_{..id}"><input value="{..id}" type="checkbox" name="allowCategory[]" id="in_{..id}" value="{..id}" onclick="javascript:categoryCheckChild(this, '{..id}')">{..name}</label>
+                                                {? !empty(..child)}
+                                                <ul class="flex">
+                                                    {@ ..child}
+                                                    {? ..isNews && ..isUse}
+                                                    <li id="{..id}_child"><label for="in_{...id}"><input value="{...id}" type="checkbox" name="allowCategory[]" id="in_{...id}" value="{...id}">{...name}</label></li>
+                                                    {/}
+                                                    {/}
+                                                </ul>
+                                                {/}
+                                            </li>
+                                            {/}
+                                            {/}
+                                        </ul>
+                                        {/}
+                                    </li>
+                                    {/}
+                                    {/}
+                                </ul>
+                            </label>
+                            <div></div>
+                        </div>
+                    </details>
+                    <!--// 기본정보 -->
+
+                    <!-- 계정 -->
+                    <details open>
+                        <summary class="secondary">계정</summary>
+                        <div class="grid">
+                            <label class="spacing">전송방식
+                                <div class="flex">
+                                    <label for="account_type_ftp"><input type="radio" name="account[type]" id="account_type_ftp" value="FTP" />FTP</label>
+                                    <label for="account_type_sftp"><input type="radio" name="account[type]" id="account_type_sftp" value="SFTP" />SFTP</label>
+                                    <label for="account_type_api"><input type="radio" name="account[type]" id="account_type_api" value="API" />API POST</label>
+                                    <label for="account_type_socket"><input type="radio" name="account[type]" id="account_type_socket" value="SOCKET" />SOCKET</label>
+                                </div>
+                            </label>
+                            <label class="spacing">FTP 패시브 모드
+                                <div class="flex">
+                                    <label for="isPassive_true"><input type="radio" name="account[isPassive]" id="isPassive_true" value="true" />true</label>
+                                    <label for="isPassive_false"><input type="radio" name="account[isPassive]" id="isPassive_false" value="false" />false</label>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="grid">
+                            <label for="host">HOST
+                                <input type="text" placeholder="HOST" name="account[host]" id="host" value="{result.item.account.host}">
+                            </label>
+                            <label for="port">PORT
+                                <input type="text" placeholder="PORT" name="account[port]" id="port" value="{result.item.account.port}">
+                            </label>
+                        </div>
+                        <div class="grid">
+                            <label for="account_id">ID
+                                <input type="text" placeholder="ID" name="account[id]" id="account_id" value="{result.item.account.id}">
+                            </label>
+                            <label for="account_pw">Password
+                                <input type="text" placeholder="Password" name="account[password]" id="account_pw" value="{result.item.account.password}">
+                            </label>
+                        </div>
+                        <div class="grid">
+                            <label for="apiUrl">API URL
+                                <input type="text" placeholder="API URL" name="account[apiUrl]" id="apiUrl" value="{result.item.account.apiUrl}">
+                            </label>
+                            <label for="apiKey">API KEY
+                                <input type="text" placeholder="API KEY" name="account[apiKey]" id="apiKey" value="{result.item.account.apiKey}">
+                            </label>
+                        </div>
+                        <div class="grid">
+                            <label for="subDirectory">FTP 하위 디렉토리
+                                <input type="text" placeholder="FTP 하위 디렉토리" name="account[subDirectory]" id="subDirectory" value="{result.item.account.subDirectory}">
+                            </label>
+                        </div>
+                    </details>
+                    <!--// 계정 -->
+                    
+                    <!-- 전송포맷 -->
+                    <details open>
+                        <summary class="secondary">전송포맷</summary>
+                        <div class="grid">
+                            <label class="spacing">전송 action
+                                <div class="flex">
+                                    <label for="action_I"><input type="checkbox" id="action_I" name="action[]" value="I" >Insert</label>
+                                    <label for="action_U"><input type="checkbox" id="action_U" name="action[]" value="U" >Update</label>
+                                    <label for="action_D"><input type="checkbox" id="action_D" name="action[]" value="D" >Delete</label>
+                                </div>
+                            </label>
+                            <label for="startDate" data-target-input="#startDate" id="datetimepicker1" class="datetimepicker-input">
+                                <div data-target="#datetimepicker1" data-toggle="datetimepicker">
+                                    전송 시작일(기사 최초전송일 기준) <i class="fa-duotone fa-calendar-day"></i>
+                                </div>
+                                <input type="text" id="startDate" name="startDate" value="{result.item.startDate}" data-target="#datetimepicker1">
+                            </label>
+                        </div>
+                        <div class="grid">
+                            <label class="spacing">캐릭터셋
+                                <div class="flex">
+                                    <label for="charset_utf8"><input type="radio" name="format[charset]" id="charset_utf8" value="utf-8" />UTF-8(기본값)</label>
+                                    <label for="charset_euckr"><input type="radio" name="format[charset]" id="charset_euckr" value="euc-kr" />EUC-KR</label>
+                                </div>
+                            </label>
+                            <label class="spacing">이미지파일 전송여부
+                                <div class="flex">
+                                    <label for="isSendImageFile_true"><input type="radio" name="format[isSendImageFile]" id="isSendImageFile_true" value="true" />전송</label>
+                                    <label for="isSendImageFile_false"><input type="radio" name="format[isSendImageFile]" id="isSendImageFile_false" value="false" />미전송</label>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="grid">
+                            <label class="spacing">확장자
+                                <div class="flex">
+                                    <label for="format_xml"><input type="radio" name="format[ext]" id="format_xml" value="xml" />xml</label>
+                                    <label for="format_txt"><input type="radio" name="format[ext]" id="format_txt" value="txt" />txt</label>
+                                    <label for="format_json"><input type="radio" name="format[ext]" id="format_json" value="json" />json</label>
+                                </div>
+                            </label>
+                            <label class="spacing">동영상파일 전송여부
+                                <div class="flex">
+                                    <label for="isSendVideoFile_true"><input type="radio" name="format[isSendVideoFile]" id="isSendVideoFile_true" value="true" />전송</label>
+                                    <label for="isSendVideoFile_false"><input type="radio" name="format[isSendVideoFile]" id="isSendVideoFile_false" value="false" />미전송</label>
+                                </div>
+                            </label>
+                        </div>
+                        <label for="format_template">Template
+                            <textarea id="format_template" name="format[template]">{=htmlspecialchars(result.item.format.template)}</textarea>
+                        </label>
+                    </details>
+                    <!--// 전송포맷 -->
+                </form>
+                <!--// form -->
+                <div class="flex justify-center">
+                    <button type="button" class="btn btn-md" id="saveBtn">저장</button>
+                    <button type="button" class="btn btn-md" id="listBtn">목록</button>
+                </div>
+            </section>
+        </div>
+    </main>
+
+	<!-- 토스트 -->
+	{# toast}
+	<!-- //토스트 -->
+
+    {? !empty(result.item.id)}
+	<!-- 히스토리 -->
+	<script>
+		// 히스토리를 불러오기 위한 설정
+		let historyParams = {
+			collection : 'send',
+			coId : '{result.item.coId}',
+			id : '{result.item.id}'
+		}
+	</script>
+	{# collectionHistory}
+	<!-- //히스토리 -->
+    {/}
+
+<script type="text/javascript">
+	$(document).ready(()=>{
+
+        // 초기화
+        initForm();
+
+        // datetimepicker
+        $('#datetimepicker1').datetimepicker({
+            locale:'ko',
+            format: 'LLL',
+            sideBySide: true,
+            toolbarPlacement: 'bottom',
+            allowInputToggle: true,
+            buttons :{
+                showToday: true,
+                showClose: true
+            },
+            icons: {
+                today : 'far fa-calendar-check'
+            },
+            tooltips: {
+                today : '초기화(오늘날짜)',
+                close: '확인'
+            },
+        });
+
+        // 저장
+        $('#saveBtn').on('click',function(){
+            save();
+        });
+
+        // 목록
+        $('#listBtn').on('click',function(){
+            location.href = '/send/list';
+        });
+	});
+
+    // 저장
+	function save(){
+        // CodeMirror에서 값 가져옴
+	    $('#format_template').val(codeEditor.getValue());
+
+		$.ajax({
+			url: '/send/save/ajax',
+			method : 'post',
+			data : $('#inputForm').serialize(),
+            dataType: 'json',
+		}).done(function(data, textStatus, jqXHR) {
+            alert(data.result.msg);
+			location.reload();
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+            if (!!jqXHR?.responseJSON?.result?.msg) {
+                alert(jqXHR.responseJSON.result.msg);
+            } else {
+                alert(textStatus+' : '+errorThrown);
+            }
+        });
+	}
+
+    // 카테고리 전체 선택
+    var categoryflag = true;
+    var categoryCheckAll = function(){
+        $('[name="allowCategory[]"]').prop('checked',categoryflag);
+        categoryflag = categoryflag == true ? false : true;
+    }
+
+    // 카테고리 하위 선택
+    var categoryCheckChild = function(obj, categoryId){
+        var chk = $(obj).prop("checked");
+        $("#"+categoryId+"_child input").prop('checked', chk);
+    }
+
+    // code editor : CodeMirror
+    var codeEditor = CodeMirror.fromTextArea(document.getElementById("format_template"), {
+        lineNumbers: true,
+        mode: "application/x-ejs",
+        indentUnit: 4,
+        indentWithTabs: true,
+        theme: '3024-night',
+        width: '500px'
+    });
+    codeEditor.setSize('100%', '500px');
+
+    // 초기화
+    function initForm(){
+        {? result.item.isUse}
+            $('[name="isUse"][value="{result.item.isUse}"]').prop('checked',true);
+        {:} 
+            $('[name="isUse"]:eq(0)').prop('checked',true);
+        {/}
+
+        {? result.item.mediaType}
+            $('[name="mediaType"][value="{result.item.mediaType}"]').prop('checked',true);
+        {:}
+            $('[name="mediaType"]:eq(0)').prop('checked',true);
+        {/}
+
+        {? result.item.account.type}
+            $('[name="account[type]"][value="{result.item.account.type}"]').prop('checked',true);
+        {:}
+            $('[name="account[type]"]:eq(0)').prop('checked',true);
+        {/}
+
+        {? result.item.account.isPassive}
+            $('[name="account[isPassive]"][value="{result.item.account.isPassive}"]').prop('checked',true);
+        {:}
+            $('[name="account[isPassive]"]:eq(0)').prop('checked',true);
+        {/}
+
+        {? result.item.format.charset}
+            $('[name="format[charset]"][value="{result.item.format.charset}"]').prop('checked',true);
+        {:}
+            $('[name="format[charset]"]:eq(0)').prop('checked',true);
+        {/}
+
+        {? result.item.format.isSendImageFile}
+            $('[name="format[isSendImageFile]"][value="{result.item.format.isSendImageFile}"]').prop('checked',true);
+        {:}
+            $('[name="format[isSendImageFile]"]:eq(1)').prop('checked',true);
+        {/}
+        {? result.item.format.isSendVideoFile}
+            $('[name="format[isSendVideoFile]"][value="{result.item.format.isSendVideoFile}"]').prop('checked',true);
+        {:}
+            $('[name="format[isSendVideoFile]"]:eq(1)').prop('checked',true);
+        {/}
+
+        {? result.item.format.ext}
+            $('[name="format[ext]"][value="{result.item.format.ext}"]').prop('checked',true);
+        {:}
+            $('[name="format[ext]"]:eq(0)').prop('checked',true);
+        {/}
+
+        {@ result.item.action}
+            $('[name="action[]"][value="{.value_}"]').prop('checked',true);
+        {/}
+
+        {@ result.item.allowCategory}
+            $('[name="allowCategory[]"][value="{.value_}"]').prop('checked',true);
+        {/}
+    }
+    
+</script>
+</body>
+</html>

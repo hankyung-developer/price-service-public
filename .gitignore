@@ -1,0 +1,58 @@
+# 데이터베이스 설정 파일 (보안 민감 정보 포함)
+**/config/db.json
+**/config/common.json
+
+# Composer 의존성 (재생성 가능)
+vendor/
+composer.phar
+
+# 컴파일된 템플릿 파일 (자동 생성)
+_compile/
+**/_compile/
+
+# 로그 파일
+logs/
+**/logs/
+*.log
+
+# 환경 변수 파일
+.env
+.env.local
+.env.*.local
+
+# IDE 설정 파일
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# 업로드된 이미지/파일 (용량 문제)
+**/sendArticle/images/*
+!**/sendArticle/images/.gitkeep
+
+# 임시 파일
+*.tmp
+*.temp
+*.cache
+
+# Windows 썸네일
+Thumbs.db
+ehthumbs.db
+
+# PHP 관련
+*.php~
+.phpunit.result.cache
+
+# Node.js 관련 (혹시 사용할 경우)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 백업 파일
+*.bak
+*.backup
+*.old
+

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}
+</head>
+<body>
+    {# left}
+    {# header}
+    <main class="container">
+        <div role="document">
+			<div role="heading">AI 프롬프트</div>
+			<section>
+				<input type="hidden" name="referer" id="referer" value="{ _SERVER['HTTP_REFERER']}"/>
+				<form id="inputForm" method="post" role="form" class="spacing">
+					<input type="hidden" id="coId" name="coId" value="{? result.item.coId}{result.item.coId}{:}{_SESSION.coId}{/}">
+                    <input type="hidden" name="idx" value="{? result.item.idx}{result.item.idx}{:}{/}">
+					<input type="hidden" name="action" value="{? result.item.id}update{:}insert{/}">
+					<div class="grid">
+						<label for="title">
+                            프롬프트 명칭<span class="red">*</span>
+                            <input type="text" placeholder="프롬프트 명칭을 입력하세요" name="title" id="title" autocomplete="off" maxlength="60" value="{? !empty(result.item.title)}{result.item.title}{/}">
+							<span id="idResult"></span>
+						</label>
+					</div>
+					<div class="grid">
+						<label for="isUse">
+                            사용여부 
+                            <select id="isUse" name="isUse">
+                                <option value="Y" selected="selected">사용</option>
+								<option value="N">미사용</option>
+                            </select>
+                        </label>
+					</div>
+					<div class="grid">
+						<label for="content">
+                            내용 <span class="red">*</span>
+                            <textarea name="content" id="content" placeholder="내용을 입력하세요" rows="10">{? !empty(result.item.content)}{result.item.content}{/}</textarea>
+							<span id="idResult"></span>
+						</label>
+					</div>
+				</form>
+				<div class="flex justify-center">
+					<button type="button" class="btn btn-md" id="saveBtn">프롬프트 저장</button>
+					<button type="button" class="btn btn-md" id="listBtn">목록</button>
+				</div>
+			</section>
+		</div>
+	</main>
+
+<script type="text/javascript">
+{? empty(_GET['idx'])}
+	var action='Insert';
+{:}
+	var action='Modify';
+	$("#saveBtn").text('프롬프트 수정');
+{/}
+
+$("#saveBtn").click(function (){
+    if($('#title').val()==''){
+        alert('Please enter the API Title');
+        $('#title').focus();
+        return;
+    }
+    if($('#content').val()==''){
+        alert('Please enter the Provider');
+        $('#content').focus();
+        return;
+    }
+
+    $.ajax({
+        url: '/aiSetting/prompt'+action+'/ajax',
+        method : 'POST',
+        data : $('#inputForm').serialize()
+    }).done(function() {
+		alert('저장되었습니다.');
+		goList();
+    });
+});
+
+$("#listBtn").click(()=>{
+	goList();
+});
+
+// 리스트 함수
+let goList = ()=>{
+	location.href = '/aiSetting/promptList';
+}
+</script>
+</body>
+</html>

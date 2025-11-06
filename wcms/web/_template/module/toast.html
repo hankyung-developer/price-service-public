@@ -1,0 +1,62 @@
+<!-- 토스트 컨테이너 -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- 토스트 스크립트 -->
+<script>
+    // 사용 예시
+    // showToast('저장되었습니다.', 'success');
+    // showToast('오류가 발생했습니다.', 'error');
+    // showToast('알림 메시지입니다.', 'info');
+
+    // 토스트 메시지 표시 함수
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = 'toast toast-'+type;
+        toast.textContent = message;
+        
+        document.getElementById('toastContainer').appendChild(toast);
+
+        // 3초 후 자동으로 사라지게 설정
+        setTimeout(() => {
+            toast.classList.add('fade-out');
+            setTimeout(() => {
+                toast.remove();
+            }, 300);
+        }, 3000);
+    }
+</script>
+
+<style>
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+    }
+
+    .toast {
+        padding: 12px 24px;
+        margin-bottom: 10px;
+        border-radius: 4px;
+        color: white;
+        font-size: 14px;
+        opacity: 1;
+        transition: opacity 0.3s ease;
+    }
+
+    .toast-success {
+        background-color: #28a745;
+    }
+
+    .toast-error {
+        background-color: #dc3545;
+    }
+
+    .toast-info {
+        background-color: #17a2b8;
+    }
+
+    .toast.fade-out {
+        opacity: 0;
+    }
+</style> 

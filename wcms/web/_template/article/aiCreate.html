@@ -1,0 +1,2833 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 기사작성 - DataCMS</title>
+    {# head}
+    <style>
+        /* AI 기사 작성 시스템 스타일 */
+        .ai-article-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* 단계 표시 */
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+            gap: 40px;
+        }
+
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .step-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .step-circle.active {
+            background-color: #007bff;
+            color: white;
+            box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+        }
+
+        .step-circle.completed {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .step-circle.inactive {
+            background-color: #e9ecef;
+            color: #6c757d;
+        }
+
+        .step-circle:hover {
+            transform: scale(1.05);
+            transition: all 0.2s ease;
+        }
+
+        .step-label {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* 메인 컨텐츠 영역 */
+        .content-area {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            min-height: 600px;
+        }
+
+        /* 단계별 화면 */
+        .step-content {
+            display: none;
+        }
+
+        .step-content.active {
+            display: block;
+        }
+
+        /* 섹션 스타일 */
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section-title, .prompt-title, .template-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .required::after {
+            content: " *";
+            color: #dc3545;
+        }
+
+        /* 버튼 그룹 */
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .option-button {
+            padding: 10px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .option-button:hover {
+            border-color: #007bff;
+        }
+
+        .option-button.selected {
+            background-color: #e3f2fd;
+            border-color: #007bff;
+            color: #007bff;
+        }
+
+        .option-button .icon {
+            position: absolute;
+            bottom: -5px;
+            right: -5px;
+            width: 20px;
+            height: 20px;
+            background: #ffc107;
+            border: 2px solid #007bff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #007bff;
+        }
+
+        /* 품목 선택 */
+        .item-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .item-tag {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 20px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .item-tag:hover {
+            background: #bbdefb;
+            box-shadow: 0 2px 4px rgba(33, 150, 243, 0.2);
+        }
+
+        .item-tag .remove-btn {
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .item-tag .remove-btn:hover {
+            background: #ffebee;
+            transform: scale(1.1);
+        }
+
+        .add-item-btn {
+            padding: 8px 12px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        /* 입력 필드 */
+        .input-field {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            margin-top: 5px;
+        }
+
+        /* 모달 스타일 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 1000px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* 품목 테이블 스타일 */
+        .item-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .item-table thead {
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%) !important;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .item-table th {
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #4338ca;
+            color: #ffffff !important;
+            cursor: pointer;
+            -webkit-user-select: none;
+            user-select: none;
+            white-space: nowrap;
+            transition: background-color 0.2s;
+            background-color: transparent !important;
+        }
+
+        .item-table th:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .item-table th.sortable::after {
+            content: ' ⇅';
+            opacity: 0.5;
+            font-size: 12px;
+        }
+
+        .item-table th.sort-asc::after {
+            content: ' ▲';
+            opacity: 1;
+        }
+
+        .item-table th.sort-desc::after {
+            content: ' ▼';
+            opacity: 1;
+        }
+
+        .item-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #f0f0f0;
+            white-space: nowrap;
+        }
+
+        .item-table tbody tr {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .item-table tbody tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .item-table tbody tr.selected {
+            background-color: #bbdefb;
+            font-weight: 500;
+        }
+
+        .item-table .price-up {
+            color: #dc3545;
+        }
+
+        .item-table .price-down {
+            color: #28a745;
+        }
+
+        .item-table .price-same {
+            color: #6c757d;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 18px;
+        }
+
+        .modal-content p {
+            margin-bottom: 15px;
+            color: #666;
+        }
+
+        .close-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        .close-btn:hover {
+            background: #0056b3;
+        }
+
+        /* 아이콘 스타일 */
+        .fa-eye {
+            cursor: pointer;
+            color: #007bff;
+            margin-left: 8px;
+            transition: color 0.3s ease;
+        }
+
+        .fa-eye:hover {
+            color: #0056b3;
+        }
+
+        /* 템플릿 프리뷰 스타일 */
+        .template-preview {
+            margin: 15px 0;
+        }
+
+        .template-preview textarea {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+        }
+
+        .textarea-field {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            margin-top: 5px;
+            resize: vertical;
+            min-height: 120px;
+            line-height: 1.6;
+        }
+
+        /* 이미지/차트 선택 */
+        .media-options {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            max-width: 100%;
+            overflow-x: auto;
+            flex-wrap: wrap;
+        }
+
+        .media-option {
+            flex: 0 0 auto;
+            width: calc((100% - 30px) / 3);
+            min-width: 280px;
+            max-width: 100%;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        /* Step 2: 이미지/차트 미리보기 옵션에만 높이 적용 */
+        #imageOptions .media-option,
+        #chartOptions .media-option {
+            height: 350px;
+        }
+
+        .media-option:hover {
+            border-color: #007bff;
+        }
+
+        .media-option.selected {
+            background-color: #e3f2fd;
+            border-color: #007bff;
+        }
+
+        .media-option .radio {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ddd;
+            border-radius: 50%;
+        }
+
+        .media-option.selected .radio {
+            border-color: #007bff;
+            background: #007bff;
+        }
+
+        /* 재생성 버튼 */
+        .regenerate-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .regenerate-btn:hover {
+            background: #218838;
+        }
+
+        /* 태그 */
+        .tag-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .tag {
+            padding: 6px 12px;
+            background: #e9ecef;
+            border-radius: 15px;
+            font-size: 12px;
+            color: #495057;
+        }
+
+        /* 네비게이션 버튼 */
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .nav-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn.prev {
+            background: #6c757d;
+            color: white;
+        }
+
+        .nav-btn.prev:hover {
+            background: #5a6268;
+        }
+
+        .nav-btn.next {
+            background: #007bff;
+            color: white;
+        }
+
+        .nav-btn.next:hover {
+            background: #0056b3;
+        }
+
+        .nav-btn.send {
+            background: #28a745;
+            color: white;
+        }
+
+        .nav-btn.send:hover {
+            background: #218838;
+        }
+
+        /* 로딩 오버레이 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .loading-description {
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        /* 설명 텍스트 */
+        .help-text {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        /* 반응형 */
+        @media (max-width: 768px) {
+            .step-indicator {
+                gap: 20px;
+            }
+            
+            .step-circle {
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+            }
+            
+            .content-area {
+                padding: 20px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .option-button {
+                min-width: auto;
+            }
+        }
+    </style>
+    <script src="/lib/anychart/anychart-base.min.js"></script>
+</head>
+<body>
+    {# left}
+    {# header}
+	</style>
+    <main class="container">
+        <div role="document">
+			<div role="heading" aria-level="1">AI 기사작성</div>
+			
+			<!-- AI 기사 작성 시스템 -->
+			<div class="ai-article-container">
+				<!-- 단계 표시 -->
+				<div class="step-indicator">
+					<div class="step" data-step="1">
+						<div class="step-circle active" id="step1-circle">1</div>
+						<div class="step-label">기본정보</div>
+					</div>
+					<div class="step" data-step="2">
+						<div class="step-circle inactive" id="step2-circle">2</div>
+						<div class="step-label">편집</div>
+					</div>
+					<div class="step" data-step="3">
+						<div class="step-circle inactive" id="step3-circle">3</div>
+						<div class="step-label">검토·전송</div>
+					</div>
+				</div>
+
+				<!-- 메인 컨텐츠 영역 -->
+				<div class="content-area">
+					<!-- 1단계: 기본정보 -->
+					<div class="step-content" id="step1-content">
+						<form id="basicForm">
+							<!-- 데이터 선택 -->
+                            <div class="section" id="section-category">
+								<div class="section-title required">데이터</div>
+								<div class="button-group">
+									{@ result.category.categoryList}
+									{? .depth==1}
+                                    <div class="option-button" data-value="{.id}" data-role="category">
+										{.name}
+									</div>
+									{/}
+									{/}
+								</div>
+							</div>
+
+							<!-- 프롬프트 선택 -->
+                            <div class="section" id="section-prompt">
+								<div class="prompt-title required">프롬프트</div>
+								<div class="button-group">
+									{@ result.prompt}
+                                    <div class="option-button" data-value="{.idx}" data-role="prompt">
+										{.title}
+									</div>
+									{/}
+								</div>
+							</div>
+
+                            <!-- div class="section" id="section-template">
+								<div class="template-title required">기사 템플릿</div>
+								<div class="button-group">
+									{@ result.template}
+                                    <div class="option-button" data-value="{.idx}" data-role="template">
+										{.title} <i class="fa-solid fa-eye" onclick="showTemplateModal('{.idx}')"></i>
+									</div>
+									{/}
+								</div>
+							</div -->
+                            <input type="hidden" id="templateIdx" name="templateIdx" value="3">
+
+							<!-- 품목 선택 -->
+                            <div class="section" id="section-items">
+								<div class="section-title">품목</div>
+                                <div class="help-text" style="margin-bottom: 10px; color: #28a745; font-weight: 500;">
+                                    ℹ️ 카테고리를 선택하면 상위 전일 변동폭이 큰 10개 품목이 자동으로 추가됩니다.
+                                </div>
+                                <button type="button" class="add-item-btn" id="addItemBtn">품목 추가</button>
+                                <div class="item-container" id="itemContainer"></div>
+                                <div class="help-text">* "품목 추가" 버튼을 클릭하여 추가 품목을 선택할 수 있습니다.</div>
+							</div>
+							<!-- 기사 작성용 프롬프트 -->
+							<!-- div class="section">
+								<div class="section-title required">기사 작성 프롬프트</div>
+								<div class="prompt-area">
+									<label for="articlePrompt" class="prompt-label">원하는 기사 스타일이나 키워드를 입력하세요</label>
+									<textarea 
+										id="articlePrompt" 
+										class="input-field prompt-textarea" 
+										placeholder="예: 쌀 가격 동향, 시금치 수급, 소비자 반응 등"
+										rows="4"
+										style="margin-bottom: 0;"
+									></textarea>
+									<div class="help-text">* 프롬프트를 입력하지 않으면 기본 기사 스타일로 생성됩니다.</div>
+								</div>
+							</div -->
+
+							<!-- 이미지 생성 -->
+                            <div class="section" id="section-image-option">
+								<div class="section-title required">이미지</div>
+								<div class="media-options">
+									<div class="media-option selected" data-value="generate">
+										생성
+									</div>
+									<div class="media-option" data-value="no-generate">
+										생성안함
+									</div>
+								</div>
+							</div>
+
+							<!-- 차트 생성 -->
+                            <div class="section" id="section-chart-option">
+								<div class="section-title required">차트</div>
+								<div class="media-options">
+									<div class="media-option selected" data-value="generate">
+										생성
+									</div>
+									<div class="media-option" data-value="no-generate">
+										생성안함
+									</div>
+								</div>
+							</div>
+						</form>
+					</div>
+
+					<!-- 2단계: 편집 -->
+                    <div class="step-content" id="step2-content">
+						<form id="editForm">
+						<!-- 데이터 확인 버튼 -->
+						<div class="section" style="background: #f0f8ff; padding: 15px; border-radius: 8px; border: 1px solid #b3d9ff; margin-bottom: 20px;">
+							<div style="display: flex; align-items: center; gap: 10px;">
+								<i class="fa-solid fa-database" style="color: #007bff; font-size: 20px;"></i>
+								<div style="flex: 1;">
+									<strong style="color: #007bff;">사용된 데이터 확인</strong>
+									<p style="margin: 5px 0 0 0; font-size: 13px; color: #666;">AI가 기사 작성에 사용한 실제 시장 데이터를 확인할 수 있습니다.</p>
+								</div>
+								<button type="button" class="regenerate-btn" onclick="showDataModal()" style="background: #007bff;">
+									<i class="fa-solid fa-table"></i> 데이터 보기
+								</button>
+							</div>
+						</div>
+						
+						<!-- 제목 -->
+						<div class="section">
+							<div class="section-title">제목</div>
+                            <input type="text" class="input-field" id="articleTitle" value="" style="font-size: 18px; font-weight: 600;">
+						</div>
+
+						<!-- 부제목 -->
+						<div class="section">
+							<div class="section-title">부제목</div>
+							<input type="text" class="input-field" id="articleSubtitle" value="" style="font-size: 17px; font-weight: 500;">
+						</div>
+
+						<!-- 본문 -->
+						<div class="section">
+							<div class="section-title">본문</div>
+							<div style="display: flex; gap: 10px; margin-bottom: 10px;">
+								<button type="button" class="regenerate-btn" onclick="regenerateContent('body')">
+									<span>🔄</span> 재생성
+								</button>
+								<button type="button" class="regenerate-btn" onclick="toggleBodyEditMode()" style="background: #6c757d;" id="editModeBtn">
+									<span>✏️</span> 편집
+								</button>
+							</div>
+							<!-- 렌더링된 본문 (기본 표시) -->
+							<div id="articleBodyRendered" style="border: 1px solid #ddd; border-radius: 6px; padding: 15px; background: #fff; min-height: 200px; line-height: 1.8; font-size: 16px; display: block;"></div>
+							<!-- 편집용 텍스트영역 (숨김) -->
+							<textarea class="textarea-field" id="articleBody" rows="12" style="display: none;">이번 주 장 보러 가셨다가 깜짝 놀라신 분들 많으시죠? 특히 푸릇푸릇한 시금치를 보며 '어머, 가격이 이렇게 착 해졌네!' 하고 반가워하신 분들도 계실 거예요. 반면, 쌀이나 메밀 가격을 보면서는 한숨을 쉬셨을지도 모르겠습니다. 우리 식탁의 기본이 되는 농산물 가격이 요즘 참 변동이 심한데요, 과연 어떤 품목들이 오르고 내렸는지 자세히 살펴볼까요?
+
+먼저, 우리 밥상에 빠질 수 없는 쌀입니다. 5월 31일 현재 쌀의 평균가격은 1,470원으로 확인됩니다. 하루 전인 5월 30일 가격인 1,452원과 비교해보면 18원(약 1.24%) 올랐고, 3일 전인 5월 28일의 1,465원보다는 5원(약 0.34%) 상승했어요. 지난주 5월 24일 쌀 가격이 1,450원이었으니 일주일 새 20원(약 1.38%)가량 올랐음을 알 수 있습니다. 한 달 전인 4월 30일의 1,369원에 비해서는 무려 101원(약 7.38%)이나 상승했고, 3개월 전인 3월 1일의 1,359원과 비교하면 111원(약 8.17%)이 올라 쌀값의 꾸준한 상승세를 보여주고 있습니다.</textarea>
+						</div>
+
+						<!-- 이미지 -->
+                        <div class="section">
+							<div class="section-title">이미지</div>
+							<button type="button" class="regenerate-btn" onclick="regenerateContent('image')">
+								<span>🔄</span> 재생성
+							</button>
+                            <div class="media-options" id="imageOptions"></div>
+						</div>
+
+						<!-- 차트 -->
+                        <div class="section">
+							<div class="section-title">차트</div>
+							<button type="button" class="regenerate-btn" onclick="regenerateContent('chart')">
+								<span>🔄</span> 재생성
+							</button>
+                            <div class="media-options" id="chartOptions"></div>
+						</div>
+						</form>
+					</div>
+
+					<!-- 3단계: 검토·전송 -->
+                    <div class="step-content" id="step3-content">
+						<form id="reviewForm">
+							<!-- 물류코드 -->
+							<div class="section">
+								<div class="section-title">데이터 카테고리</div>
+								<input type="text" class="input-field" id="reviewCategory" value="" readonly>
+							</div>
+
+							<!-- 제목 -->
+							<div class="section">
+								<div class="section-title">제목</div>
+								<input type="text" class="input-field" id="reviewTitle" value="" readonly>
+							</div>
+
+							<!-- 부제목 -->
+							<div class="section">
+								<div class="section-title">부제목</div>
+								<input type="text" class="input-field" id="reviewSubtitle" value="" readonly>
+							</div>
+
+							<!-- 본문 -->
+							<div class="section">
+								<div class="section-title">본문 미리보기</div>
+								<div style="border: 1px solid #ddd; border-radius: 6px; padding: 15px; background: #f8f9fa; min-height: 200px; line-height: 1.6;">
+                                    <div id="reviewContent">초안이 생성되면 이 영역에 본문+이미지+차트가 표시됩니다.</div>
+								</div>
+							</div>
+
+							<!-- 태그 -->
+							<div class="section">
+								<div class="section-title">태그</div>
+								<div class="tag-container" id="reviewTags">
+									<div class="tag">태그가 자동으로 생성됩니다</div>
+								</div>
+							</div>
+						</form>
+					</div>
+
+					<!-- 네비게이션 버튼 -->
+					<div class="navigation-buttons">
+						<button type="button" class="nav-btn prev" id="prevBtn" onclick="previousStep()">이전</button>
+						<button type="button" class="nav-btn next" id="nextBtn" onclick="nextStep()">다음</button>
+                        <button type="button" class="nav-btn send" id="sendBtn" onclick="sendArticle()" style="display: none;">전송</button>
+					</div>
+				</div>
+			</div>
+
+			<!-- 로딩 오버레이 -->
+			<div class="loading-overlay" id="loadingOverlay">
+				<div class="loading-content">
+					<div class="loading-spinner"></div>
+					<div class="loading-text" id="loadingText">AI 기사 작성중...</div>
+					<div class="loading-description" id="loadingDescription">잠시만 기다려주세요.</div>
+				</div>
+			</div>
+		</div>
+	</main>
+
+	<script>
+		// ============================================
+		// 설정 및 상수
+		// ============================================
+		const DEBUG_MODE = false; // 프로덕션 환경에서는 false로 설정
+		
+		// Canvas 설정
+		const CANVAS_WIDTH = 625;
+		const LOGO_AREA_HEIGHT = 40;
+		const LOGO_HEIGHT = 20;
+		const LOGO_PADDING = 15;
+		const LOGO_OPACITY = 0.8;
+		
+		// 차트 설정
+		const CHART_LOAD_DELAY = 500; // ms
+		
+		// 전역 변수
+		let currentStep = 1;
+		const totalSteps = 3;
+		
+		// ============================================
+		// 유틸리티 함수
+		// ============================================
+		function debug(...args) {
+			if (DEBUG_MODE) {
+				console.log(...args);
+			}
+		}
+		
+		function debugError(...args) {
+			if (DEBUG_MODE) {
+				console.error(...args);
+			}
+		}
+		
+		// 날짜 계산 (n일 전)
+		function getDateBefore(days) {
+			const date = new Date();
+			date.setDate(date.getDate() - days);
+			return date.getFullYear() + '-' + 
+				   String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+				   String(date.getDate()).padStart(2, '0');
+		}
+		
+		// 가격 포맷팅
+		function formatPrice(price) {
+			return price ? Number(price).toLocaleString() + '원' : '-';
+		}
+		
+		// 변동률 계산
+		function calculateChange(currentPrice, prevPrice) {
+			const current = parseFloat(currentPrice) || 0;
+			const prev = parseFloat(prevPrice) || 0;
+			if (prev === 0) return { change: 0, percent: 0, class: 'price-same', symbol: '' };
+			
+			const change = current - prev;
+			const percent = ((change / prev) * 100).toFixed(2);
+			
+			if (change > 0) {
+				return { change, percent, class: 'price-up', symbol: '▲' };
+			} else if (change < 0) {
+				return { change, percent, class: 'price-down', symbol: '▼' };
+			} else {
+				return { change, percent, class: 'price-same', symbol: '' };
+			}
+		}
+		
+		// currentStep 값을 안전하게 설정하는 함수
+		function setCurrentStep(step) {
+			const stepNumber = parseInt(step);
+			if (isNaN(stepNumber) || stepNumber < 1 || stepNumber > totalSteps) {
+				debugError('유효하지 않은 단계 값:', step, '기본값 1로 설정');
+				currentStep = 1;
+			} else {
+				currentStep = stepNumber;
+			}
+			debug('currentStep 설정됨:', currentStep);
+		}
+
+		// 단계 이동 함수
+		function showStep(step, addToHistory = true) {
+			debug('showStep 함수 시작 - 원본 매개변수:', step, '타입:', typeof step);
+			
+			// step이 숫자인지 확인하고 정수로 변환
+			const stepNumber = parseInt(step);
+			debug('parseInt 결과:', stepNumber, 'isNaN:', isNaN(stepNumber));
+			
+			// 유효한 단계인지 확인
+			if (isNaN(stepNumber) || stepNumber < 1 || stepNumber > totalSteps) {
+				debugError('유효하지 않은 단계:', step, 'stepNumber:', stepNumber);
+				return;
+			}
+
+			debug('showStep 호출됨 - 단계:', stepNumber);
+
+			// 모든 단계 내용 숨기기
+			document.querySelectorAll('.step-content').forEach(content => {
+				content.classList.remove('active');
+			});
+
+			// 모든 단계 원 비활성화
+			document.querySelectorAll('.step-circle').forEach(circle => {
+				circle.classList.remove('active', 'completed');
+				circle.classList.add('inactive');
+			});
+
+			// 현재 단계 요소들 가져오기
+			const contentId = 'step' + stepNumber + '-content';
+			const circleId = 'step' + stepNumber + '-circle';
+			
+			const currentContent = document.getElementById(contentId);
+			const currentCircle = document.getElementById(circleId);
+
+			// 요소가 존재하는지 확인
+			if (!currentContent || !currentCircle) {
+				debugError('단계 ' + stepNumber + '의 요소를 찾을 수 없습니다.', contentId, circleId);
+				return;
+			}
+
+			// 현재 단계 표시
+			currentContent.classList.add('active');
+			debug('표시됨:', currentContent.id);
+			currentCircle.classList.remove('inactive');
+			currentCircle.classList.add('active');
+
+			// 이전 단계들 완료 표시 (선택적)
+			for (let i = 1; i < stepNumber; i++) {
+				const prevCircle = document.getElementById('step' + i + '-circle');
+				if (prevCircle) {
+					prevCircle.classList.remove('inactive');
+					prevCircle.classList.add('completed');
+				}
+			}
+
+			// 현재 단계 업데이트
+			setCurrentStep(stepNumber);
+
+			// 히스토리에 추가 (뒤로가기 제어용)
+			if (addToHistory) {
+				history.pushState({ step: stepNumber }, '', '?step=' + stepNumber);
+			}
+
+			// 버튼 상태 업데이트
+			updateNavigationButtons();
+			
+			// 2단계로 이동할 때 AI 생성 시작 (처음 방문하는 경우에만)
+			if (stepNumber === 2) {
+				const step2Content = document.getElementById('step2-content');
+				if (step2Content && !step2Content.classList.contains('visited')) {
+					step2Content.classList.add('visited');
+					startAIGeneration();
+				} else {
+					// 이미 방문한 경우 렌더링 업데이트
+					updateBodyRendered();
+				}
+			}
+			
+			// 3단계로 이동할 때 리뷰 콘텐츠 업데이트
+			if (stepNumber === 3) {
+				updateReviewContent();
+			}
+		}
+
+		// 다음 단계로 이동
+	async function nextStep() {
+		debug('nextStep 호출됨 - 현재 단계:', currentStep);
+		// currentStep이 유효한지 확인
+		if (typeof currentStep !== 'number' || isNaN(currentStep) || currentStep < 1) {
+			debugError('currentStep이 유효하지 않음:', currentStep, '1로 재설정');
+			setCurrentStep(1);
+		}
+		
+		// 1단계에서 2단계로 이동하기 전에 필요한 값들을 state에 저장
+		if (currentStep === 1) {
+			const articlePromptElement = document.getElementById('articlePrompt');
+			if (articlePromptElement) {
+				state.articlePrompt = articlePromptElement.value.trim();
+			}
+		}
+		
+		// 2단계에서 3단계로 이동하기 전에 차트를 이미지로 변환
+		if (currentStep === 2) {
+			await convertChartToImage();
+		}
+		
+		if (currentStep < totalSteps) {
+			showStep(currentStep + 1);
+		}
+	}
+
+		// 이전 단계로 이동
+		function previousStep() {
+			debug('previousStep 호출됨 - 현재 단계:', currentStep);
+			// currentStep이 유효한지 확인
+			if (typeof currentStep !== 'number' || isNaN(currentStep) || currentStep < 1) {
+				debugError('currentStep이 유효하지 않음:', currentStep, '1로 재설정');
+				setCurrentStep(1);
+			}
+			
+			if (currentStep > 1) {
+				showStep(currentStep - 1);
+			}
+		}
+
+		// 네비게이션 버튼 상태 업데이트
+		function updateNavigationButtons() {
+			const prevBtn = document.getElementById('prevBtn');
+			const nextBtn = document.getElementById('nextBtn');
+			const sendBtn = document.getElementById('sendBtn');
+
+			// 버튼들이 존재하는지 확인
+			if (!prevBtn || !nextBtn || !sendBtn) {
+				debugError('네비게이션 버튼을 찾을 수 없습니다.');
+				return;
+			}
+
+			// currentStep이 유효한지 확인
+			if (typeof currentStep !== 'number' || isNaN(currentStep) || currentStep < 1) {
+				debugError('updateNavigationButtons에서 currentStep이 유효하지 않음:', currentStep);
+				setCurrentStep(1);
+			}
+
+			// 이전 버튼은 1단계가 아닐 때만 표시
+			prevBtn.style.display = currentStep === 1 ? 'none' : 'block';
+			
+			// 다음 버튼은 마지막 단계가 아닐 때만 표시
+			nextBtn.style.display = currentStep === totalSteps ? 'none' : 'block';
+			
+			// 전송 버튼은 마지막 단계에서만 표시
+			sendBtn.style.display = currentStep === totalSteps ? 'block' : 'none';
+			
+			debug('현재 단계:', currentStep);
+		}
+
+        // 전역 상태 관리
+        const state = {
+            categoryId: '',
+            promptIdx: 0,
+            templateIdx: 0,
+            items: [], // {id, title}
+            makeImage: 'generate',
+            makeChart: 'generate',
+            articlePrompt: '',
+            draft: null,  // AI 초안 데이터 저장
+            chartData: null,  // 차트 데이터 저장
+            imagePrompt: '',  // 이미지 프롬프트 저장
+            chosen: { chart: null, image: null }
+        };
+
+        // [API] 카테고리 선택 시 외부 API에서 아이템 목록 불러오기 및 상위 5개 자동 선택
+        async function fetchApisByCategory(categoryId){
+            try{
+                debug('카테고리 선택:', categoryId);
+                
+                // 3일 전 날짜 계산
+                const startDate = getDateBefore(7);
+                
+                // API URL 구성
+                const url = 'https://price-api.hankyung.com/api/data?categoryId=' + encodeURIComponent(categoryId) + '&startDate=' + startDate + '&sortField=prevDayChange&sortOrder=desc';
+                debug('API 호출:', url);
+                
+                showLoading('품목 데이터 로딩중...', '잠시만 기다려주세요.');
+                
+                const res = await fetch(url);
+                const json = await res.json();
+                hideLoading();
+                
+                debug('API 응답:', json);
+                
+                // 데이터 추출
+                let rawList = [];
+                if (json && json.data && Array.isArray(json.data.data)) {
+                    rawList = json.data.data;
+                } else if (Array.isArray(json && json.data)) {
+                    rawList = json.data;
+                } else if (Array.isArray(json)) {
+                    rawList = json;
+                }
+                
+                debug('추출된 데이터:', rawList.length, '개');
+                
+                // 품목 리스트 구성
+                const items = rawList.map(function(v){
+                    return {
+                        id: v.sid || v.id || '',
+                        title: v.name || v.title || v.sid || '',
+                        kind: (v.data && v.data[0] && v.data[0].kind) || '',
+                        grade: (v.data && v.data[0] && v.data[0].grade) || '',
+                        price: (v.data && v.data[0] && v.data[0].price) || '',
+                        prevDayPrice: (v.data && v.data[0] && v.data[0].prevDayPrice) || ''
+                    };
+                }).filter(item => item.id && item.title);
+                
+                debug('변환된 품목:', items.length, '개');
+                
+                if (items.length === 0) {
+                    alert('해당 카테고리의 품목 데이터가 없습니다.');
+                    return;
+                }
+                
+                // 상위 5개 항목을 자동으로 선택
+                state.items = items.slice(0, 5).map(function(item){
+                    return {
+                        id: item.id,
+                        title: item.title+'('+item.kind+')'
+                    };
+                });
+                
+                // 전체 품목 리스트 저장 (품목 추가 버튼용)
+                window.availableItems = items;
+                
+                // 선택된 품목 화면에 표시
+                renderSelectedItems();
+                
+                debug('자동 선택 완료: ' + state.items.length + '개 품목이 추가되었습니다.');
+                
+            } catch(e) {
+                hideLoading();
+                debugError('fetchApisByCategory error', e);
+                alert('품목 데이터를 불러오는 중 오류가 발생했습니다.\n' + e.message);
+            }
+        }
+
+        // [Render] 선택된 품목들을 #itemContainer에 렌더링
+        function renderSelectedItems(){
+            const wrap = document.getElementById('itemContainer');
+            wrap.innerHTML = '';
+            
+            if (state.items.length === 0) {
+                wrap.innerHTML = '<div style="padding: 15px; text-align: center; color: #999; border: 2px dashed #ddd; border-radius: 8px;">' +
+                                 '선택된 품목이 없습니다.<br>' +
+                                 '<small>카테고리를 선택하면 자동으로 품목이 추가됩니다.</small>' +
+                                 '</div>';
+                return;
+            }
+            
+            state.items.forEach((it, index) => {
+                const tag = document.createElement('div');
+                tag.className = 'item-tag';
+                tag.dataset.id = it.id;
+                tag.dataset.title = it.title;
+                tag.title = it.title + ' (클릭하여 제거)';
+                
+                // 품목명
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = it.title;
+                nameSpan.style.flexGrow = '1';
+                
+                // 제거 버튼
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-btn';
+                removeBtn.innerHTML = '×';
+                removeBtn.onclick = function() {
+                    removeItem(this);
+                };
+                
+                tag.appendChild(nameSpan);
+                tag.appendChild(removeBtn);
+                wrap.appendChild(tag);
+            });
+        }
+
+        // [State] 아이템 추가 (필요시 사용)
+        function addItemToSelection(it){
+            const exists = state.items.find(i=>i.id===it.id);
+            if(!exists){
+                state.items.push({id:it.id, title:it.title});
+                renderSelectedItems();
+            }
+        }
+
+        // ============================================
+        // 1. 기사 초안 생성
+        // ============================================
+        async function generateArticleDraft(){
+            showLoading('AI 기사 작성중...', '선택한 데이터로 초안을 생성합니다.');
+            try{
+                // 요청 데이터 구성
+                const form = new URLSearchParams();
+                form.append('items', JSON.stringify(state.items));
+                form.append('categoryId', state.categoryId);
+                form.append('templateIdx', $("#templateIdx").val());
+                form.append('promptIdx', String(state.promptIdx||0));
+                form.append('articlePrompt', state.articlePrompt);
+                form.append('makeImage', 'no-generate');  // 이미지는 클라이언트에서 생성
+                form.append('makeChart', 'no-generate');  // 차트는 클라이언트에서 생성
+
+                const res = await fetch('/article/aiDraft', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:String(form)});
+                const json = await res.json();
+                hideLoading();
+                
+                if(!json.success){
+                    alert(json.msg||'초안 생성 실패');
+                    return false;
+                }
+                
+                // 전역 변수에 저장
+                state.draft = json.data;
+                state.chartData = json.data.chart_data || null;  // 차트 데이터
+                state.imagePrompt = json.data.image_prompt || '';  // 이미지 프롬프트
+                
+                debug('초안 데이터 저장 완료:', {
+                    title: state.draft.title,
+                    imagePrompt: state.imagePrompt,
+                    chartDataCount: state.chartData ? state.chartData.data.length : 0
+                });
+                
+                // 제목, 부제목, 본문 표시
+                document.getElementById('articleTitle').value = state.draft.title||'';
+                document.getElementById('articleSubtitle').value = state.draft.subtitle||'';
+                document.getElementById('articleBody').value = state.draft.content||'';
+                
+                // 렌더링된 본문 업데이트
+                updateBodyRendered();
+                
+                return true;
+            }catch(e){
+                hideLoading();
+                console.error('초안 생성 오류:', e);
+                alert('초안 생성 중 오류: ' + e.message);
+                return false;
+            }
+        }
+
+        // ============================================
+        // 2. 이미지 생성 (image_prompt 사용 - 3개 생성)
+        // ============================================
+        async function generateArticleImage(){
+            if(!state.imagePrompt){
+                debug('이미지 프롬프트가 없습니다.');
+                return;
+            }
+            
+            if(state.makeImage !== 'generate'){
+                debug('이미지 생성 건너뜀');
+                return;
+            }
+            
+            showLoading('AI 이미지 생성중...', '3가지 스타일의 이미지를 생성합니다. (약 1-2분 소요)');
+            
+            try{
+                const images = [];
+                
+                // 카테고리별 공통 프롬프트 결정
+                let commonPrompt = '';
+                const selectedCategory = document.querySelector('#section-category .option-button.selected');
+                const categoryName = selectedCategory ? selectedCategory.textContent.trim().toLowerCase() : '';
+                
+                // 선택된 품목 정보 가져오기
+                let itemsText = '';
+                if (state.items && state.items.length > 0) {
+                    // 품목명에서 괄호 안의 종류 제거하고 품목명만 추출
+                    const itemNames = state.items.map(item => {
+                        const name = item.title.replace(/\([^)]*\)/g, '').trim();
+                        return name;
+                    });
+                    itemsText = itemNames.join(', ');
+                }
+                
+                // 카테고리 판별: 농수산물 vs 원자재
+                const isAgricultural = categoryName.includes('농산물') || categoryName.includes('수산물') || 
+                                      categoryName.includes('축산물') || categoryName.includes('채소') || 
+                                      categoryName.includes('과일') || categoryName.includes('곡물');
+                
+                // 품목 프롬프트 (선택된 품목이 있을 때만)
+                const itemPrompt = itemsText ? itemsText + ', ' : '';
+                
+                // 3가지 스타일로 이미지 생성
+                let styles = [];
+                
+                if (isAgricultural) {
+                    // 농수산물: 시장/식품 이미지
+                    styles = [
+                        {
+                            name: 'photorealistic',
+                            suffix: ', ' + itemPrompt + 'fresh produce beautifully arranged in overflowing paper bags, close-up shot from top angle, full frame composition, natural daylight reflecting on fresh washed surfaces, appetizing colors with enhanced saturation, dewy and fresh appearance, ultra high quality DSLR photography, professional food photography, Korean style, no text no numbers no graphs',
+                            label: '사진 스타일',
+                            model: 'dall-e-3',
+                            quality: 'hd',
+                            style: 'natural'
+                        },
+                        {
+                            name: 'illustration',
+                            suffix: ', ' + itemPrompt + 'vector illustration style, flat design, bold colors, clean lines, minimalist modern illustration, digital art, infographic style, professional graphic design, Korean style, no text no numbers no graphs, illustrated in a contemporary editorial style',
+                            label: '일러스트 스타일',
+                            model: 'dall-e-3',
+                            quality: 'standard',
+                            style: 'vivid'
+                        },
+                        {
+                            name: 'natural',
+                            suffix: ', ' + itemPrompt + 'fresh produce, Korean market scene, natural documentary style, professional photojournalism, bright natural lighting, market stalls, no text no numbers no graphs',
+                            label: '다큐 스타일',
+                            model: 'dall-e-3',
+                            quality: 'hd',
+                            style: 'natural'
+                        }
+                    ];
+                } else {
+                    // 원자재: 산업/금융 전문 이미지 (시장/식품 이미지 절대 금지)
+                    styles = [
+                        {
+                            name: 'photorealistic',
+                            suffix: ', ' + itemPrompt + 'commodity materials, professional industrial photography, high quality product shot, studio lighting, metallic surface, raw material, industrial product, commercial photography for financial news, modern industrial aesthetic, clean composition, macro photography, ultra sharp focus, professional business photography, NOT market NOT vegetables NOT food NOT produce NOT groceries, no text no numbers no graphs',
+                            label: '사진 스타일',
+                            model: 'dall-e-3',
+                            quality: 'hd',
+                            style: 'natural'
+                        },
+                        {
+                            name: 'illustration',
+                            suffix: ', ' + itemPrompt + 'commodity symbol, minimalist vector icon illustration, flat design, geometric shapes, financial infographic style, clean modern business illustration, professional editorial design, simple and elegant, economic news illustration style, corporate color palette, abstract business concept art, industrial theme, NOT market NOT vegetables NOT food NOT produce NOT groceries, no text no numbers no graphs',
+                            label: '일러스트 스타일',
+                            model: 'dall-e-3',
+                            quality: 'standard',
+                            style: 'vivid'
+                        },
+                        {
+                            name: 'natural',
+                            suffix: ', ' + itemPrompt + 'commodity production, professional documentary photography, industrial facility, modern factory interior, high-tech production environment, manufacturing plant, business journalism style, wide angle architectural shot, natural industrial lighting, professional news photography, editorial style, NOT market NOT vegetables NOT food NOT produce NOT groceries, no text no numbers no graphs',
+                            label: '다큐 스타일',
+                            model: 'dall-e-3',
+                            quality: 'hd',
+                            style: 'natural'
+                        }
+                    ];
+                }
+                
+                for (let i = 0; i < styles.length; i++) {
+                    const style = styles[i];
+                    
+                    // 로딩 메시지 업데이트
+                    document.getElementById('loadingDescription').textContent = 
+                        (i + 1) + '/3 - ' + style.label + ' 이미지 생성중...';
+                    
+                    const form = new URLSearchParams();
+                    form.append('imagePrompt', state.imagePrompt + style.suffix);
+                    form.append('imageModel', style.model);
+                    form.append('imageSize', '1792x1024');  // 16:10 비율에 가까운 가로로 긴 직사각형
+                    form.append('imageQuality', style.quality || 'standard');
+                    form.append('imageStyle', style.style || 'vivid');
+
+                    const res = await fetch('/article/aiGenerateArticleImage', {
+                        method:'POST', 
+                        headers:{'Content-Type':'application/x-www-form-urlencoded'}, 
+                        body:String(form)
+                    });
+                    
+                    const json = await res.json();
+                    
+                    if(json.success && json.data.image_url){
+                        images.push({
+                            url: json.data.image_url,
+                            path: json.data.image_path,
+                            filename: json.data.image_filename,
+                            style: style.name,
+                            label: style.label,
+                            quality: style.quality,
+                            model: style.model
+                        });
+                        debug(style.label + ' 이미지 생성 완료:', json.data.image_url);
+                    } else {
+                        debugError(style.label + ' 이미지 생성 실패:', json.msg || '알 수 없는 오류');
+                    }
+                }
+                
+                hideLoading();
+                
+                if(images.length > 0){
+                    renderImageOptions(images);
+                    debug(images.length + '개의 이미지 생성 완료');
+                } else {
+                    debugError('생성된 이미지가 없습니다.');
+                    alert('이미지 생성에 실패했습니다. 다시 시도해주세요.');
+                }
+                
+            }catch(e){
+                hideLoading();
+                debugError('이미지 생성 오류:', e);
+            }
+        }
+
+        // ============================================
+        // 3. 차트 생성 (chart_data 사용 - AI로 HTML 생성)
+        // ============================================
+        async function generateArticleChart(){
+            if(!state.chartData || !state.chartData.data){
+                debug('차트 데이터가 없습니다.');
+                return;
+            }
+            
+            if(state.makeChart !== 'generate'){
+                debug('차트 생성 건너뜀');
+                return;
+            }
+            
+            debug('AI 차트 생성 시작:', state.chartData);
+            
+            showLoading('AI 차트 생성중...', '3가지 타입의 차트를 생성합니다. (약 1-2분 소요)');
+            
+            try {
+                // 여러 차트 타입으로 생성 (막대, 선, 원)
+                const chartTypes = [
+                    { type: 'column', title: '품목별 가격 비교', label: '막대 차트', multiSeries: false },
+                    { type: 'line', title: '품목별 일자별 가격 변동', label: '다중 선 차트', multiSeries: true },
+                    { type: 'pie', title: '품목별 가격 비중', label: '원 차트', multiSeries: false }
+                ];
+                const charts = [];
+                
+                for (let i = 0; i < chartTypes.length; i++) {
+                    const chartInfo = chartTypes[i];
+                    
+                    // 로딩 메시지 업데이트
+                    document.getElementById('loadingDescription').textContent = 
+                        (i + 1) + '/3 - ' + chartInfo.label + ' 생성중...';
+                    
+                    const form = new URLSearchParams();
+                    form.append('chartData', JSON.stringify(state.chartData));
+                    form.append('chartType', chartInfo.type);
+                    form.append('chartTitle', chartInfo.title);
+                    form.append('maxItems', '5');
+                    form.append('multiSeries', chartInfo.multiSeries ? 'true' : 'false');
+                    
+                    const res = await fetch('/article/aiGenerateChartCode', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: String(form)
+                    });
+                    
+                    const json = await res.json();
+                    
+                    if (json.success && json.data.chart_url) {
+                        charts.push({
+                            url: json.data.chart_url,
+                            type: chartInfo.type,
+                            title: json.data.chart_title,
+                            code: json.data.chart_code
+                        });
+                        debug(chartInfo.label + ' 생성 완료:', json.data.chart_url);
+                    } else {
+                        debugError(chartInfo.label + ' 생성 실패:', json.msg);
+                    }
+                }
+                
+                hideLoading();
+                
+                if (charts.length > 0) {
+                    renderChartOptions(charts);
+                    debug(charts.length + '개 차트 생성 완료');
+                } else {
+                    debugError('생성된 차트가 없습니다.');
+                }
+                
+            } catch(e) {
+                hideLoading();
+                debugError('AI 차트 생성 오류:', e);
+            }
+        }
+
+        // ============================================
+        // AI 생성 통합 실행 (step1 → step2 전환 시 호출)
+        // ============================================
+        async function startAIGeneration(){
+            // 1. 기사 초안 생성
+            const draftSuccess = await generateArticleDraft();
+            if(!draftSuccess) return;
+            
+            // 2. 이미지 생성 (순차 실행)
+            if(state.makeImage === 'generate'){
+                await generateArticleImage();
+            }
+            
+            // 3. 차트 생성 (순차 실행)
+            if(state.makeChart === 'generate'){
+                await generateArticleChart();
+            }
+            
+            // 4. 리뷰 콘텐츠 업데이트
+            updateReviewContent();
+        }
+
+        function renderChartOptions(charts){
+            const box = document.getElementById('chartOptions');
+            box.innerHTML='';
+            charts.slice(0,3).forEach((ch,idx)=>{
+                const opt = document.createElement('div');
+                opt.className = 'media-option'+(idx===0?' selected':'');
+                opt.dataset.value = 'chart'+(idx+1);
+                
+                // iframe 컨테이너 (본문 너비에 맞게 조정, 높이를 충분히 확보)
+                const container = document.createElement('div');
+                container.style.maxWidth = '100%';
+                container.style.width = '100%';
+                container.style.height = '300px';  // 차트 미리보기 높이
+                container.style.background = '#ffffff';
+                container.style.borderRadius = '4px';
+                container.style.overflow = 'hidden';
+                container.style.margin = '0 auto';
+                
+                // iframe으로 차트 표시
+                const iframe = document.createElement('iframe');
+                iframe.src = ch.url;
+                iframe.style.width = '100%';
+                iframe.style.height = '100%';
+                iframe.style.border = 'none';
+                iframe.style.display = 'block';
+                iframe.setAttribute('scrolling', 'no');
+                iframe.title = ch.title || '차트';
+                iframe.id = 'chartFrame' + (idx + 1);  // 각 차트에 고유 ID 부여
+                
+                container.appendChild(iframe);
+                opt.appendChild(container);
+                
+                // 차트 타입 라벨 추가
+                const label = document.createElement('div');
+                label.style.fontSize = '11px';
+                label.style.color = '#666';
+                label.style.marginTop = '4px';
+                label.style.textAlign = 'center';
+                label.textContent = getChartTypeLabel(ch.type);
+                opt.appendChild(label);
+                
+                const radio = document.createElement('div'); 
+                radio.className='radio'; 
+                opt.appendChild(radio);
+                
+                opt.addEventListener('click', ()=>{ 
+                    selectInGroup(box, opt); 
+                    state.chosen.chart = ch; 
+                    updateReviewContent(); 
+                });
+                
+                box.appendChild(opt);
+                
+                if(idx===0) state.chosen.chart = ch;
+            });
+        }
+        
+        // 차트 타입 라벨 변환
+        function getChartTypeLabel(type) {
+            const labels = {
+                'line': '선 차트',
+                'column': '막대 차트',
+                'bar': '가로 막대',
+                'area': '영역 차트',
+                'pie': '원 차트'
+            };
+            return labels[type] || type;
+        }
+
+        // [Chart] anychart로 라인차트 렌더 (레거시 - 필요 시 사용)
+        function drawChart(containerId, config){
+            try{
+                const data = (config && config.data)? config.data : [];
+                const chart = anychart.line();
+                const series = chart.line(data.map(d=>({x:d[0], value: Number(d[1])})));
+                series.name(config.title||'');
+                chart.title(config.title||'');
+                chart.container(containerId);
+                chart.draw();
+            }catch(e){ console.error('Chart draw error', e); }
+        }
+
+        function renderImageOptions(images){
+            const box = document.getElementById('imageOptions');
+            box.innerHTML='';
+            images.slice(0,3).forEach((img,idx)=>{
+                const opt = document.createElement('div');
+                opt.className = 'media-option'+(idx===0?' selected':'');
+                opt.dataset.value = 'image'+(idx+1);
+                
+                // 이미지 컨테이너 (본문 너비에 맞게 조정)
+                const inner = document.createElement('div');
+                inner.style.maxWidth='100%'; 
+                inner.style.width='100%'; 
+                inner.style.height='300px';  // 차트와 동일한 높이
+                inner.style.background='#f8f9fa'; 
+                inner.style.borderRadius='4px'; 
+                inner.style.display='flex'; 
+                inner.style.alignItems='center'; 
+                inner.style.justifyContent='center';
+                inner.style.overflow='hidden';
+                inner.style.margin='0 auto';
+                inner.innerHTML = '<img src="' + (img.url||'') + '" alt="img' + (idx+1) + '" style="max-width:100%; width:100%; height:auto; object-fit:contain;"/>';
+                opt.appendChild(inner);
+                
+                // 스타일 라벨 추가
+                if(img.label) {
+                    const label = document.createElement('div');
+                    label.style.fontSize = '11px';
+                    label.style.color = '#666';
+                    label.style.marginTop = '4px';
+                    label.style.textAlign = 'center';
+                    label.textContent = img.label;
+                    opt.appendChild(label);
+                }
+                
+                const radio = document.createElement('div'); 
+                radio.className='radio'; 
+                opt.appendChild(radio);
+                
+                opt.addEventListener('click', ()=>{ 
+                    selectInGroup(box, opt); 
+                    state.chosen.image = img; 
+                    updateReviewContent(); 
+                });
+                
+                box.appendChild(opt);
+                
+                if(idx===0) state.chosen.image = img;
+            });
+        }
+
+        // 3단계 리뷰 콘텐츠 업데이트 (본문+이미지+차트)
+        function updateReviewContent(){
+            // 카테고리 업데이트
+            const reviewCategory = document.getElementById('reviewCategory');
+            if(reviewCategory) {
+                // 선택된 카테고리 버튼 찾기
+                const selectedCategory = document.querySelector('#section-category .option-button.selected');
+                reviewCategory.value = selectedCategory ? selectedCategory.textContent.trim() : state.categoryId;
+            }
+            
+            // 제목 업데이트
+            const reviewTitle = document.getElementById('reviewTitle');
+            if(reviewTitle) {
+                reviewTitle.value = document.getElementById('articleTitle')?.value || '';
+            }
+            
+            // 부제목 업데이트
+            const reviewSubtitle = document.getElementById('reviewSubtitle');
+            if(reviewSubtitle) {
+                reviewSubtitle.value = document.getElementById('articleSubtitle')?.value || '';
+            }
+            
+            // 태그 업데이트
+            const reviewTags = document.getElementById('reviewTags');
+            if(reviewTags && state.draft?.tags) {
+                reviewTags.innerHTML = '';
+                state.draft.tags.forEach(tag => {
+                    const tagDiv = document.createElement('div');
+                    tagDiv.className = 'tag';
+                    tagDiv.textContent = tag;
+                    reviewTags.appendChild(tagDiv);
+                });
+            }
+            
+            // 본문 미리보기 업데이트
+            const reviewContent = document.getElementById('reviewContent');
+            if(!reviewContent) return;
+            
+            let html = '';
+            const body = document.getElementById('articleBody')?.value || state.draft?.body || '';
+            const paragraphs = body.split('\n\n');
+            
+            paragraphs.forEach((para, idx) => {
+                if(para.trim()) {
+                    html += '<p style="margin-bottom:15px;line-height:1.8;">' + para.trim() + '</p>';
+                    
+                    // 첫 번째 단락 후에 이미지 삽입 (본문 너비에 맞게)
+                    if(idx === 0 && state.chosen.image && state.chosen.image.url) {
+                        html += '<div style="text-align:center;margin:20px auto;max-width:100%;"><img src="' + state.chosen.image.url + '" alt="기사 이미지" style="max-width:100%;width:100%;height:auto;border-radius:8px;"/></div>';
+                    }
+                    
+                    // 세 번째 단락 후에 차트 삽입 (본문 너비에 맞게, 높이를 충분히 확보)
+                    if(idx === 2 && state.chosen.chart && state.chosen.chart.url) {
+                        html += '<div style="margin:20px auto;padding:15px;background:#f8f9fa;border-radius:8px;max-width:100%;">';
+                        html += '<iframe id="reviewChartFrame" src="' + state.chosen.chart.url + '" ';
+                        html += 'style="max-width:100%;width:100%;height:600px;border:none;border-radius:4px;background:#ffffff;display:block;margin:0 auto;" ';
+                        html += 'scrolling="no" title="' + (state.chosen.chart.title || '차트') + '"></iframe>';
+                        html += '</div>';
+                    }
+                }
+            });
+            
+            reviewContent.innerHTML = html;
+        }
+
+        // [UI] 동일 그룹 내 단일 선택
+        function selectInGroup(container, selected){
+            container.querySelectorAll('.media-option').forEach(el=>el.classList.remove('selected'));
+            selected.classList.add('selected');
+        }
+
+		// 로딩 표시
+		function showLoading(title, description) {
+			document.getElementById('loadingText').textContent = title;
+			document.getElementById('loadingDescription').textContent = description;
+			document.getElementById('loadingOverlay').style.display = 'flex';
+		}
+
+		// 로딩 숨기기
+		function hideLoading() {
+			document.getElementById('loadingOverlay').style.display = 'none';
+		}
+
+        // ============================================
+        // 본문 편집/렌더링 토글
+        // ============================================
+        function toggleBodyEditMode() {
+            const textarea = document.getElementById('articleBody');
+            const rendered = document.getElementById('articleBodyRendered');
+            const btn = document.getElementById('editModeBtn');
+            
+            if (textarea.style.display === 'none') {
+                // 편집 모드로 전환
+                textarea.style.display = 'block';
+                rendered.style.display = 'none';
+                btn.innerHTML = '<span>👁️</span> 미리보기';
+                btn.style.background = '#007bff';
+            } else {
+                // 렌더링 모드로 전환
+                textarea.style.display = 'none';
+                rendered.style.display = 'block';
+                btn.innerHTML = '<span>✏️</span> 편집';
+                btn.style.background = '#6c757d';
+                
+                // 렌더링 업데이트
+                updateBodyRendered();
+            }
+        }
+        
+        // 본문 렌더링 업데이트
+        function updateBodyRendered() {
+            const textarea = document.getElementById('articleBody');
+            const rendered = document.getElementById('articleBodyRendered');
+            
+            if (!textarea || !rendered) return;
+            
+            const content = textarea.value || '';
+            const paragraphs = content.split('\n\n');
+            
+            let html = '';
+            paragraphs.forEach((para) => {
+                if (para.trim()) {
+                    html += '<p style="margin-bottom: 15px; line-height: 1.8; font-size: 16px;">' + para.trim() + '</p>';
+                }
+            });
+            
+            rendered.innerHTML = html || '<p style="color: #999; font-size: 16px;">본문이 없습니다.</p>';
+        }
+
+        // ============================================
+        // 재생성 함수들
+        // ============================================
+        async function regenerateContent(type){
+            if(type === 'chart') {
+                // 차트 재생성 (기존 chart_data 사용)
+                await generateArticleChart();
+            } else if(type === 'image') {
+                // 이미지 재생성
+                await generateArticleImage();
+            } else if(type === 'body') {
+                // 본문 재생성 - 전체 초안을 다시 생성
+                await generateArticleDraft();
+            }
+            
+            // 리뷰 콘텐츠 업데이트
+            updateReviewContent();
+        }
+
+        // 품목 제거
+        // [Action] 선택 태그 삭제 및 state 반영
+        function removeItem(button) {
+            const parent = button.parentElement;
+            const id = parent?.dataset?.id;
+            if (id) {
+                state.items = state.items.filter(it=>it.id!==id);
+            }
+            renderSelectedItems();
+        }
+
+        // 데이터 확인 모달 표시 (2단계)
+        function showDataModal() {
+            if (!state.chartData || !state.chartData.data || state.chartData.data.length === 0) {
+                alert('사용 가능한 데이터가 없습니다.\n\n초안 생성이 완료된 후 데이터를 확인할 수 있습니다.');
+                return;
+            }
+            
+            // 모달 생성
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.id = 'dataModal';
+            
+            const modalContent = document.createElement('div');
+            modalContent.className = 'modal-content';
+            modalContent.style.maxWidth = '1200px';
+            
+            // 제목
+            const titleContainer = document.createElement('div');
+            titleContainer.style.display = 'flex';
+            titleContainer.style.justifyContent = 'space-between';
+            titleContainer.style.alignItems = 'center';
+            titleContainer.style.marginBottom = '20px';
+            titleContainer.style.paddingBottom = '15px';
+            titleContainer.style.borderBottom = '2px solid #007bff';
+            
+            const title = document.createElement('h2');
+            title.innerHTML = '<i class="fa-solid fa-database"></i> AI 기사 작성에 사용된 데이터';
+            title.style.margin = '0';
+            title.style.color = '#007bff';
+            
+            const dataInfo = document.createElement('div');
+            dataInfo.style.fontSize = '14px';
+            dataInfo.style.color = '#666';
+            dataInfo.innerHTML = '<strong>총 ' + state.chartData.data.length + '개 품목</strong> | 기간: ' + 
+                                (state.chartData.data[0]?.data?.[0]?.date || '최근 7일');
+            
+            titleContainer.appendChild(title);
+            titleContainer.appendChild(dataInfo);
+            
+            // 안내 문구
+            const infoBox = document.createElement('div');
+            infoBox.style.background = '#fff3cd';
+            infoBox.style.padding = '12px 15px';
+            infoBox.style.borderRadius = '6px';
+            infoBox.style.border = '1px solid #ffc107';
+            infoBox.style.marginBottom = '15px';
+            infoBox.innerHTML = '<i class="fa-solid fa-info-circle" style="color: #ffc107;"></i> ' +
+                               '<strong>이 데이터가 AI 기사 작성에 사용되었습니다.</strong> ' +
+                               'AI는 이 데이터의 수치만 사용하도록 설정되어 있습니다.';
+            
+            // 품목별 탭 생성
+            const tabContainer = document.createElement('div');
+            tabContainer.style.display = 'flex';
+            tabContainer.style.gap = '5px';
+            tabContainer.style.marginBottom = '15px';
+            tabContainer.style.flexWrap = 'wrap';
+            
+            const tableContainer = document.createElement('div');
+            tableContainer.style.maxHeight = '500px';
+            tableContainer.style.overflowY = 'auto';
+            tableContainer.style.overflowX = 'auto';
+            tableContainer.style.border = '1px solid #ddd';
+            tableContainer.style.borderRadius = '6px';
+            tableContainer.style.marginBottom = '15px';
+            
+            // 각 품목별 탭과 테이블 생성
+            state.chartData.data.forEach((item, index) => {
+                // 탭 버튼
+                const tabBtn = document.createElement('button');
+                tabBtn.type = 'button';
+                tabBtn.className = 'option-button';
+                tabBtn.textContent = item.name + (item.kind ? ' (' + item.kind + ')' : '');
+                tabBtn.style.minWidth = 'auto';
+                tabBtn.style.padding = '8px 15px';
+                tabBtn.style.fontSize = '13px';
+                tabBtn.style.color = '#333';
+                tabBtn.style.background = '#fff';
+                
+                if (index === 0) {
+                    tabBtn.classList.add('selected');
+                }
+                
+                tabBtn.addEventListener('click', function() {
+                    // 모든 탭 비활성화
+                    tabContainer.querySelectorAll('.option-button').forEach(btn => {
+                        btn.classList.remove('selected');
+                    });
+                    this.classList.add('selected');
+                    
+                    // 해당 품목 데이터 표시
+                    renderItemData(item);
+                });
+                
+                tabContainer.appendChild(tabBtn);
+            });
+            
+            // 데이터 테이블 렌더링 함수
+            const renderItemData = (item) => {
+                tableContainer.innerHTML = '';
+                
+                if (!item.data || item.data.length === 0) {
+                    tableContainer.innerHTML = '<div style="padding: 30px; text-align: center; color: #999;">데이터가 없습니다.</div>';
+                    return;
+                }
+                
+                // 테이블 생성
+                const table = document.createElement('table');
+                table.className = 'item-table';
+                table.style.fontSize = '12px';
+                table.style.minWidth = '1800px';
+                table.style.width = '100%';
+                
+                // 헤더
+                const thead = document.createElement('thead');
+                thead.innerHTML = '<tr>' +
+                    '<th style="min-width: 90px; text-align: center;">날짜</th>' +
+                    '<th style="min-width: 120px; text-align: center;">종류</th>' +
+                    '<th style="min-width: 80px; text-align: center;">등급</th>' +
+                    '<th style="min-width: 100px; text-align: right; background: #e3f2fd;">현재가격</th>' +
+                    '<th style="min-width: 90px; text-align: right;">전일</th>' +
+                    '<th style="min-width: 80px; text-align: right;">변동률</th>' +
+                    '<th style="min-width: 90px; text-align: right;">1주전</th>' +
+                    '<th style="min-width: 80px; text-align: right;">변동률</th>' +
+                    '<th style="min-width: 90px; text-align: right;">1달전</th>' +
+                    '<th style="min-width: 80px; text-align: right;">변동률</th>' +
+                    '<th style="min-width: 90px; text-align: right;">3달전</th>' +
+                    '<th style="min-width: 80px; text-align: right;">변동률</th>' +
+                    '<th style="min-width: 90px; text-align: right;">6달전</th>' +
+                    '<th style="min-width: 80px; text-align: right;">변동률</th>' +
+                    '<th style="min-width: 90px; text-align: right;">1년전</th>' +
+                    '<th style="min-width: 80px; text-align: right;">변동률</th>' +
+                    '</tr>';
+                table.appendChild(thead);
+                
+                // 바디
+                const tbody = document.createElement('tbody');
+                item.data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    
+                    const price = parseFloat(row.price) || 0;
+                    
+                    // 각 기간별 변동률 계산 함수
+                    const calcChange = (basePrice) => {
+                        const base = parseFloat(basePrice) || 0;
+                        if (base === 0 || price === 0) return { percent: '-', class: 'price-same', symbol: '' };
+                        
+                        const changePercent = ((price - base) / base * 100).toFixed(2);
+                        if (changePercent > 0) {
+                            return { percent: changePercent, class: 'price-up', symbol: '▲' };
+                        } else if (changePercent < 0) {
+                            return { percent: Math.abs(changePercent), class: 'price-down', symbol: '▼' };
+                        }
+                        return { percent: '0.00', class: 'price-same', symbol: '' };
+                    };
+                    
+                    // 각 기간별 변동 계산
+                    const prevDay = calcChange(row.prevDayPrice);
+                    const oneWeek = calcChange(row.oneWeekAgoPrice);
+                    const oneMonth = calcChange(row.oneMonthAgoPrice);
+                    const threeMonths = calcChange(row.threeMonthsAgoPrice);
+                    const sixMonths = calcChange(row.sixMonthsAgoPrice);
+                    const oneYear = calcChange(row.oneYearAgoPrice);
+                    
+                    tr.innerHTML = '<td style="text-align: center;">' + (row.date || '-') + '</td>' +
+                        '<td style="text-align: center;">' + (row.kind || '-') + '</td>' +
+                        '<td style="text-align: center;">' + (row.grade || '-') + '</td>' +
+                        '<td style="text-align: right; background: #f0f8ff;"><strong>' + price.toLocaleString() + '</strong></td>' +
+                        '<td style="text-align: right;">' + (parseFloat(row.prevDayPrice) || 0).toLocaleString() + '</td>' +
+                        '<td style="text-align: right;" class="' + prevDay.class + '"><strong>' + prevDay.symbol + ' ' + prevDay.percent + (prevDay.percent !== '-' ? '%' : '') + '</strong></td>' +
+                        '<td style="text-align: right;">' + (parseFloat(row.oneWeekAgoPrice) || 0).toLocaleString() + '</td>' +
+                        '<td style="text-align: right;" class="' + oneWeek.class + '"><strong>' + oneWeek.symbol + ' ' + oneWeek.percent + (oneWeek.percent !== '-' ? '%' : '') + '</strong></td>' +
+                        '<td style="text-align: right;">' + (parseFloat(row.oneMonthAgoPrice) || 0).toLocaleString() + '</td>' +
+                        '<td style="text-align: right;" class="' + oneMonth.class + '"><strong>' + oneMonth.symbol + ' ' + oneMonth.percent + (oneMonth.percent !== '-' ? '%' : '') + '</strong></td>' +
+                        '<td style="text-align: right;">' + (parseFloat(row.threeMonthsAgoPrice) || 0).toLocaleString() + '</td>' +
+                        '<td style="text-align: right;" class="' + threeMonths.class + '"><strong>' + threeMonths.symbol + ' ' + threeMonths.percent + (threeMonths.percent !== '-' ? '%' : '') + '</strong></td>' +
+                        '<td style="text-align: right;">' + (parseFloat(row.sixMonthsAgoPrice) || 0).toLocaleString() + '</td>' +
+                        '<td style="text-align: right;" class="' + sixMonths.class + '"><strong>' + sixMonths.symbol + ' ' + sixMonths.percent + (sixMonths.percent !== '-' ? '%' : '') + '</strong></td>' +
+                        '<td style="text-align: right;">' + (parseFloat(row.oneYearAgoPrice) || 0).toLocaleString() + '</td>' +
+                        '<td style="text-align: right;" class="' + oneYear.class + '"><strong>' + oneYear.symbol + ' ' + oneYear.percent + (oneYear.percent !== '-' ? '%' : '') + '</strong></td>';
+                    tbody.appendChild(tr);
+                });
+                table.appendChild(tbody);
+                
+                tableContainer.appendChild(table);
+            };
+            
+            // 초기 데이터 표시 (첫 번째 품목)
+            renderItemData(state.chartData.data[0]);
+            
+            // 버튼 컨테이너
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.display = 'flex';
+            buttonContainer.style.justifyContent = 'flex-end';
+            buttonContainer.style.marginTop = '20px';
+            
+            // 닫기 버튼
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'close-btn';
+            closeBtn.textContent = '닫기';
+            closeBtn.addEventListener('click', function() {
+                modal.remove();
+            });
+            
+            buttonContainer.appendChild(closeBtn);
+            
+            // 조립
+            modalContent.appendChild(titleContainer);
+            modalContent.appendChild(infoBox);
+            modalContent.appendChild(tabContainer);
+            modalContent.appendChild(tableContainer);
+            modalContent.appendChild(buttonContainer);
+            modal.appendChild(modalContent);
+            
+            // 모달 외부 클릭 시 닫기
+            modal.addEventListener('click', function(event) {
+                if (event.target === modal) {
+                    modal.remove();
+                }
+            });
+            
+            document.body.appendChild(modal);
+        }
+
+        // 품목 추가 레이어 팝업 표시
+        function showItemSelectionModal() {
+            if (!window.availableItems || window.availableItems.length === 0) {
+                alert('먼저 데이터(카테고리)를 선택해주세요.');
+                return;
+            }
+
+            // 임시 선택 배열 (현재 state.items의 id들로 초기화)
+            const tempSelectedItems = state.items.map(item => item.id);
+
+            // 모달 생성
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.id = 'itemSelectionModal';
+            
+            const modalContent = document.createElement('div');
+            modalContent.className = 'modal-content';
+            modalContent.style.maxWidth = '1000px';
+            
+            // 제목과 선택 개수 표시
+            const titleContainer = document.createElement('div');
+            titleContainer.style.display = 'flex';
+            titleContainer.style.justifyContent = 'space-between';
+            titleContainer.style.alignItems = 'center';
+            titleContainer.style.marginBottom = '20px';
+            
+            const title = document.createElement('h2');
+            title.textContent = '품목 선택';
+            title.style.margin = '0';
+            
+            const selectionCount = document.createElement('div');
+            selectionCount.style.fontSize = '14px';
+            selectionCount.style.color = '#007bff';
+            selectionCount.style.fontWeight = '600';
+            selectionCount.textContent = '선택: ' + tempSelectedItems.length + '개';
+            
+            titleContainer.appendChild(title);
+            titleContainer.appendChild(selectionCount);
+            
+            // 검색 입력
+            const searchBox = document.createElement('input');
+            searchBox.type = 'text';
+            searchBox.className = 'input-field';
+            searchBox.placeholder = '품목명을 검색하세요...';
+            searchBox.style.marginBottom = '15px';
+            
+            // 테이블 컨테이너
+            const tableContainer = document.createElement('div');
+            tableContainer.style.maxHeight = '500px';
+            tableContainer.style.overflowY = 'auto';
+            tableContainer.style.border = '1px solid #ddd';
+            tableContainer.style.borderRadius = '6px';
+            tableContainer.style.marginBottom = '15px';
+            
+            // 테이블 생성
+            const table = document.createElement('table');
+            table.className = 'item-table';
+            
+            // 정렬 상태
+            let sortColumn = 'change'; // 기본: 변동률로 정렬
+            let sortDirection = 'desc'; // desc: 내림차순, asc: 오름차순
+            
+            // 테이블 헤더
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            
+            const headers = [
+                { text: '선택', field: null, width: '5%', align: 'center' },
+                { text: '품목명', field: 'title', width: '25%', align: 'left' },
+                { text: '종류', field: 'kind', width: '20%', align: 'left' },
+                { text: '등급', field: 'grade', width: '10%', align: 'center' },
+                { text: '가격', field: 'price', width: '15%', align: 'right' },
+                { text: '전일가격', field: 'prevDayPrice', width: '15%', align: 'right' },
+                { text: '변동', field: 'change', width: '10%', align: 'right' }
+            ];
+            
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header.text;
+                th.style.width = header.width;
+                th.style.textAlign = header.align;
+                
+                if (header.field) {
+                    th.className = 'sortable';
+                    th.dataset.field = header.field;
+                    
+                    // 기본 정렬 컬럼 표시
+                    if (header.field === sortColumn) {
+                        th.classList.add('sort-' + sortDirection);
+                    }
+                    
+                    // 클릭 이벤트
+                    th.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const field = this.dataset.field;
+                        
+                        // 같은 컬럼 클릭 시 방향 전환
+                        if (sortColumn === field) {
+                            sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                        } else {
+                            sortColumn = field;
+                            sortDirection = 'desc';
+                        }
+                        
+                        // 헤더 클래스 업데이트
+                        headerRow.querySelectorAll('th').forEach(h => {
+                            h.classList.remove('sort-asc', 'sort-desc');
+                        });
+                        this.classList.add('sort-' + sortDirection);
+                        
+                        // 재렌더링
+                        renderItems(searchBox.value);
+                    });
+                }
+                
+                headerRow.appendChild(th);
+            });
+            
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+            
+            // 테이블 바디
+            const tbody = document.createElement('tbody');
+            table.appendChild(tbody);
+            
+            tableContainer.appendChild(table);
+            
+            // 선택 개수 업데이트 함수
+            const updateSelectionCount = () => {
+                selectionCount.textContent = '선택: ' + tempSelectedItems.length + '개';
+            };
+
+            // 품목 렌더링 함수
+            const renderItems = (filterText = '') => {
+                tbody.innerHTML = '';
+                
+                let filtered = window.availableItems.filter(item => 
+                    !filterText || item.title.toLowerCase().includes(filterText.toLowerCase())
+                );
+                
+                // 정렬
+                filtered.sort((a, b) => {
+                    let aVal, bVal;
+                    
+                    if (sortColumn === 'price' || sortColumn === 'prevDayPrice') {
+                        aVal = parseFloat(a[sortColumn]) || 0;
+                        bVal = parseFloat(b[sortColumn]) || 0;
+                    } else if (sortColumn === 'change') {
+                        const aPrice = parseFloat(a.price) || 0;
+                        const aPrevPrice = parseFloat(a.prevDayPrice) || 0;
+                        const bPrice = parseFloat(b.price) || 0;
+                        const bPrevPrice = parseFloat(b.prevDayPrice) || 0;
+                        
+                        aVal = aPrevPrice > 0 ? ((aPrice - aPrevPrice) / aPrevPrice) * 100 : 0;
+                        bVal = bPrevPrice > 0 ? ((bPrice - bPrevPrice) / bPrevPrice) * 100 : 0;
+                    } else {
+                        aVal = String(a[sortColumn] || '').toLowerCase();
+                        bVal = String(b[sortColumn] || '').toLowerCase();
+                    }
+                    
+                    if (sortDirection === 'asc') {
+                        return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+                    } else {
+                        return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+                    }
+                });
+                
+                if (filtered.length === 0) {
+                    const emptyRow = document.createElement('tr');
+                    emptyRow.innerHTML = '<td colspan="7" style="text-align:center;color:#999;padding:20px;">검색 결과가 없습니다.</td>';
+                    tbody.appendChild(emptyRow);
+                    return;
+                }
+                
+                filtered.forEach(item => {
+                    // 임시 선택 배열에서 확인
+                    const isSelected = tempSelectedItems.includes(item.id);
+                    
+                    const tr = document.createElement('tr');
+                    if (isSelected) {
+                        tr.className = 'selected';
+                    }
+                    
+                    // 가격 변동 계산
+                    const changeInfo = calculateChange(item.price, item.prevDayPrice);
+                    
+                    tr.innerHTML = 
+                        '<td style="text-align:center;">' + (isSelected ? '✓' : '') + '</td>' +
+                        '<td><strong>' + (item.title || '-') + '</strong></td>' +
+                        '<td>' + (item.kind || '-') + '</td>' +
+                        '<td style="text-align:center;">' + (item.grade || '-') + '</td>' +
+                        '<td style="text-align:right;"><strong>' + formatPrice(item.price) + '</strong></td>' +
+                        '<td style="text-align:right;">' + formatPrice(item.prevDayPrice) + '</td>' +
+                        '<td style="text-align:right;" class="' + changeInfo.class + '">' +
+                        '<strong>' + changeInfo.symbol + ' ' + Math.abs(changeInfo.percent) + '%</strong>' +
+                        '</td>';
+                    
+                    tr.style.cursor = 'pointer';
+                    tr.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        
+                        // 선택/해제 토글
+                        const index = tempSelectedItems.indexOf(item.id);
+                        if (index > -1) {
+                            // 이미 선택됨 - 제거
+                            tempSelectedItems.splice(index, 1);
+                            tr.classList.remove('selected');
+                        } else {
+                            // 선택되지 않음 - 추가
+                            tempSelectedItems.push(item.id);
+                            tr.classList.add('selected');
+                        }
+                        
+                        // 체크마크 업데이트
+                        tr.children[0].textContent = tempSelectedItems.includes(item.id) ? '✓' : '';
+                        
+                        // 선택 개수 업데이트
+                        updateSelectionCount();
+                    });
+                    
+                    tbody.appendChild(tr);
+                });
+            };
+            
+            // 검색 이벤트
+            searchBox.addEventListener('input', function() {
+                renderItems(this.value);
+            });
+            
+            // 초기 렌더링
+            renderItems();
+            
+            // 버튼 컨테이너
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.display = 'flex';
+            buttonContainer.style.gap = '10px';
+            buttonContainer.style.justifyContent = 'flex-end';
+            buttonContainer.style.marginTop = '20px';
+            
+            // 닫기 버튼
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'close-btn';
+            closeBtn.textContent = '닫기';
+            closeBtn.style.background = '#6c757d';
+            closeBtn.addEventListener('mouseenter', function() {
+                this.style.background = '#5a6268';
+            });
+            closeBtn.addEventListener('mouseleave', function() {
+                this.style.background = '#6c757d';
+            });
+            closeBtn.addEventListener('click', function() {
+                modal.remove();
+            });
+            
+            // 적용 버튼
+            const applyBtn = document.createElement('button');
+            applyBtn.className = 'close-btn';
+            applyBtn.textContent = '적용';
+            applyBtn.style.background = '#28a745';
+            applyBtn.addEventListener('mouseenter', function() {
+                this.style.background = '#218838';
+            });
+            applyBtn.addEventListener('mouseleave', function() {
+                this.style.background = '#28a745';
+            });
+            applyBtn.addEventListener('click', function() {
+                // 임시 선택 배열을 실제 state.items에 반영
+                state.items = [];
+                tempSelectedItems.forEach(itemId => {
+                    const item = window.availableItems.find(i => i.id === itemId);
+                    if (item) {
+                        state.items.push({
+                            id: item.id,
+                            title: item.title + '(' + item.kind + ')'
+                        });
+                    }
+                });
+                
+                // 선택된 품목 화면에 표시
+                renderSelectedItems();
+                
+                // 모달 닫기
+                modal.remove();
+            });
+            
+            buttonContainer.appendChild(closeBtn);
+            buttonContainer.appendChild(applyBtn);
+            
+            // 조립
+            modalContent.appendChild(titleContainer);
+            modalContent.appendChild(searchBox);
+            modalContent.appendChild(tableContainer);
+            modalContent.appendChild(buttonContainer);
+            modal.appendChild(modalContent);
+            
+            // 모달 외부 클릭 시 닫기
+            modal.addEventListener('click', function(event) {
+                if (event.target === modal) {
+                    modal.remove();
+                }
+            });
+            
+            document.body.appendChild(modal);
+        }
+
+
+        // 옵션 버튼 선택
+        document.querySelectorAll('.option-button').forEach(button => {
+			button.addEventListener('click', function(event) {
+				// 아이콘 클릭 시 이벤트 전파 방지
+				if (event.target.classList.contains('fa-eye')) {
+					event.stopPropagation();
+					return;
+				}
+				
+				// 같은 그룹의 다른 버튼들 선택 해제
+				const parent = this.parentElement;
+				parent.querySelectorAll('.option-button').forEach(btn => {
+					btn.classList.remove('selected');
+				});
+				
+				// 현재 버튼 선택
+				this.classList.add('selected');
+
+                // 그룹 상태 저장
+                const role = this.dataset.role;
+                if(role==='category'){
+                    state.categoryId = this.dataset.value || this.getAttribute('data-value');
+                    fetchApisByCategory(state.categoryId);
+                } else if(role==='prompt'){
+                    state.promptIdx = parseInt(this.dataset.value || this.getAttribute('data-value'))||0;
+                } else if(role==='template'){
+                    state.templateIdx = parseInt(this.dataset.value || this.getAttribute('data-value'))||0;
+                }
+			});
+		});
+
+        // 미디어 옵션 선택 (이미지/차트 구분하여 state에 반영)
+        document.querySelectorAll('#section-image-option .media-option').forEach(option => {
+            option.addEventListener('click', function() {
+                const parent = this.parentElement;
+                parent.querySelectorAll('.media-option').forEach(opt => opt.classList.remove('selected'));
+                this.classList.add('selected');
+                state.makeImage = this.getAttribute('data-value');
+            });
+        });
+
+        document.querySelectorAll('#section-chart-option .media-option').forEach(option => {
+            option.addEventListener('click', function() {
+                const parent = this.parentElement;
+                parent.querySelectorAll('.media-option').forEach(opt => opt.classList.remove('selected'));
+                this.classList.add('selected');
+                state.makeChart = this.getAttribute('data-value');
+            });
+        });
+
+        // 단계 클릭 이벤트
+		document.querySelectorAll('.step').forEach(step => {
+			step.addEventListener('click', function() {
+				const stepData = this.dataset.step;
+				const stepNumber = parseInt(stepData);
+				if (isNaN(stepNumber)) {
+					debugError('유효하지 않은 단계 데이터:', stepData);
+					return;
+				}
+				showStep(stepNumber);
+			});
+		});
+
+		// 템플릿 모달 표시
+		function showTemplateModal(templateIdx) {
+			// 로딩 표시
+			showLoading('템플릿 로딩중...', '템플릿 내용을 가져오고 있습니다.');
+
+			fetch('/aiSetting/templateEdit/ajax?idx=' + encodeURIComponent(templateIdx))
+				.then(response => response.json())
+				.then(data => {
+					hideLoading();
+					
+					if (data.result.success) {
+						const templateContent = data.result.item.content || '템플릿 내용이 없습니다.';
+						
+						// 모달 요소 생성
+						const modal = document.createElement('div');
+						modal.className = 'modal';
+						
+						// 모달 내용 생성
+						const modalContent = document.createElement('div');
+						modalContent.className = 'modal-content';
+						
+						// 제목 생성
+						const title = document.createElement('h2');
+						title.textContent = '기사 템플릿: ' + data.result.item.title;
+						
+						// 설명 생성
+						const description = document.createElement('p');
+						description.textContent = '템플릿 내용은 다음과 같습니다:';
+						
+						// 템플릿 프리뷰 컨테이너 생성
+						const templatePreview = document.createElement('div');
+						templatePreview.className = 'template-preview';
+						
+						// 텍스트 영역 생성
+						const textarea = document.createElement('textarea');
+						textarea.className = 'input-field';
+						textarea.rows = 15;
+						textarea.readOnly = true;
+						textarea.value = templateContent;
+						
+						// 닫기 버튼 생성
+						const closeBtn = document.createElement('button');
+						closeBtn.className = 'close-btn';
+						closeBtn.textContent = '닫기';
+						
+						// 요소들을 조립
+						templatePreview.appendChild(textarea);
+						modalContent.appendChild(title);
+						modalContent.appendChild(description);
+						modalContent.appendChild(templatePreview);
+						modalContent.appendChild(closeBtn);
+						modal.appendChild(modalContent);
+						document.body.appendChild(modal);
+
+						// 이벤트 리스너 추가
+						modal.addEventListener('click', function(event) {
+							if (event.target.classList.contains('modal')) {
+								this.remove();
+							}
+						});
+
+						closeBtn.addEventListener('click', function() {
+							modal.remove();
+						});
+					} else {
+						alert('템플릿 내용을 불러올 수 없습니다.');
+					}
+				})
+				.catch(error => {
+					hideLoading();
+					console.error('템플릿 로딩 오류:', error);
+					alert('템플릿 내용을 불러오는 중 오류가 발생했습니다.');
+				});
+		}
+
+        // 브라우저 뒤로가기/앞으로가기 처리
+		window.addEventListener('popstate', function(event) {
+			debug('popstate 이벤트:', event.state);
+			
+			if (event.state && typeof event.state.step === 'number') {
+				debug('히스토리에서 복원된 단계:', event.state.step);
+				showStep(event.state.step, false);
+			} else {
+				debug('페이지 진입 전 히스토리로 이동');
+			}
+		});
+
+        // 초기화 - 페이지 로딩 시 1단계 표시
+		document.addEventListener('DOMContentLoaded', function() {
+			debug('DOMContentLoaded 이벤트 발생');
+			
+			// DOM이 완전히 로드된 후 실행
+			setTimeout(function() {
+				debug('초기화 시작');
+				
+				// 모든 단계 내용을 먼저 숨기기
+				document.querySelectorAll('.step-content').forEach(content => {
+					content.classList.remove('active');
+				});
+				
+				// currentStep을 안전하게 1로 설정
+				setCurrentStep(1);
+				
+                // 초기 히스토리 상태 설정
+                history.replaceState({ step: 1 }, '', '?step=1');
+                
+                // 1단계를 기본으로 표시 (히스토리에 추가하지 않음)
+                showStep(1, false);
+				
+				// 모든 단계 원을 초기 상태로 설정
+				document.querySelectorAll('.step-circle').forEach((circle, index) => {
+					if (index === 0) {
+						circle.classList.remove('inactive');
+						circle.classList.add('active');
+					} else {
+						circle.classList.remove('active', 'completed');
+						circle.classList.add('inactive');
+					}
+				});
+				
+				// 네비게이션 버튼 상태 초기화
+				updateNavigationButtons();
+				
+				// 품목 컨테이너 초기 상태 표시
+				renderSelectedItems();
+				
+				// 품목 추가 버튼 이벤트 등록
+				const addItemBtn = document.getElementById('addItemBtn');
+				if (addItemBtn) {
+					addItemBtn.addEventListener('click', showItemSelectionModal);
+				}
+				
+				debug('초기화 완료 - 최종 currentStep:', currentStep);
+			}, 100); // 100ms 지연으로 DOM 완전 로드 보장
+		});
+
+        // next 버튼은 기본 nextStep(showStep 호출) 로직을 사용하고,
+        // showStep에서 step2 진입 시 최초 1회만 startAIGeneration()을 호출합니다.
+
+        /**
+         * 차트를 이미지로 변환하여 서버에 저장
+         * Step 2 → Step 3 전환 시 호출
+         */
+        async function convertChartToImage() {
+            debug('=== convertChartToImage 호출 ===');
+            debug('state.makeChart:', state.makeChart);
+            debug('state.chosen.chart:', state.chosen.chart);
+            
+            if (!state.chosen.chart || state.makeChart !== 'generate') {
+                debug('차트가 없거나 차트 생성을 선택하지 않음 - 스킵');
+                return;
+            }
+            
+            try {
+                showLoading('차트 이미지 변환중...', '차트를 이미지로 변환하고 있습니다.');
+                debug('=== 차트 이미지 변환 시작 ===', state.chosen.chart);
+                
+                // iframe 찾기 (Step 2 선택된 차트 → Step 3 리뷰 → 전체 검색)
+                let iframe = document.querySelector('#chartOptions .media-option.selected iframe') ||
+                            document.getElementById('reviewChartFrame') ||
+                            document.getElementById('chartFrame1') ||
+                            document.getElementById('chartFrame2') ||
+                            document.getElementById('chartFrame3');
+                
+                if (!iframe || !iframe.contentWindow) {
+                    debugError('차트 iframe을 찾을 수 없습니다.');
+                    hideLoading();
+                    alert('차트 iframe을 찾을 수 없습니다.\n\n차트가 완전히 로드되었는지 확인하세요.');
+                    return;
+                }
+                
+                debug('iframe 찾기 성공');
+                
+                // iframe 내부의 anychart 차트 객체에 접근
+                const iframeWindow = iframe.contentWindow;
+                const iframeDocument = iframe.contentDocument || iframeWindow.document;
+                
+                debug('iframe window 접근:', !!iframeWindow, 'chart 존재:', !!iframeWindow.chart);
+                
+                // AnyChart 차트 객체 가져오기
+                let chart = iframeWindow.chart;
+                if (!chart && iframeWindow.anychart) {
+                    debug('window.chart가 없음, anychart API로 찾기 시도');
+                    try {
+                        const allCharts = iframeWindow.anychart.getGlobal ? 
+                            iframeWindow.anychart.getGlobal().charts : 
+                            (iframeWindow.anychart.charts || []);
+                        if (allCharts && allCharts.length > 0) {
+                            chart = allCharts[0];
+                        }
+                    } catch (e) {
+                        debugError('anychart API로 차트 찾기 실패:', e);
+                    }
+                }
+                
+                if (!chart) {
+                    debugError('차트 객체를 찾을 수 없습니다.');
+                    hideLoading();
+                    alert('차트 객체를 찾을 수 없습니다. 차트가 완전히 로드되지 않았을 수 있습니다.');
+                    return;
+                }
+                
+                debug('차트 객체 가져옴, 타입:', chart.getType ? chart.getType() : 'unknown');
+                
+                // 차트가 완전히 렌더링될 때까지 잠시 대기
+                await new Promise(resolve => setTimeout(resolve, CHART_LOAD_DELAY));
+                
+                debug('SVG → Canvas 변환 시작');
+                
+                try {
+                    // 차트를 SVG 문자열로 변환
+                    const svgString = chart.toSvg();
+                    debug('SVG 생성 완료, 길이:', svgString.length);
+                    
+                    // 로고 이미지 URL (iframe에서 가져오기)
+                    const logoImg = iframeDocument.querySelector('#logoContainer img');
+                    const logoSrc = logoImg ? logoImg.src : 'https://indicator.hankyung.com/image/logo.png';
+                    
+                    // Canvas 설정
+                    const canvas = document.createElement('canvas');
+                    canvas.width = CANVAS_WIDTH;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // 차트 SVG를 이미지로 변환
+                    const chartImg = new Image();
+                    chartImg.crossOrigin = 'anonymous';
+                    
+                    chartImg.onload = function() {
+                        debug('차트 이미지 로드 완료, 크기:', chartImg.width, 'x', chartImg.height);
+                        
+                        // 로고 이미지 로드
+                        const logoImage = new Image();
+                        logoImage.crossOrigin = 'anonymous';
+                        
+                        logoImage.onload = function() {
+                            debug('로고 이미지 로드 완료');
+                            
+                            // Canvas 총 높이 계산 (차트 높이 + 로고 영역)
+                            const chartHeight = chartImg.height;
+                            canvas.height = chartHeight + LOGO_AREA_HEIGHT;
+                            
+                            // 흰색 배경
+                            ctx.fillStyle = '#ffffff';
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+                            
+                            // 차트 그리기
+                            ctx.drawImage(chartImg, 0, 0);
+                            
+                            // 로고 영역 (차트 아래)
+                            const logoWidth = logoImage.width * (LOGO_HEIGHT / logoImage.height);
+                            const logoX = canvas.width - logoWidth - LOGO_PADDING;
+                            const logoY = chartHeight + (LOGO_AREA_HEIGHT - LOGO_HEIGHT) / 2;
+                            
+                            // 로고 투명도 적용
+                            ctx.globalAlpha = LOGO_OPACITY;
+                            ctx.drawImage(logoImage, logoX, logoY, logoWidth, LOGO_HEIGHT);
+                            ctx.globalAlpha = 1.0;
+                            
+                            // Canvas를 Base64로 변환
+                            const base64 = canvas.toDataURL('image/png', 1.0);
+                            debug('PNG Base64 생성 완료 (차트+로고), 길이:', base64.length);
+                            
+                            URL.revokeObjectURL(chartImg.src);
+                            saveChartImageToServer(base64);
+                        };
+                        
+                        logoImage.onerror = function(error) {
+                            debugError('로고 이미지 로드 실패, 로고 없이 차트만 저장');
+                            
+                            // 로고 없이 차트만 저장
+                            canvas.height = chartImg.height;
+                            ctx.fillStyle = '#ffffff';
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+                            ctx.drawImage(chartImg, 0, 0);
+                            
+                            const base64 = canvas.toDataURL('image/png', 1.0);
+                            debug('PNG Base64 생성 완료 (차트만), 길이:', base64.length);
+                            
+                            URL.revokeObjectURL(chartImg.src);
+                            saveChartImageToServer(base64);
+                        };
+                        
+                        // 로고 이미지 로드 시작
+                        logoImage.src = logoSrc;
+                    };
+                    
+                    chartImg.onerror = function(error) {
+                        debugError('차트 이미지 로드 실패:', error);
+                        hideLoading();
+                        alert('차트 이미지 변환에 실패했습니다. SVG 로드 오류\n\n대체 방법을 시도하거나, 관리자에게 문의하세요.');
+                    };
+                    
+                    // SVG를 Data URL로 변환
+                    const svgBlob = new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
+                    const svgUrl = URL.createObjectURL(svgBlob);
+                    chartImg.src = svgUrl;
+                    
+                } catch (svgError) {
+                    debugError('SVG 변환 실패:', svgError);
+                    hideLoading();
+                    alert('차트 이미지 변환에 실패했습니다.\n\nSVG 변환 오류: ' + svgError.message + '\n\n관리자에게 문의하세요.');
+                }
+                
+            } catch (e) {
+                debugError('차트 이미지 변환 중 오류:', e);
+                hideLoading();
+                alert('차트 이미지 변환 중 오류가 발생했습니다: ' + e.message);
+            }
+        }
+        
+        /**
+         * 차트 이미지를 서버에 저장
+         */
+        async function saveChartImageToServer(base64Image) {
+            try {
+                const form = new URLSearchParams();
+                form.append('chartImageData', base64Image);
+                form.append('chartFilename', state.chosen.chart.filename || '');
+                
+                const res = await fetch('/article/aiSaveChartImage', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: String(form)
+                });
+                
+                const json = await res.json();
+                hideLoading();
+                
+                if (json.success) {
+                    debug('차트 이미지 저장 성공:', json.data);
+                    
+                    // state에 PNG 경로 저장
+                    state.chosen.chart.png_path = json.data.png_path;
+                    state.chosen.chart.png_filename = json.data.png_filename;
+                    
+                    debug('차트 PNG 정보 저장 완료');
+                } else {
+                    debugError('차트 이미지 저장 실패:', json.msg);
+                    alert('차트 이미지 저장 실패: ' + json.msg);
+                }
+            } catch (e) {
+                hideLoading();
+                debugError('차트 이미지 저장 중 오류:', e);
+                alert('차트 이미지 저장 중 오류가 발생했습니다: ' + e.message);
+            }
+        }
+
+        // 기사 저장 및 전송
+        async function sendArticle(){
+            showLoading('기사 저장중...', '작성된 기사를 저장하고 있습니다.');
+            try{
+                console.log('=== 기사 저장 시작 ===');
+                console.log('state.makeImage:', state.makeImage);
+                console.log('state.makeChart:', state.makeChart);
+                console.log('state.chosen.chart:', state.chosen.chart);
+                console.log('state.chosen.image:', state.chosen.image);
+                
+                // 3step의 reviewContent HTML 가져오기
+                const reviewContentElement = document.getElementById('reviewContent');
+                const reviewContentHtml = reviewContentElement ? reviewContentElement.innerHTML : '';
+                
+                // 데이터 수집
+                const articleData = {
+                    categoryId: state.categoryId,
+                    title: document.getElementById('articleTitle').value,
+                    subtitle: document.getElementById('articleSubtitle').value,
+                    body: document.getElementById('articleBody').value,
+                    reviewContent: reviewContentHtml,  // 3step 본문 HTML (이미지+차트 포함)
+                    items: state.items,
+                    chart: state.chosen.chart,
+                    image: state.chosen.image,
+                    image_prompt: state.draft?.image_prompt || '',  // 이미지 프롬프트 추가
+                    tags: state.draft?.tags || [],
+                    makeImage: state.makeImage,
+                    makeChart: state.makeChart
+                };
+                
+                console.log('=== 전송할 articleData ===');
+                console.log('makeImage:', articleData.makeImage);
+                console.log('makeChart:', articleData.makeChart);
+                console.log('image 객체:', articleData.image);
+                console.log('chart 객체:', articleData.chart);
+                
+                debug('전송할 articleData:', articleData);
+
+                // 백엔드로 전송
+                const form = new URLSearchParams();
+                form.append('data', JSON.stringify(articleData));
+                
+                const res = await fetch('/article/aiSave', {
+                    method:'POST', 
+                    headers:{'Content-Type':'application/x-www-form-urlencoded'}, 
+                    body:String(form)
+                });
+                
+                const json = await res.json();
+                hideLoading();
+                
+                if(json.success){ 
+                    // 저장 결과 메시지 구성
+                    let message = '✅ 기사가 성공적으로 저장되었습니다!\n\n';
+                    message += '📄 기사 ID: ' + json.aid + '\n\n';
+                    alert(message);
+                    
+                    //location.href = '/article/list';
+                } else { 
+                    alert('❌ 저장 실패: ' + (json.msg||'알 수 없는 오류')); 
+                }
+            }catch(e){ 
+                hideLoading(); 
+                debugError('저장 중 오류:', e); 
+                alert('❌ 저장 중 오류가 발생했습니다: ' + e.message); 
+            }
+        }
+	</script>
+</body>
+</html>

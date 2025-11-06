@@ -1,0 +1,100 @@
+<style>
+    .card.programObj {display: flex;flex-wrap: nowrap;height: calc(80px + 0.8rem);padding: 0.4rem 0.5rem;margin-bottom: 0.5rem;overflow: unset;}
+    .programObj .imgArea {width: 80px;min-width: 80px;height: 80px;margin-right: 0.5rem;display: inline-flex;align-items: center;justify-content: center;overflow: hidden;border-radius: var(--border-radius);border: none;}
+    .programObj .imgArea img {width: 100%;height: 100%;object-fit:cover;}
+    .programObj .textArea {width: calc(100% - 80px - 0.5rem);height: 100%;padding-top: 0.1rem;}
+    .programObj .infoArea {display: flex;align-items: center;flex-wrap: wrap;line-height: normal;}
+    .programObj .infoArea span {margin-right: 0.3rem;margin-bottom: 0.1rem;line-height: normal;display: flex;align-items: center;justify-content: center;}
+    .programObj .infoArea span:last-child {margin-right: 0;}
+    .programObj .textArea .title {font-size: var(--font-size-xs);line-height: normal;overflow: hidden;text-overflow: ellipsis;
+                        display: -webkit-box;-webkit-line-clamp: 2;-webkit-box-orient: vertical;word-wrap: break-word;word-break: break-all;}
+</style>
+<!-- cloneProgramObj -->
+<div class="cloneProgramObj" style="display: none;">
+    <article class="programObj card panel" data-id="">
+        <div class="imgArea thumb">
+            <img src="/img/psd.png" alt="">
+        </div>
+        <div class="textArea">
+            <!-- <div class="infoArea">
+                <span class="thumb" data-tooltip="사진" data-placement="top"><i class="fa-light fa-image fa-xs"></i></span>
+                <span class="date" data-tooltip="작성일" data-placement="top" style="font-size: 12px;"></span>
+            </div> -->
+            <div class="title"></div>
+        </div>
+    </article>
+</div>
+<!--// cloneProgramObj -->
+
+<script>
+    /*******************************************************************************
+	 * 프로그램 리스트
+	 */
+	$('[data-list="#programList"]').click(function(){
+		getProgramList();
+	});
+
+	// keyword enter 처리
+	$("#programList #keyword").keypress(function( event ) {
+		if ( event.which == 13 ) {
+			getProgramList();
+		}
+	});
+
+	$("#programList #broadcastType").change(function () {
+		getProgramList();
+	});
+
+	$("#programList #btn_search").click(function () {
+		getProgramList();
+	});
+	
+	let getProgramList = (page)=>{
+		console.log('getProgramList');
+		let searchItem="title";
+		if(page==undefined){
+			page=1;
+		}
+		var params = {
+			page: page,
+			noapp: 14,
+			pageNavCnt: 5,
+			returnType: 'ajax',
+			broadcastType: $("#programList #broadcastType").val(),
+			searchItem: 'title',
+			searchText: $("#programList #keyword").val(),
+		};
+		$.ajax({
+			url: '/program/list/ajax',
+			type: 'GET',
+			data: params,
+			dataType: "json",
+			beforeSend: function(){
+				$("#programList #searchList").empty();
+				$("#programList #pageNavigation").empty();
+			},
+			success: function (data) {
+				if (!!data?.result?.items && data.result.items.length > 0) {
+                    var cloneProgramObj = '';
+					$(data.result.items).each(function (i, obj) {
+						let html = getHtmlManualBox(obj, 'program');
+						if (!!html) {
+							$("#programList #searchList").append(html);
+						}
+					});
+				} else {
+					$("#programList #searchList").append('검색 결과가 없습니다.');
+				}
+
+				$("#programList #pageNavigation").append(getPageNavHtml('getProgramList',data.result.page));
+			},
+			error: function (){
+				$("#programList #searchList").empty().append('검색 오류가 발생하였습니다.');
+			},
+			complete : function(){
+				$('#programList #searchList').scrollTop(0);
+			}
+		});
+	}
+	
+</script>

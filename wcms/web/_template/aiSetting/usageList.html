@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}
+</head>
+<body>
+    {# left}
+    {# header}
+
+    <style>
+        .display-none {
+            display: none;
+        }
+        .token{cursor: pointer;}
+        .token:hover{background-color: #f0f0f0;}
+        /*
+         * .tokenContent: 토큰 상세 내용을 보여주는 팝업 스타일
+         * 내부 이미지와 텍스트가 영역을 넘지 않도록 처리합니다.
+         * 스크롤은 y축(세로)로만 나오게 하고, 텍스트가 길 경우 자동 줄바꿈 처리합니다.
+         */
+        .tokenContent {
+            position: absolute;
+            width: 370px;
+            height: 200px;
+            background-color: #f0f0f0;
+            z-index: 1000;
+            overflow-y: auto;      /* y축(세로) 스크롤만 허용 */
+            overflow-x: hidden;    /* x축(가로) 스크롤은 숨김 */
+            word-break: break-word;/* 긴 단어나 URL도 줄바꿈 */
+            white-space: pre-line; /* 줄바꿈 문자(\n)도 반영, 자동 줄바꿈 */
+            box-sizing: border-box;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .tokenContent img {
+            max-width: 100%;
+            max-height: 100%;
+            height: auto;
+            display: block;
+        }
+    </style>
+
+    <main class="container">
+        <div role="document">
+			<div role="heading">AI 사용량/로그</div>
+			<section class="section-search"> 
+                <form role="search" name="searchForm" id="searchForm">
+                    <input type="hidden" id="coId" name="coId" value="{_SESSION.coId}"/>
+
+                    <select name="category" id="category">
+                        <option value="">선택하세요</option>
+                        {@ result.category.item}
+                        <option value="{.category}"{?_GET.category == .category} selected{/}>{.category}</option>
+                        {/}
+                    </select>
+					<div class="search-input">
+                        <input type="text" name="searchText" id="searchText" value="{? _GET.searchText}{_GET.searchText}{/}" placeholder="검색어를 입력하세요">
+                        <button id="searchBtn" class="btn-search" type="button"><i class="fa-light fa-magnifying-glass"></i></button>
+                    </div>
+				</form>
+			</section>
+			<section role="list">
+                <div class="list-cont">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>사용시간</th>
+                                <th>사용자</th>
+                                <th>AI 모델</th>
+                                <th>보낸토큰</th>
+                                <th>보낸가격</th>
+                                <th>받은토큰</th>
+                                <th>받은가격</th>
+                                <th>총금액</th>
+                                <th>원화(1400원 기준)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {@ result.items}
+                            <tr>
+                                <td>{=substr(.timestamp,0,10)}{=substr(.insert.date,0,10)}</td>
+                                <td>{.insert.managerName} ({.insert.managerId})</td>
+                                <td>{.model}</td>
+                                <td class="token">
+                                    {.usage.prompt_tokens}
+                                    <div class="display-none prompt tokenContent">{.prompt}</div>
+                                </td>
+                                <td>{.usage.promptPrice}</td>
+                                <td class="token">
+                                    {.usage.completion_tokens}
+                                    <div class="display-none completion tokenContent">{.response}</div>
+                                </td>
+                                <td>{.usage.completionPrice}</td>
+                                <td>{.usage.totalPrice}</td>
+                                <td>{.usage.totalPrice * 1400}</td>
+                            </tr>
+                            {/}
+                        </tbody>
+                    </table>
+                </div>
+                {#paging}
+            </section>
+        </div>
+    </main>
+
+<!-- 마지막 데이터 Modal -->
+<dialog id="dataModal">
+    <article style="width:600px;">
+        <header>
+            <a href="#close" aria-label="Close" class="close" data-target="dataModal" onClick="toggleModal(event);"></a>
+            <h6>제목</h6>
+        </header>
+        <div style="height:400px;overflow-y:scroll;">
+            <table id="dataTable1" class="th-bg">
+                <thead><tr></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <footer>
+            <a href="#cancel" role="button" data-target="dataModal" onClick="toggleModal(event);"> 닫기</a>
+          </footer>
+    </article>
+</dialog>
+
+<script type="text/javascript">
+    $(document).ready(function(){
+        $('#insertBtn').click(function(){
+            location.href='/aiSetting/scheduleEdit';
+        });
+    
+        $('#deleteBtn').click(function(){
+            var chkCompany = '';
+            $("input[name=apiSelect]:checked").each(function(){
+                chkCompany += $(this).val() + '|';
+            });
+    
+            if(chkCompany == '' ){
+                alert('Please select the api information to be deleted.');
+            }else{
+                apiDelete(chkCompany);
+            }
+        });
+    
+        $('#chkSelectAll').click(function(){
+            $("input[name=apiSelect]").prop('checked', $("input:checkbox[id='chkSelectAll']").is(":checked"));
+        });
+            
+        $('#searchBtn').click(function(){
+            $('#searchForm').attr('action','/aiSetting/scheduleList').submit();
+        });
+
+        // 토큰 클릭 이벤트 처리
+        initTokenClickEvents();
+    });
+
+    /**
+     * 토큰 클릭 이벤트 초기화
+     * .token 클래스를 가진 요소를 클릭하면 해당 요소 내의 .tokenContent를 보여주고,
+     * 마우스가 .tokenContent에서 벗어나면 숨깁니다.
+     */
+    function initTokenClickEvents() {
+        // 모든 토큰 요소에 클릭 이벤트 추가
+        $('.token').on('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // 현재 클릭된 토큰 요소
+            var $tokenElement = $(this);
+            var $tokenContent = $tokenElement.find('.tokenContent');
+            
+            // 다른 모든 토큰 콘텐츠 숨기기
+            $('.tokenContent').not($tokenContent).addClass('display-none');
+            
+            // 현재 토큰 콘텐츠 토글
+            if ($tokenContent.hasClass('display-none')) {
+                $tokenContent.removeClass('display-none');
+                
+                // 토큰 콘텐츠의 위치 조정 (화면 밖으로 나가지 않도록)
+                adjustTokenContentPosition($tokenContent);
+                
+                // 마우스가 토큰 콘텐츠에서 벗어날 때 숨기기
+                $tokenContent.off('mouseleave').on('mouseleave', function() {
+                    $(this).addClass('display-none');
+                });
+            } else {
+                $tokenContent.addClass('display-none');
+            }
+        });
+
+        // 문서 클릭 시 모든 토큰 콘텐츠 숨기기
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('.token').length) {
+                $('.tokenContent').addClass('display-none');
+            }
+        });
+    }
+
+    /**
+     * 토큰 콘텐츠의 위치를 조정하여 화면 밖으로 나가지 않도록 합니다.
+     * 
+     * @param {jQuery} $tokenContent 토큰 콘텐츠 jQuery 객체
+     */
+    function adjustTokenContentPosition($tokenContent) {
+        var $tokenElement = $tokenContent.closest('.token');
+        var tokenOffset = $tokenElement.offset();
+        var tokenWidth = $tokenElement.outerWidth();
+        var tokenHeight = $tokenElement.outerHeight();
+        
+        var contentWidth = 370; // tokenContent의 width
+        var contentHeight = 200; // tokenContent의 height
+        
+        var windowWidth = $(window).width();
+        var windowHeight = $(window).height();
+        
+        var left = tokenOffset.left;
+        var top = tokenOffset.top + tokenHeight + 5; // 토큰 아래 5px 간격
+        
+        // 오른쪽으로 넘어가는지 확인
+        if (left + contentWidth > windowWidth) {
+            left = tokenOffset.left - contentWidth + tokenWidth;
+        }
+        
+        // 아래로 넘어가는지 확인
+        if (top + contentHeight > windowHeight) {
+            top = tokenOffset.top - contentHeight - 5; // 토큰 위에 표시
+        }
+        
+        // 최소값 보장
+        left = Math.max(10, left);
+        top = Math.max(10, top);
+        
+        $tokenContent.css({
+            'left': left + 'px',
+            'top': top + 'px'
+        });
+    }
+</script>
+</body>
+</html>

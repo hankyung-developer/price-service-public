@@ -1,0 +1,104 @@
+<!-- ########## START: HEAD PANEL ########## -->
+<nav role="header">
+    <ul>
+        <li>
+            <button id="toggle-nav"><i class="fa-light fa-bars fa-xl"></i></button>
+        </li>
+    </ul>
+    <ul>
+        <li class="closed-on-mobile">
+            <a href="/manual/Kodes_Mojaik_Manual25_wcms6.pdf" target="_blank">
+                <i class="fa-regular fa-book-font"></i>
+                <span>WCMS 매뉴얼</span>
+            </a>
+        </li>
+        <li>
+            <details role="list" id="user-profile-nav">
+                <summary aria-haspopup="listbox" role="link">
+                    <span class="closed-on-mobile">{_SESSION.managerName}</span>
+                    {_SESSION.imagePath}
+                    {? empty(_SESSION.imagePath)}
+                    <i class="fa-duotone fa-user-tie fa-xl"></i>
+                    {:}
+                    <img src="{=preg_replace('/([A-z0-9]+)([.][0-9]+[x][0-9]+[.][0-9])?([.][A-z]+)$/', '$1.36x36.0$3', _SESSION.imagePath)}" alt="{_SESSION.managerName}">
+                    {/}
+                </summary>
+                <ul role="listbox">
+                    <li><a href="/logout"><i class="icon ion-power"></i> Log Out</a></li>
+                    <li><a href="/manager/editor"><i class="icon ion-power"></i> 개인정보 변경</a></li>
+                </ul>
+            </details>
+        </li>
+    </ul>
+</nav>
+<!-- ########## END: HEAD PANEL ########## -->
+<script>
+    $(()=>{
+        let leftMenuOpen = '{_SESSION.leftMenuOpen}';
+        if( leftMenuOpen == 'true' ){
+            $('body').addClass('wide');
+        } 
+    });
+    $('#toggle-nav').on('click', ()=>{
+        $.ajax({
+            url: '/login/changeSessionLeftMenuOpen/ajax',
+            method : 'POST',
+            data : {'leftMenuOpen':!$('body').hasClass('wide')},
+            dataType : 'json',
+		}).done(function(data, textStatus, jqXHR) {
+		}).fail(function(jqXHR, textStatus, errorThrown) {
+			if (!!jqXHR?.responseJSON?.result?.msg) {
+				alert(jqXHR.responseJSON.result.msg);
+			} else {
+				alert(textStatus+' : '+errorThrown);
+			}
+		});
+    });
+
+    $('#sessionCoId').val('{_SESSION.coId}');
+    $('#sessionCoId').on('change',(e)=>{
+        $.ajax({
+            url: '/login/changeSessionCoId/ajax',
+            method : 'POST',
+            data : {'coId':$(e.target).val()},
+            dataType : 'json',
+		}).done(function(data, textStatus, jqXHR) {
+			if(data.result.msg) {alert(data.result.msg)}
+            if (data.result.link) {
+                location.href = data.result.link;
+            } else {
+                location.href = '/dashboard';
+            }
+            // location.reload();
+		}).fail(function(jqXHR, textStatus, errorThrown) {
+			if (!!jqXHR?.responseJSON?.result?.msg) {
+				alert(jqXHR.responseJSON.result.msg);
+			} else {
+				alert(textStatus+' : '+errorThrown);
+			}
+		});
+    });
+
+    $('#sessionDepartmentId').val('{_SESSION.currentDepartmentId}');
+    $('#sessionDepartmentId').on('change',(e)=>{
+        $.ajax({
+            url: '/login/changeSessionDepartmentId/ajax',
+            method : 'POST',
+            data : {'departmentId':$(e.target).val()},
+            dataType : 'json',
+		}).done(function(data, textStatus, jqXHR) {
+			if(data.result.msg) {alert(data.result.msg)}
+            if (data.result.link) {
+                location.href = data.result.link;
+            } else {
+                location.reload();
+            }
+		}).fail(function(jqXHR, textStatus, errorThrown) {
+			if (!!jqXHR?.responseJSON?.result?.msg) {
+				alert(jqXHR.responseJSON.result.msg);
+			} else {
+				alert(textStatus+' : '+errorThrown);
+			}
+		});
+    });
+</script>

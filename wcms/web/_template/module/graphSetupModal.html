@@ -1,0 +1,247 @@
+
+<!-- Graph Setup Modal -->
+<dialog id="graphSetupModal">
+    <article class="card card-sm">
+		<header class="flex nowrap justify-between align-center mr-0">
+			<h6></h6>
+            <a href="#close" aria-label="Close" title="닫기" data-target="graphSetupModal" onclick="toggleModal(event)"><i class="fa-light fa-circle-xmark fa-lg"></i></a>
+        </header>
+		<!-- layoutInput -->
+		<div class="layoutInput">
+			<input type="hidden" id="objId">
+			<div class="row">
+				<span class="label">제목</span> 
+				<input type="text" id="title" placeholder="화면에 표출될 박스 명입니다." />
+			</div>
+			<div class="row">
+				<span class="label">제목링크</span>
+				<input type="text" id="moreUrl" placeholder="제목링크입니다.(옵션)" />
+			</div>
+			<div class="row">
+				<span class="label">custom boxId</span>
+				<input type="text" id="customBoxId" placeholder="사용자 지정 boxId (옵션)" />
+			</div>
+			<div class="row">
+				<span class="label">그래프선택</span>
+				<input type="checkbox" role="switch" id="listType" data-on="자동" data-off="수동" checked/>
+				<span class="switch-label">자동</span>
+			</div>
+			<div class="row areas categoryArea">
+				<span class="label">카테고리</span>
+				<select class="form-control select2" id="category" data-placeholder="카테고리 선택"  multiple="multiple" style="width:100%;">
+					{@ result.chartCategory.item}
+					<option value="{.category}">{.category}</option>
+					{/}
+				</select>
+			</div>
+			<!-- PC설정 -->
+			<div class="group">
+				<div class="label">PC설정</div>
+				<div class="grid grid1-2">
+					<div>
+						<div class="row">
+							<span class="label">노출</span>
+							<input type="checkbox" role="switch" class="" id="showPC" data-on="ON" data-off="OFF" checked/>
+							<span class="switch-label">ON</span>
+						</div>
+						<div class="row">
+							<span class="label">그래프갯수</span>
+							<input type="text" class="showPCNum" id="showPCNum" data-type='num'/>
+						</div>
+						<div class="row">
+							<span class="label">PC Skin</span>
+							<select class="select2" id="pcSkin">
+								<option value="">안보이기</option>
+							</select>
+						</div>
+					</div>
+					<div>
+						<div class="row" style="height: 200px;max-height: 200px;justify-content: center;">
+							<img id="pcSkinPreview" src="" onError="this.src='/img/skin/show-hidden-icons.png';" style="width: auto;height: auto;max-width: 100%;max-height: 200px;">
+						</div>
+					</div>
+				</div>
+			</div>
+			<!-- PC설정 -->
+			<!-- MOBILE설정 -->
+			<div class="group">
+				<div class="label">MOBILE설정</div>
+				<div class="grid grid1-2">
+					<div>
+						<div class="row">
+							<span class="label">노출</span>
+							<input type="checkbox" role="switch" class="" id="showMobile" data-on="ON" data-off="OFF" checked/>
+							<span class="switch-label">ON</span>
+						</div>
+						<div class="row">
+							<span class="label">그래프갯수</span>
+							<input type="text" class="showMobileNum" id="showMobileNum" data-type='num'/>
+						</div>
+						<div class="row">
+							<span class="label">MOBILE Skin</span>
+							<select class="select2" id="mobileSkin">
+								<option value="">안보이기</option>
+							</select>
+						</div>
+					</div>
+					<div>
+						<div class="row" style="height: 200px;max-height: 200px;justify-content: center;">
+							<img id="mobileSkinPreview" src="" onError="this.src='/img/skin/show-hidden-icons.png';" style="width: auto;height: auto;max-width: 100%;max-height: 200px;">
+						</div>
+					</div>
+				</div>
+			</div>
+			<!-- MOBILE설정 -->
+		</div>
+		<!--// layoutInput -->
+		<footer class="flex justify-end">
+			<button type="button" class="btn btn-md"  id="btn_graphObjSetup">저장</button>
+			<button type="button" class="btn btn-md btn-gray"  data-target="graphSetupModal" onclick="toggleModal(event);">취소</button>
+		</footer>
+	</article>
+</dialog>
+<!-- //Graph Setup Modal -->
+
+<script>
+	/*******************************************************************************
+	 * 그래프 박스 설정
+	 */
+
+	//그래프 영역 세팅 모달창
+	$('#layoutBase').on("click",".graphMoreBt",function(){
+		var obj=$(this).closest('.object');
+		var objId=obj.attr('data-objid');
+		var title=obj.attr('data-title');
+
+		var modal = $('#graphSetupModal');
+		openModal(document.getElementById('graphSetupModal'));
+		
+		// skin select 로딩
+		setSelectSkin(modal.find('select#pcSkin'), $(this).closest('[data-dinnum]').data('dinnum'), 'pc', obj.attr('data-objectType'));
+		setSelectSkin(modal.find('select#mobileSkin'), $(this).closest('[data-dinnum]').data('dinnum'), 'mobile', obj.attr('data-objectType'));
+
+		modal.find('article.card').attr('data-objectType',obj.attr('data-listtype'));
+		modal.find('header h6').html((title?title:'그래프')+' <small>(objId : '+objId+')</small>');
+		modal.find('#objId').val(objId);
+		modal.find('#title').val(title);
+		modal.find('#moreUrl').val(obj.attr('data-moreurl'));
+		modal.find('#customBoxId').val(obj.attr('data-customboxid'));
+		modal.find('#listType').prop('checked',obj.attr('data-listtype')=="M"?false:true);
+		modal.find('#category').val(obj.attr('data-category')==undefined?[]:obj.attr('data-category').split(','));
+		modal.find('#showPC').prop('checked',obj.attr('data-showpc')=="N"?false:true);
+		modal.find('#showMobile').prop('checked',obj.attr('data-showmobile')=="N"?false:true);
+		modal.find('#showPCNum').val(obj.attr('data-showpcnum'));
+		modal.find('#showMobileNum').val(obj.attr('data-showmobilenum'));
+		modal.find('#pcSkin').val(obj.attr('data-pcskin'));
+		modal.find('#mobileSkin').val(obj.attr('data-mobileskin'));
+
+		if(obj.attr('data-listtype')=="M"){
+			modal.find('.areas').hide();
+		}else{
+			modal.find('.areas').show();
+		}
+
+		modal.find('#category').select2({
+			dropdownParent: modal,
+			sorter : function(data){return data;}
+		});
+
+		// 각각의 체크박스에 대해 초기값 설정
+		$('input[role="switch"]').each(function(){
+			var checked = $(this).prop('checked');
+			var row = $(this).closest('.row');
+			var on = $(this).data('on');
+			var off = $(this).data('off');
+
+			if (checked) {
+				row.find('.switch-label').empty().append(on);
+			} else {
+				row.find('.switch-label').empty().append(off);
+			}
+		});
+		setPreview(modal);
+	});
+
+	/**
+	 * 그래프 세팅사항 저장
+	 */
+	$('#graphSetupModal').on('click','#btn_graphObjSetup',function(e){
+		let modal = $(this).closest('#graphSetupModal');
+		
+		let dataObject = new Object();
+		dataObject['objId'] = modal.find("#objId").val();
+		dataObject['title'] = modal.find('#title').val();
+		dataObject['moreUrl'] = modal.find('#moreUrl').val();
+		dataObject['customBoxId'] = modal.find('#customBoxId').val();
+		dataObject['category'] = modal.find('#category').val().toString();
+		dataObject['listType'] = modal.find('#listType').prop('checked')?"A":"M";
+		dataObject['showPC'] = modal.find('#showPC').prop('checked')?"Y":"N";
+		dataObject['showPCNum'] = modal.find('#showPCNum').val();
+		dataObject['pcSkin'] = modal.find('#pcSkin').val();
+		dataObject['showMobile'] = modal.find('#showMobile').prop('checked')?"Y":"N";
+		dataObject['showMobileNum'] = modal.find('#showMobileNum').val();
+		dataObject['mobileSkin'] = modal.find('#mobileSkin').val();
+
+		dataObject['pageId'] = $("#layoutSelect").val();
+			
+		let selectBox = $('[data-objId="'+dataObject['objId']+'"]');
+		selectBox.find('header > h6').text(dataObject['title']);
+		for (const [key, value] of Object.entries(dataObject)) {
+			selectBox.attr('data-'+key.toLowerCase() , value);
+		}
+		
+		if(dataObject['listType']=="A"){
+			let beforeContent = '그래프 자동 영역';
+			$(selectBox).find('.card-body').attr('data-before-content',beforeContent);
+		}
+		closeModal(document.getElementById('graphSetupModal'));
+		
+		$.ajax({
+			url: '/layout/boxSave/ajax',
+			type: 'POST',
+			data: JSON.stringify(dataObject),
+			dataType: "json",
+			success: function (data) {
+				if(dataObject['listType']=="A"){
+					$(selectBox).find('.card-body').empty();
+					$(selectBox).addClass('disable');
+					$(selectBox).find('.card-body').removeClass('graphObjSortable');
+
+					let beforeContent = '자동 영역';
+					beforeContent += '\n카테고리('+dataObject['category']+')';
+
+					$(selectBox).find('.card-body').attr('data-before-content',beforeContent)
+
+				}else{
+					$(selectBox).removeClass('disable');
+					$(selectBox).find('.card-body').addClass('graphObjSortable');
+					$(selectBox).find('.card-body').attr('data-before-content','')
+
+				}
+				alert('저장완료');
+			}
+		})
+
+	});
+
+	$('#graphSetupModal #listType').on('change', function() {
+		let modal = $('#graphSetupModal');
+		if ($(this).prop('checked')) {
+			modal.find('.areas').show();
+		}else{
+			modal.find('.areas').hide();
+		}
+	});
+
+	// skin 선택시 처리
+	$("#graphSetupModal #pcSkin").on('change',function(e,active){
+		let modal = $('#graphSetupModal');
+		setPreview(modal);
+	});
+
+	$("#graphSetupModal #mobileSkin").on('change',function(e,active){
+		let modal = $('#graphSetupModal');
+		setPreview(modal);
+	});
+
+</script>

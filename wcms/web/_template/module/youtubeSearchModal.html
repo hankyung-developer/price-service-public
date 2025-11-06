@@ -1,0 +1,353 @@
+<!-- Youtube -->
+<dialog id="youtubeSearchModal">
+    <article class="card">
+        <header>
+            <a href="#close" aria-label="Close" class="close" data-target="youtubeSearchModal" onclick="toggleModal(event)" id="youtubeSearchModalCloseBtn"></a>
+            <h6>Youtube</h6>
+        </header>
+        <form name="frm_videoSearch" id="frm_videoSearch" onsubmit="return false;" role="search">
+            <div class="select-input search-input">
+                <select id="channel" class="form-select" name="channel">
+                    <option value="전체">전체</option>
+                    {? !empty(company.this.youtube) && is_array(company.this.youtube)}
+                    {@ company.this.youtube}
+                    {? !empty(.channelId)}
+                    <option value="{.channelId}">{.channelName}</option>
+                    {/}
+                    {/}
+                    {/}
+                </select>
+                <select id="searchItem" class="form-select" name="searchItem">
+                    <option value="title">제목</option>
+                    <option value="id">ID 및 주소</option>
+                </select>
+                <input type="text" id="searchText" name="searchText" placeholder="" value="">
+                <button id="youtubeSearchBtn" class="btn-search" type="button"><i class="fa-light fa-magnifying-glass"></i></button>
+            </div>
+        </form>
+        <div id="youtbueSearchList" class="grid grid5" style="padding: 1rem;min-height: 687x;"></div>
+        <footer>
+            <div id="paging">
+                <div class="page">
+                    <small></small>
+                    <nav aria-label="Page navigation" role="navigation">
+                        <ul></ul>
+                    </nav>
+                </div>
+            </div>
+        </footer>
+    </article>
+</dialog>
+
+<!-- youtubeCardClone(modal) -->
+<div style="display: none;" id="youtubeCardClone">
+    <label class="youtubeCard flex align-start nowrap" style="aspect-ratio: 10 / 8;cursor: pointer;">
+        <span><i class="fa-solid fa-hexagon-plus fa-lg addYoutube"></i></span>
+        <input type="hidden" id="youtubeId" value="">
+        <input type="hidden" id="youtubeThumbnail" value="">
+        <input type="hidden" id="youtubeTitle" value="">
+        <input type="hidden" id="youtubeChannelTitle" value="">
+        <div style="width:100%;height: 100%;position: relative;margin-top: 0;" class="flex column nowrap justify-start align-center">
+            <img class="img" src="" alt="" style="max-width:100%;max-height:100%;aspect-ratio: 16 / 9;">
+            <p class="title" style="margin: 0;padding: 0;font-size: 0.75rem;"></p>
+            <p class="date" style="margin: 0;padding: 0;font-size: 0.65rem;"></p>
+            <!--p style="padding:0.1rem 0.2rem;line-height: normal;word-break: break-all;background-color:var(--black-transp30);color:var(--white);font-size: var(--font-size-xs);width:100%;max-height: 38px;overflow: hidden;position:absolute;bottom:0;left:0">
+            </p-->
+        </div>
+    </label>
+</div>
+<!--// youtubeCardClone(modal) -->
+
+<script>
+    // youtube 검색 : 버튼
+    $("#youtubeSearchBtn").click(()=>{
+        searchYoutube('');
+    });
+
+    // youtube 검색 : 엔터
+    $("#youtubeSearchModal #searchText").keyup((e)=>{
+        if(e.keyCode == 13){
+            searchYoutube('');
+        }
+    });
+
+    let youtubeChannel = new Object();
+    youtubeChannel['전체'] = {
+        'id' : '전체',
+        'name' : '전체',
+        'apiKey' : '{result.YOUTUBE_API_KEY}'
+    };
+    {? !empty(company.this.youtube) && is_array(company.this.youtube)}
+        {@ company.this.youtube}
+            {? !empty(.channelId)}
+    youtubeChannel['{.channelId}'] = {
+        'id' : '{.channelId}',
+        'name' : '{.channelName}',
+        'apiKey' : '{.apiKey}'
+    }
+            {/}
+        {/}
+    {/}
+    // youtube 검색
+    let searchYoutube = function(pageToken){
+        let searchText = encodeURIComponent($('#youtubeSearchModal').find('#searchText').val());
+        let searchType = $('#youtubeSearchModal').find('#searchItem').val();
+        let channelId = $('#youtubeSearchModal').find('#channel').val();
+        let apiKey = youtubeChannel[channelId]['apiKey'];
+        if (!apiKey) {
+            alert('채널의 Youtube API Key가 없습니다.\n채널정보에 API Key를 입력해주세요.');
+            return;
+        }
+        channelId = channelId == '전체' ? '' : channelId;
+        if (!!channelId) {
+            $.ajax({
+            url: '/youtube/parseChannelId/ajax',
+            method: 'POST',
+            dataType: "json",
+            async: false,
+            data: {
+                channelId: channelId
+            },
+            }).done(function(data, textStatus, jqXHR) {
+                if (!!data?.result) {
+                    channelId = data.result;
+                }
+            }).fail(function(jqXHR, textStatus, errorThrown) {
+                console.log(jqXHR.responseText);
+                alert('검색 오류가 발생하였습니다.\n관리자에게 문의하세요.');
+            });
+        }
+        let params = "part=snippet&maxResults=20&order=date&q=" + searchText + "&key=" + apiKey + (pageToken == "" ? "" : "&pageToken=" + pageToken)
+                        + "&channelId=" + channelId;
+
+        let url = 'https://www.googleapis.com/youtube/v3/search';
+
+        if (searchType=='id') {
+            let id = decodeURIComponent(searchText).replace(/https:\/\/[a-z]*[.]*youtu.+[\/|=]([0-9A-z-]+)/gi,'$1');
+            url = 'https://www.googleapis.com/youtube/v3/videos';
+            params = 'id='+(!!id ? id : searchText)+'&key='+apiKey+'&part=snippet&fields=items(id,snippet,statistics)';
+        }
+
+        $.ajax({
+            url: url,
+            method: 'get',
+            dataType: "json",
+            data: params,
+            beforeSend: function () {
+                $('#youtubeSearchModal').find("#youtbueSearchList").empty();
+                $('#youtubeSearchModal').find("#paging nav ul").empty();
+            }
+        }).done(function(data, textStatus, jqXHR) {
+            if (data.items.length > 0) {
+                $(data.items).each(function () {
+                    tmp = $('#youtubeCardClone').clone();
+                    tmp.find('#youtubeId').val((typeof this.id == "string" ? this.id : this.id.videoId));
+                    tmp.find('#youtubeThumbnail').val(this.snippet.thumbnails.high.url);
+                    tmp.find('#youtubeTitle').val( this.snippet.title);
+                    tmp.find('#youtubeChannelTitle').val( this.snippet.channelTitle);
+                    tmp.find('.img').attr('src',this.snippet.thumbnails.high.url);
+                    tmp.find('.title').empty().html(this.snippet.title);
+                    tmp.find('.date').empty().html(this.snippet.publishTime);
+
+                    $('#youtubeSearchModal').find("#youtbueSearchList").append(tmp.html());
+
+                    // $('#youtubeSearchModal').find("#youtbueSearchList").append(
+                    //     '<!-- BEGIN: 동영상 -->' +
+                    //     '<div class="col-span-12 extra-min480-colspan-6 sm:col-span-4 2xl:col-span-3 card">' +
+                    //     '	<div class="file box rounded-md px-5 pt-8 pb-5 px-3 sm:px-5 relative zoom-in">' +
+                    //     '		<div class="absolute left-0 top-0 mt-3 ml-3">' +
+                    //     '			<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#0f9488" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" icon-name="plus-circle" data-lucide="plus-circle" class="lucide lucide-plus-circle block mx-auto" onclick="javascript:addYoutubeToVideo(this)">' +
+                    //     '				<circle cx="12" cy="12" r="10"></circle>' +
+                    //     '				<line x1="12" y1="8" x2="12" y2="16"></line>' +
+                    //     '				<line x1="8" y1="12" x2="16" y2="12"></line>' +
+                    //     '			</svg>' +
+                    //     '		</div>' +
+                    //     '		<div class="w-4/5 file__icon file__icon--image mx-auto">' +
+                    //     '			<div class="file__icon--image__preview image-fit" onclick="javascript:addYoutubeToVideo(this)">' +
+                    //     '				<img src="' + this.snippet.thumbnails.high.url + '" alt="" />' +
+                    //     '			</div>' +
+                    //     '		</div>' +
+                    //     '		<p class="block font-medium mt-4 text-center truncate"  onclick="javascript:addYoutubeToVideo(this)">'+this.snippet.channelTitle+'</p> ' +
+                    //     "       <input type='hidden' id='youtubeId' value='" + (typeof this.id == "string" ? this.id : this.id.videoId) + "'>" +
+                    //     "       <input type='hidden' id='youtubeThumbnail' value='" + this.snippet.thumbnails.high.url + "'>" +
+                    //     "       <input type='hidden' id='youtubeTitle' value='" + this.snippet.title + "'>" +
+                    //     "       <input type='hidden' id='youtubeChannelTitle' value='" + this.snippet.channelTitle + "'>" +
+                    //     '		<p class="text-slate-500 text-xs text-center mt-1" onclick="javascript:addYoutubeToVideo(this)">' + this.snippet.publishTime + '</p>' +
+                    //     '		<!--p class="flex justify-center items-center text-slate-500 text-xs text-center mt-1 ">' +
+                    //     '			<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" icon-name="clock" data-lucide="clock" class="lucide lucide-clock w-3 h-3 mr-1">' +
+                    //     '				<circle cx="12" cy="12" r="10"></circle>' +
+                    //     '				<polyline points="12 6 12 12 16 14"></polyline>' +
+                    //     '			</svg>' +
+                    //     '			3:05' +
+                    //     '		</p-->' +
+                    //     '	</div>' +
+                    //     '</div>' +
+                    //     '<!-- END: 동영상 -->'
+                    // );
+                }).promise().done(function () {
+                    if (data.prevPageToken) {
+                        //$('#youtubeSearchModal').find("#paging").append('<button type="button" class="btn btn-info pd-5 bd-0 mg-l-5 mg-t-0 tx-uppercase tx-13 tx-spacing-2" onclick="searchYoutube(\''+data.prevPageToken+'\');">< 이전</button>');
+                        $('#youtubeSearchModal').find("#paging nav ul").append(
+                            '<li>'+
+                            '    <a href="javascript:searchYoutube(\''+data.prevPageToken+'\');" aria-label="Previous"> <i class="fa-light fa-circle-chevron-left fa-lg" aria-hidden="true"></i></a>'+
+                            '</li>'
+                        );
+                    }
+                    if (data.nextPageToken) {
+                        //$('#youtubeSearchModal').find("#paging").append('<button type="button" class="btn btn-info pd-5 bd-0 mg-l-5 mg-t-0 tx-uppercase tx-13 tx-spacing-2" onclick="searchYoutube(\''+data.nextPageToken+'\');">다음 ></button>');
+                        $('#youtubeSearchModal').find("#paging nav ul").append(
+                            '<li>'+
+                            '    <a href="javascript:searchYoutube(\''+data.nextPageToken+'\');" aria-label="Next"> <i class="fa-light fa-circle-chevron-right fa-lg" aria-hidden="true"></i></a>'+
+                            '</li>'
+                        );
+                    }
+                });
+            } else {
+                $('#youtubeSearchModal').find("#youtbueSearchList").append(
+                    '<div class="col-span-12 extra-min480-colspan-6 sm:col-span-4 2xl:col-span-3 card">' +
+                    '    <div class="file box rounded-md px-5 pt-8 pb-5 px-3 sm:px-5 relative zoom-in">' +
+                    '        <p class="text-center">검색 결과가 없습니다.</p>' +
+                    '    </div>' +
+                    '</div>'
+                );
+            }
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+            console.log(jqXHR.responseText);
+            alert('검색 오류가 발생하였습니다.\n관리자에게 문의하세요.');
+        });
+    }
+
+    // 동영상 추가
+    $(document).on('click','.youtubeCard', function(e){
+        let card = $(this);
+        let youtubeId = card.find('#youtubeId').val();
+        let youtubeThumbnail = card.find('#youtubeThumbnail').val();
+        let youtubeTitle = card.find('#youtubeTitle').val();
+        let youtubeChannelTitle = card.find('#youtubeChannelTitle').val();
+        // set video
+        let form = $('#videoInputForm');
+        form.find('#title').val(youtubeTitle);
+        form.find('#showSite').val('youtube');
+        form.find('#url-youtube').val('https://youtu.be/'+youtubeId);
+        $('#videoSaveBtn').trigger('click');
+        $('#videoCloselBtn').trigger('click');
+    });
+
+    // youtube 영역 추가
+    let addYoutube = function(obj){
+        var card = $(obj).closest('.card');
+        var youtubeId = card.find('#youtubeId').val();
+        var youtubeThumbnail = card.find('#youtubeThumbnail').val();
+        var youtubeTitle = card.find('#youtubeTitle').val();
+        var youtubeChannelTitle = card.find('#youtubeChannelTitle').val();
+
+        setYoutube(youtubeId, youtubeThumbnail, youtubeTitle, youtubeChannelTitle);
+
+        // 동영상 영역 open
+        if($('[data-target="#collapseYoutube"]').attr('aria-expanded') != 'true'){
+            $('[data-target="#collapseYoutube"]').trigger('click');
+        }
+        // 사진등록
+        var params ='url='+youtubeThumbnail+'&caption='+youtubeTitle;
+            $.ajax({
+            url: '/file/externalImg/ajax',
+            method: 'POST',
+            dataType: "json",
+            data: params,
+        }).done(function(data, textStatus, jqXHR) {
+            let thumbnail = decodeURIComponent(data.result.path).replace(/([.][a-z]+)$/i,'.120x120.0$1');
+
+            mockFile = {
+                "fileId": data.result.id,
+                "thumb": thumbnail,
+                "caption": data.result.caption,
+                "width": data.result.width,
+                "height": data.result.height,
+                "size": data.result.size,
+                "filePath": data.result.path,
+                "type": data.result.type,
+                "ext": data.result.ext,
+                "watermarkPlace": '0',
+            };
+
+            imgDropzone.emit('addedfile', mockFile);
+            $(mockFile.previewElement).attr("fileId", mockFile['fileId']);
+            $(mockFile.previewElement).find('.file_path').val(mockFile['filePath']);
+            $(mockFile.previewElement).find('.file_id').val(mockFile['fileId']);
+            $(mockFile.previewElement).find('.file_width').val(mockFile['width']);
+            $(mockFile.previewElement).find('.file_height').val(mockFile['height']);
+            $(mockFile.previewElement).find('.file_size').val(mockFile['size']);
+            $(mockFile.previewElement).find('.file_caption').val(mockFile['caption']);
+            $(mockFile.previewElement).find('.file_type').val(mockFile['type']);
+            $(mockFile.previewElement).find('.file_ext').val(mockFile['ext']);
+            $(mockFile.previewElement).find('.ext').val(mockFile['ext']);
+            $(mockFile.previewElement).find('.file_watermarkPlace').val(mockFile['watermarkPlace']);
+            $(mockFile.previewElement).find('.imgWatermark').val(mockFile['watermarkPlace']);
+
+            imgDropzone.emit('thumbnail', mockFile, mockFile['thumb']);
+
+            $('#dropzone .boxMessage').remove();
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+            console.log(jqXHR.responseText);
+            alert('Youtube Thumbnail 저장시 오류가 발생되었습니다.\n관리자에게 문의하세요');
+        });
+    };
+
+    // youtube 영역 입력
+    var setYoutube = function(youtubeId, youtubeThumbnail, youtubeTitle, youtubeChannelTitle){
+        $("#videoList").append(
+            '<!-- BEGIN: 동영상 썸네일 -->' +
+            '<div class="col-span-12 extra-min560-colspan-6 extra-min960-colspan-4 xl:col-span-12 extra-min1920-colspan-6 youtubeBox">' +
+            '	<div class="border-2 border-dashed border-slate-200 rounded-md p-4 box">' +
+            '       <!--img class="thumbnail" style="max-width: 150px;" src="'+ youtubeThumbnail +'" />'+
+            '       <div style="overflow:hidden; height:21px;">'+ youtubeTitle +'</div-->'+
+            '       <input type="hidden" name="youtubeId[]" value="'+ youtubeId +'">'+
+            '       <input type="hidden" name="youtubeThumbnail[]" value="'+ youtubeThumbnail +'">'+
+            '       <input type="hidden" name="youtubeTitle[]" value="'+ youtubeTitle +'">'+
+            '       <input type="hidden" name="youtubeChannelTitle[]" value="'+ youtubeChannelTitle +'">'+
+            '		<div class="image-fit">' +
+            '			<div class="w-full h-0 pt-[61.8%] relative rounded-lg overflow-hidden">' +
+            '				<div class="absolute top-1/2 -translate-y-2/4 left-0 w-full h-full z-10"">' +
+            '					<iframe class="rounded-md w-full h-full" src="https://www.youtube.com/embed/'+youtubeId+'" title="'+youtubeChannelTitle+'" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen=""></iframe>' +
+            '				</div>' +
+            '			</div>' +
+            '		</div>' +
+            '		<div class="flex gap-x-3 justify-center items-center pt-4">' +
+            '			<!-- BEGIN: 본문 삽입 -->' +
+            '			<a href="javascript:;" class="tooltip placeYoutube" title="본문 삽입"> ' +
+            '			    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" icon-name="plus" data-lucide="plus" class="lucide lucide-plus w-5 h-5">'+
+            '                   <line x1="12" y1="5" x2="12" y2="19"></line>' +
+            '                   <line x1="5" y1="12" x2="19" y2="12"></line>'+
+            '               </svg>' +
+            '			</a>' +
+            '			<!-- END: 본문 삽입 -->' +
+            '			<!-- BEGIN: 휴지통 -->' +
+            '			<a href="javascript:;" class="tooltip delYoutube" title="휴지통"> ' +
+            '				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" icon-name="trash-2" data-lucide="trash-2" class="lucide lucide-trash-2 w-4 h-4 mr-1">' +
+            '					<polyline points="3 6 5 6 21 6"></polyline>' +
+            '					<path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>' +
+            '					<line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line>' +
+            '				</svg>' +
+            '			</a>' +
+            '			<!-- END: 휴지통 -->' +
+            '		</div>' +
+            '	</div>' +
+            '</div>' +
+            '<!-- END: 동영상 썸네일 -->' 
+        );
+    };
+
+    // youtube 본문 내 삽입
+    $(document).on('click','.placeYoutube',function (obj) {
+        var pObj = $(this).closest('.youtubeBox');
+        var youtubeId = pObj.find("input[name*='youtubeId']").val();
+        var youtubeTitle = pObj.find("input[name*='youtubeTitle']").val();
+        var captionYN = pObj.find(".captionYN").is(":checked");
+
+        if(tinymce){
+            tinymce.execCommand('mceInsertContent', false,
+                '<figure class="image youtubeWrap align-center"><iframe contenteditable="true" width="800px" height="430px" src="https://www.youtube.com/embed/' +
+                youtubeId + '?ecver=1" frameborder="0" allowfullscreen></iframe><figcaption>'+youtubeTitle+'</figcaption></figure>');
+        }
+    });
+</script>

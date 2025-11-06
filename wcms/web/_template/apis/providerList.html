@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    {# left}
+    {# header}
+
+    <main class="container">
+        <div role="document">
+			<div role="heading" aria-level="1">API 제공 업체</div>
+			<section class="section-search"> 
+                <form role="search" name="searchForm" id="searchForm">
+                    <input type="hidden" id="coId" name="coId" value="{_SESSION.coId}"/>
+
+					<div class="search-input">
+                        <input type="text" name="searchText" id="searchText" value="{? _GET.searchText}{_GET.searchText}{/}" placeholder="업체명 또는 검색어를 입력하세요">
+                        <button id="searchBtn" class="btn-search" type="button" aria-label="검색"><i class="fa-light fa-magnifying-glass"></i></button>
+                    </div>
+					<button type="button" class="btn" id="insertBtn">업체 등록</button>
+                    <button type="button" class="btn btn-black" id="deleteBtn">선택 삭제</button>
+				</form>
+			</section>
+			<section role="region" aria-label="업체 목록">
+                <div class="list-cont">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="chkSelectAll" aria-label="전체 선택"></th>
+                                <th>업체명</th>
+                                <th>웹사이트</th>
+                                <th>상태</th>
+                                <th>생성일자</th>
+                                <th>수정일자</th>
+                                <th>관리</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {@ result.items}
+                            <tr data-provider-id="{.id}">
+                                <td><input type="checkbox" name="providerSelect" value="{.id}" aria-label="{.name} 선택"></td>
+                                <td><strong><a href="/apis/providerEditor?id={.id}" class="title" title="{.name}">{? empty(.name)}<span class="red">업체명 없음</span>{:}{.name}{/}</a></strong></td>
+                                <td>{? empty(.url.website)}<span class="gray">-</span>{:}<a href="{.url.website}" target="_blank" rel="noopener noreferrer">{.url.website}</a>{/}</td>
+                                <td>
+                                    <span class="status-badge status-{.status}">
+                                        {? .status == 'active'}활성{/}
+                                        {? .status == 'inactive'}비활성{/}
+                                        {? .status == 'pending'}대기{/}
+                                    </span>
+                                </td>
+                                <td>{=substr(.insert.date,0,10)}<br/>({.insert.managerName})</td>
+                                <td>{=substr(.update.date,0,10)}<br/>({.update.managerName})</td>
+                                <td>
+                                    <button type="button" class="btn-edit" onclick="location.href='/apis/providerEditor?id={.id}'" aria-label="수정">수정</button>
+                                    <button type="button" class="btn-delete" onclick="providerDelete('{.id}');" aria-label="삭제">삭제</button>
+                                </td>
+                            </tr>
+                            {/}
+                        </tbody>
+                    </table>
+                </div>
+                {#paging}
+            </section>
+        </div>
+    </main>
+
+<script type="text/javascript">
+    $(document).ready(function(){
+        $('#insertBtn').click(function(){
+            location.href='/apis/providerEditor';
+        });
+    
+        $('#deleteBtn').click(function(){
+            var chkProvider = '';
+            $("input[name=providerSelect]:checked").each(function(){
+                chkProvider += $(this).val() + '|';
+            });
+    
+            if(chkProvider == '' ){
+                alert('삭제할 업체를 선택해주세요.');
+            }else{
+                providerDelete(chkProvider);
+            }
+        });
+    
+        $('#chkSelectAll').click(function(){
+            $("input[name=providerSelect]").prop('checked', $("input:checkbox[id='chkSelectAll']").is(":checked"));
+        });
+            
+        $('#searchBtn').click(function(){
+            $('#searchForm').attr('action','/apis/providerList').submit();
+        });
+    });
+    
+    function providerDelete(providerId){
+        if( confirm('선택한 업체를 삭제하시겠습니까?') ){
+            $.ajax({
+                url: '/apis/providerDelete/ajax',
+                method : 'POST',
+                data : {'providerId': providerId}
+            }).done(function() {
+                alert('업체가 삭제되었습니다.');
+                location.href='/apis/providerList';
+            });
+        }
+    }
+
+    function getStatusText(status) {
+        switch(status) {
+            case 'active': return '활성';
+            case 'inactive': return '비활성';
+            case 'pending': return '대기';
+            default: return status;
+        }
+    }
+
+</script>
+
+<style>
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+    display: inline-block;
+    min-width: 60px;
+}
+
+.status-active {
+    background-color: #e6f4ea;
+    color: #1e7e34;
+}
+
+.status-inactive {
+    background-color: #fce8e6;
+    color: #d93025;
+}
+
+.status-pending {
+    background-color: #fff3e0;
+    color: #f57c00;
+}
+
+.api-count {
+    font-weight: bold;
+    color: #1976d2;
+}
+
+.provider-detail {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.provider-detail h4 {
+    margin-top: 0;
+    color: #1976d2;
+}
+
+.provider-detail p {
+    margin: 8px 0;
+}
+
+.gray {
+    color: #6c757d;
+}
+
+.btn-edit {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-right: 5px;
+    cursor: pointer;
+}
+
+.btn-edit:hover {
+    background-color: #218838;
+}
+</style>
+</body>
+</html>

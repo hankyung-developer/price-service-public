@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+	{# head}
+	<!-- <link href="/lib/dropzone/dropzone.css" rel="stylesheet" type="text/css" /> -->
+	<script src="/lib/dropzone/dropzone-min.js" type="text/javascript"></script>
+	<link href="/css/upload.css" rel="stylesheet" type="text/css" />
+    <script src="/js/upload.js" type="text/javascript"></script>
+	<link href="/lib/select2/css/select2.min.css" rel="stylesheet">
+	<script src="/lib/select2/js/select2.min.js"></script>
+
+</head>
+<body>
+	{#left}
+	{#header}
+	<main class="container">
+        <div role="document">
+			<div role="heading">기자</div>
+			<section>
+				<form class="grid spacing" method="post" name="inputFrom" id="inputFrom" role="form">
+					<input type="hidden" id="action" name="action" value="" />
+					<input type="hidden" id="editor" name="editor" value="{result.editor}" />
+					<input type="hidden" id="deptName" name="deptName" value="{result.deptName}" />
+					<div>
+						<label for="id">ID <span class="red">*</span>
+							<input type="text" placeholder="ID를 입력하세요." name="id" id="id" autocomplete="off" maxlength="60" value="{result.manager.id}">
+						</label>
+						<label for="password">비밀번호 <span class="red">*</span>
+							<input type="password" placeholder="비밀번호를 변경하려면 입력하세요." name="password" id="password" autocomplete="off">
+						</label>
+						<label for="">이메일
+							<input type="text" placeholder="이메일을 입력하세요." name="email" id="email" value="{result.manager.email}">
+						</label>
+						<label for="name">이름 <span class="red">*</span>
+							<input type="text" placeholder="이름을 입력하세요." name="name" id="name" value="{result.manager.name}">
+						</label>
+						<label for="job">전문기자명
+							<input type="text" placeholder="전문기자명을 입력하세요." name="job" id="job" value="{result.manager.job}">
+						</label>
+						{? _SESSION.isSuper}
+						<label for="coId">회사 <span class="red">*</span>
+							{? result.editor == 'admin'}
+							<select name="coId" id="coId">
+								<option value="">회사 선택</option>
+								{? _SESSION.isSuper}
+								{@ company.all}
+								<option value="{.coId}">{.name}</option>
+								{/}
+								{:}
+								{@ result.companyList}
+								<option value="{.coId}">{.name}</option>
+								{/}
+								{/}
+							</select>
+							{:}
+								{@ result.companyList}
+									{? .coId == result.manager.coId}
+									<input type="text" value="{.name}" disabled>
+									{/}
+								{/}
+							{/}
+						</label>
+						{:}
+							<input type="hidden" id="coId" value="{result.manager.coId}"/>
+						{/}
+						<label for="departmentId">부서
+							{? result.editor == 'admin'}
+								<select name="departmentId" id="departmentId">
+									<option value="">부서 선택</option>
+									{@ result.department}
+									<option value="{.id}" data-deptname="{.name}">{? .depth==2}&nbsp;&nbsp;&nbsp;&nbsp;{: .depth==3}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{/}{.name}</option>
+									{/}
+								</select>
+							{:}
+								{@ result.department}
+									{? .id == result.manager.departmentId}
+									<input type="text" value="{.name}" id="departmentId" disabled>
+									{/}
+								{/}
+							{/}
+						</label>
+						{? result.editor == 'admin'}
+						<label for="authId">권한
+							<select name="authId" id="authId">
+								{@ result.auth}
+								<option value="{.id}">{.name}</option>
+								{/}
+							</select>
+						</label>
+						{/}
+						{? _SESSION.isSuper}
+						<label for="">편집가능 매체 <span class="red">*</span>
+							{@ result.companyList}
+							<div class="grid grid3-still">
+								<label for="{.coId}"><input type="checkbox" id="{.coId}" data-allowcompany-coid="{.coId}" name="allowCompany[{.index_}][coId]" value="{.coId}"> {.name}</label>
+								<select data-allowcompany-authid="{.coId}" name="allowCompany[{.index_}][authId][]" class="select2" multiple style="width: 100%;">
+									{@ .auth}
+									<option value="{..id}">{..name}</option>
+									{/}
+								</select>
+								<select data-allowcompany-departmentid="{.coId}" name="allowCompany[{.index_}][departmentId][]" class="select2" multiple style="width: 100%;">
+									{@ .department}
+									<option value="{..id}">{? ..depth==2}&nbsp;&nbsp;&nbsp;&nbsp;{: ..depth==3}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{/}{..name}</option>
+									{/}
+								</select>
+							</div>
+							{/}
+						</label>
+						{/}
+					</div>
+					<div>
+						<label for="sns_twitter">Twitter
+							<input type="text" placeholder="" name="sns[twitter]" id="sns_twitter" value="{result.manager.sns.twitter}">
+						</label>
+						<label for="sns_naver">Naver
+							<input type="text" placeholder="" name="sns[naver]" id="sns_naver" value="{result.manager.sns.naver}">
+						</label>
+						<label for="sns_facebook">Facebook
+							<input type="text" placeholder="" name="sns[facebook]" id="sns_facebook" value="{result.manager.sns.facebook}">
+						</label>
+						<label for="sns_instagram">Instagram
+							<input type="text" placeholder="" name="sns[instagram]" id="sns_instagram" value="{result.manager.sns.instagram}">
+						</label>
+						<label for="sns_blog">기자Blog
+							<input type="text" placeholder="" name="sns[blog]" id="sns_blog" value="{result.manager.sns.blog}">
+						</label>
+						<label for="byline">바이라인
+							<input type="text" placeholder="" name="byline" id="byline" value="{result.manager.byline}">
+						</label>
+						<label for="profile">프로필
+							<textarea cols="2" rows="3" name="profile" id="profile">{result.manager.profile}</textarea>
+						</label>
+						<label for="dropzone" class="spacing">프로필 사진
+							<div id="dropzone" class="sortable fileZone">
+								<small class="boxMessage">여기에 파일을 올려주세요</small>
+								<input type="hidden" id="imagePath" name="imagePath" value=""/>
+							</div>
+						</label>
+					</div>
+				</form>
+				<div class="flex justify-center">
+					<button type="button" class="btn btn-md" id="saveBtn">저장</button>
+					<button type="button" class="btn btn-md" id="listBtn">목록</button>
+				</div>
+			</section>
+		</div>
+	</main>
+
+	<!-- 토스트 -->
+	{# toast}
+	<!-- //토스트 -->
+
+    {? !empty(result.manager.id)}
+	<!-- 히스토리 -->
+	<script>
+		// 히스토리를 불러오기 위한 설정
+		let historyParams = {
+			collection : 'manager',
+			coId : '{result.manager.coId}',
+			id : '{result.manager.id}',
+			_id : '{result.manager._id}'
+		}
+	</script>
+	{# collectionHistory}
+	<!-- //히스토리 -->
+    {/}
+
+	<!-- ########## START : INLINE SCRIPT ########## -->
+	<script type="text/javascript">
+	$(document).ready(function(){
+		// 초기화
+		if('{result.manager.id}'){
+			$('#action').val('update');
+			$('#id').attr('readonly', true);
+			$('#coId').val('{result.manager.coId}').prop("selected", true);
+			$('#departmentId').val('{result.manager.departmentId}').prop("selected", true);
+			$('#authId').val('{result.manager.authId}').prop("selected", true);
+			{@ result.manager.allowCompany}
+				{? !empty(.coId)}
+					$('input[data-allowcompany-coid="{.coId}"]').prop('checked',true);
+					{@ .authId}
+						$('select[data-allowcompany-authid="{.coId}"] option[value="{..value_}"]').prop('selected', true);
+					{/}
+					{@ .departmentId}
+						$('select[data-allowcompany-departmentid="{.coId}"] option[value="{..value_}"]').prop('selected', true);
+					{/}
+				{/}
+			{/}
+		
+		}else{
+			$('#action').val('insert');
+		}
+		{@ result.manager.allowCoId}
+			$("#allowCoId_{.value_}").prop("checked", true);
+		{/}
+
+		$('[data-allowcompany-authid]').select2();
+		$('[data-allowcompany-departmentid]').select2();
+
+		// 부서이름 처리
+		$('#departmentId').change(function(){
+			var deptName = $('#departmentId option:selected').attr('data-deptname');
+			$('#deptName').val(deptName);
+		});
+
+		// id 중복체크
+		$('#id').on('keyup', function(e) {
+			var id = $(e.target).val();
+			$.ajax({
+				url : '/manager/checkId/ajax',
+				type : 'post',
+				data: {id: id},
+				dataType: 'json',
+			}).done(function(data, textStatus, jqXHR) {
+				console.log(data);
+				if (data.result.msg) {
+					$("#idResult").html(data.result.msg);
+				} else if (parseInt(data.result.count) > 0) {
+					$("#idResult").html("사용중인 ID 입니다.");
+				} else {
+					$("#idResult").html("사용 가능한 ID 입니다.");
+				}
+			}).fail(function(jqXHR, textStatus, errorThrown) {
+				if (!!jqXHR?.responseJSON?.result?.msg) {
+					alert(jqXHR.responseJSON.result.msg);
+				} else {
+					alert(textStatus+' : '+errorThrown);
+				}
+			});
+		});
+
+		// 편집가능 매체 활성화/비활성화
+		$('input:checkbox[name^="allowCompany"]').each(function(){
+			useAllowCompany(this);
+		});
+		$(document).on('click','input:checkbox[name^="allowCompany"]',function(){
+			useAllowCompany(this);
+		});
+
+		// 버튼 : 저장
+		$('#saveBtn').on('click', function(){
+			
+			saveProc();
+		});
+
+		// 버튼 : 목록
+		$('#listBtn').on('click', function(){
+			location.href = '/manager/list';
+		});
+	});
+
+	// 업로드 설정
+	singleFileUpload({
+		uploadDir: 'manager', 
+		uploadId: '#dropzone', 
+		pathId: '#imagePath', 
+		path: '{? !empty(result.manager.imagePath)}{result.manager.imagePath}{/}', 
+	});
+
+	// 저장
+	function saveProc(){
+		$.ajax({
+			url: '/manager/saveProc/ajax',
+			method : 'post',
+			data : $('#inputFrom').serialize(),
+			dataType: 'json',
+		}).done(function(data, textStatus, jqXHR) {
+			if(data.result.msg) {alert(data.result.msg)}
+			location.href = '/manager/list';
+		}).fail(function(jqXHR, textStatus, errorThrown) {
+			console.log(jqXHR);
+			if (!!jqXHR?.responseJSON?.result?.msg) {
+				alert(jqXHR.responseJSON.result.msg);
+			} else {
+				alert(textStatus+' : '+errorThrown);
+			}
+		});
+	}
+
+	// 편집가능 매체 활성화/비활성화
+	function useAllowCompany(obj){
+		if($(obj).prop('checked')){
+			$(obj).closest('#allowCompanyRow').find('select').prop('disabled',false);
+		}else{
+			$(obj).closest('#allowCompanyRow').find('select').prop('disabled',true);
+		}
+	}
+	</script>
+	<!-- ########## END : INLINE SCRIPT ########## -->
+
+</body>
+</html>

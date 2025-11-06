@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}	
+    <link rel="stylesheet" href="/lib/tempusdominus-bootstrap/tempusdominus-bootstrap-4.min.css" />
+    <script type="text/javascript" src="/lib/tempusdominus-bootstrap/tempusdominus-bootstrap-4.min.js"></script>
+	<script src='/lib/locale/ko.js'></script>
+	<script type="text/javascript" src="/lib/moment/moment.js"></script>
+	<link rel="stylesheet" type="text/css" href="/lib/daterangepicker/daterangepicker.min.css" />
+	<script type="text/javascript" src="/lib/daterangepicker/daterangepicker.min.js"></script>
+	<script src="/lib/chart.js/chart.min.js"></script>
+	
+	<style>
+		#articleTable {}
+		#articleTable [type="checkbox"] {margin:0; }
+		#articleTable th, #articleTable td, #articleTable a {--table-border-color:var(--gray-e2e);--color: var(--gray-696);}
+		#articleTable thead th {--border-width:3px;border-top: var(--border-width) solid var(--table-border-color);}
+		#articleTable td {padding : calc(var(--spacing) * 0.6 );font-size: 15px;/*height: calc(90px + (var(--border-width) * 2));*/vertical-align: middle;}
+		#articleTable .title {vertical-align: top;white-space: wrap;}
+		#articleTable .row-title {
+			line-height: normal;overflow: hidden;text-overflow: ellipsis;
+			display: -webkit-box;-webkit-line-clamp: 2;-webkit-box-orient: vertical;
+			word-wrap: break-word;word-break: keep-all;width: 100%;max-width:620px;min-width: 360px;
+		}
+		#articleTable .thumb {position: relative;width: calc(90px + ((var(--spacing) * 0.6) * 2));}
+		#articleTable .thumb > img {width:90px;min-width: 90px;height:60px;border-radius:var(--border-radius);overflow:hidden;}
+		#articleTable .thumb .circle {position: absolute;bottom: 12px;right: 10px;cursor: pointer;
+			min-width: 18px;min-height: 18px;width: 18px;height: 18px;border-radius: 50%;line-height: 18px;font-size: 12px;}
+		#articleTable .thumb .articleImage {
+			display: flex;flex-wrap: wrap;align-items: center;
+			position: absolute;margin: 0;top: 70%;z-index: 99;
+			right: auto;
+			bottom: auto;
+			left: 90%;
+			transform: translate(0.25rem, -50%);
+			opacity: 0;
+  			pointer-events: none;
+			width: max-content;max-width: 172px;background-color: var(--tooltip-background-color);padding: 0.25rem;border-radius: var(--border-radius);
+		}
+		#articleTable .thumb .articleImage.on {opacity: 1; animation-duration: 0.2s;animation-name: tooltip-slide-right;}
+		#articleTable .thumb .articleImage::before {
+			content: '';
+			display: inline-block;
+			position: absolute;
+			z-index: 99;
+			top: 50%;
+			left: -9px;
+			margin-top: -5px;
+			border-width: 5px;
+			border-style: solid;
+			border-color: transparent var(--tooltip-background-color) transparent transparent;
+		}
+		.articleImage .img {padding: 0.1rem;background-color: var(--tooltip-background-color);;min-width: calc(50px + 0.2rem);}
+		.articleImage .img img {width:50px;height:33px;border-radius:3px;overflow:hidden;}
+		.portal-link {position: relative;}
+		.portal-link .tooltip {
+			background: var(--tooltip-background-color);border-radius: var(--border-radius);
+			color: var(--tooltip-color);
+			font-style: normal;
+			font-weight: var(--font-weight);position: absolute;z-index: 99;padding: 0.25rem 0.5rem;margin: 0;top: 50%;
+			right: auto;
+			bottom: auto;
+			left: 100%;
+			transform: translate(0.25rem, -50%);
+			opacity: 0;
+  			pointer-events: none;
+		}
+		.portal-link:hover .tooltip {opacity: 1; animation-duration: 0.2s;animation-name: tooltip-slide-right;}
+		.portal-link .tooltip::before {
+			content: '';
+			display: inline-block;
+			position: absolute;
+			z-index: 99;
+			top: 50%;
+			left: -9px;
+			margin-top: -5px;
+			border-width: 5px;
+			border-style: solid;
+			border-color: transparent var(--tooltip-background-color) transparent transparent;
+		}
+		.portal-link .tooltip li {margin-bottom: 0.2rem;font-size: var(--font-size-xxs);}
+		.portal-link .tooltip li:last-of-type {margin: 0;}
+	</style>
+</head>
+<body>
+	{# left}
+	{# header}
+
+	<form name="previewForm" id="previewForm" target="_blank" method="post">
+		<input type="hidden" name="aid" id="aid">
+		<input type="hidden" name="title" id="title">
+		<input type="hidden" name="expTitle" id="expTitle">
+		<input type="hidden" name="subTitle" id="subTitle">
+		<input type="hidden" name="expSubTitle" id="expSubTitle"> 
+		<input type="hidden" name="content" id="content"> 
+		<input type="hidden" name="firstPublishDate" id="firstPublishDate">
+		<input type="hidden" name="tags" id="tags">
+		<input type="hidden" name="viewTmp" id="viewTmp">
+	</form>
+    <main class="container">
+        <div role="document">
+			<div role="heading">기사</div>
+			<section class="section-search"> 
+                <form role="search" name="searchForm" id="searchForm">
+					<input type="hidden" name="listType" id="listType" value="{? !empty(_GET.listType)}{_GET.listType}{/}">
+					<input type="hidden" name="sort" id="sort" value="{? !empty(_GET.sort)}{_GET.sort}{/}">
+					<input type="hidden" name="order" id="order" value="{? !empty(_GET.order)}{_GET.order}{/}">
+				
+					<div class="select-input">
+						<select name="dateType" id="dateType">
+							<option value="write.date">작성일</option>
+							<option value="update.date">수정일</option>
+							<option value="sendDate">전송일</option>
+						</select>
+						<div class="search-date datetimerange-input">
+							<div class="icon-calendar"><i class="fa-duotone fa-calendar-day"></i></div>
+							<input type="text" id="period">
+							<input type="hidden" id='startDate' name='startDate' value="{? !empty(_GET.startDate)}{_GET.startDate}{:}{=date('Y-m-d',strtotime('-1 year'))}{/}"/>
+							<input type="hidden" id='endDate' name='endDate' value="{? !empty(_GET.endDate)}{_GET.endDate}{:}{=date('Y-m-d')}{/}"/>
+						</div>
+					</div>
+					<select name="searchItem" id="searchItem">
+						<option value="text">모든 제목+본문</option>
+						<option value="title">제목</option>
+						<option value="reporter">작성자</option>
+						<option value="aid">기사 아이디</option>
+						<option value="tags">Tag</option>
+					</select>
+					<div class="search-input">
+                        <input type="text" name="searchText" id="searchText" value="{? _GET.searchText}{_GET.searchText}{/}" placeholder="검색어를 입력하세요">
+                        <button id="searchBtn" class="btn-search" type="button"><i class="fa-light fa-magnifying-glass"></i></button>
+                    </div>
+					<button type="button" class="btn" id="insertBtn">새기사</button>
+				</form>
+			</section>
+			<section role="list">
+				<div class="list-cont">
+					<table role="tablist" id="articleTable">
+						<colgroup>
+							<col width="114px">
+							<col width="*">
+							<col width="">
+							<col width="">
+							<col width="">
+							<col width="">
+						</colgroup>
+						<thead>
+							<tr>
+								<th id="thumb"></th>
+								<th id="title">
+									<a href="{sortUrl}&sort=title&order={? empty(_GET.sort) || empty(_GET.order)}-1{:}{? !empty(_GET.sort) && _GET.sort=='title' && _GET.order != 1}1{:}-1{/}{/}">
+										기사 제목
+										{? _GET.sort=='title' && _GET.order== -1}<i class="fa-duotone fa-sort-down"></i>{:  _GET.sort=='title' && _GET.order== 1}<i class="fa-duotone fa-sort-up"></i>{:}<i class="fa-duotone fa-sort-down"></i>{/}
+									</a>
+								</th>
+								<th id="portal">전송</th>
+								<th id="insertManagerName">작성자</th>
+								<th id="insertDate updateDate">
+									<a href="{sortUrl}&sort=insert.date&order={? empty(_GET.sort) || empty(_GET.order)}-1{:}{? !empty(_GET.sort) && _GET.sort=='insert.date' && _GET.order != 1}1{:}-1{/}{/}">
+										작성/수정
+										{? _GET.sort=='insert.date' && _GET.order== -1}<i class="fa-duotone fa-sort-down"></i>{:  _GET.sort=='insert.date' && _GET.order== 1}<i class="fa-duotone fa-sort-up"></i>{:}<i class="fa-duotone fa-sort-down"></i>{/}
+									</a>
+								</th>
+								<th id="firstPublishDate">발행일자</th>
+							</tr>
+						</thead>
+						<tbody>
+							{@ result.items}
+							<tr id="at_{.aid}" class="{? !empty(.editing.date)}editing{:}{? !empty(.status)}{? .status == 'save'} save{/}{? .status == 'desk'} desk{/}{? .status == 'deskComplete'} deskComplete{/}{? .status == 'deskReject'} deskReject{/}{? .status == 'publish'} publish{/}{? .status == 'embargo'} embargo{/}{? .status == 'delete'} delete{/}{/}{/}" >
+								<td class="thumb">
+									{? .image}
+									<img src="{=str_replace('/webData','/data',.image.path)}">
+									{/}
+								</td>
+								<td class="title">
+									<div class="flex nowrap">
+										{? !empty(.tags)}
+											{@ .tags}
+											<span style="margin-right: 0.3rem;margin-bottom: 0.2rem;white-space: nowrap;background-color: #e3f2fd;" class="oval">{..value_}</span>
+											{/}
+										{/}
+									</div>
+									<a href="javascript:void(0);" class="article-detail-btn" data-aid="{.aid}">
+										<div class="row-title">
+											{? trim(.title)==""}Untitled article{:}{.title}{/}
+										</div>
+									</a>
+									{? !empty(.subtitle)}
+									<div style="font-size: 13px; color: var(--gray-999); margin-top: 4px;">{.subtitle}</div>
+									{/}
+								</td>
+								<td class="">{.send.date}</td>
+								<td class="insertManagerName">
+									{.write.managerName}({.write.managerId})</a>
+								</td>
+								<td class="insertDate updateDate">
+									<p>{.write.date}
+										{? !empty(.update)}
+										<span data-tooltip="수정 : {.update.date} {.update.managerName}({.update.managerId})" data-placement="top" style="cursor: pointer;color: var(--pink-indian);"><i class="fa-light fa-circle-plus"></i></span>
+										{/}
+									</p>
+								</td>
+								<td class="embargo_date firstPublishDate">
+									{? .status == 'embargo'}
+									<p >{=substr(.embargo.date,0,10)} <br>{=substr(.embargo.date,10,10)} </p>
+									{/}
+									{? .status == 'publish'}
+									<p data-tooltip="발행 : {.publish.managerName}({.publish.managerId})" data-placement="top" >{=substr(.publish.date,0,10)} <br>{=substr(.publish.date,10,10)}
+										{? !empty(.embargo.date)}
+										<span data-tooltip="예약전송 : {.embargo.date}" data-placement="right" style="cursor: pointer;color: var(--pink-indian);"><i class="fa-light fa-circle-plus"></i></span>
+										{/}
+									</p>
+									{/}
+								</td>
+							</tr>
+							{/}
+						</tbody>
+					</table>
+				</div>
+				{# paging}
+			</section>
+		</div>
+	</main>
+
+<!-- 기사별 통계 모달 -->
+{# articleReferrerModal}
+
+<!-- Modal : 작업중 로딩 -->
+{#loading}
+
+<!-- 웹푸시 작성 모달 -->
+{# webPushWriteModal}
+
+<!-- 기사 상세 모달 -->
+<dialog id="articleDetailModal" style="max-width: 800px; width: 80%; max-height: 85vh; border: none; border-radius: 8px; padding: 0; box-shadow: 0 4px 20px rgba(0,0,0,0.15); background-color: #ffffff29;">
+	<div class="modal-content" style="display: flex; flex-direction: column; max-height: 85vh; background-color: white;">
+		<div class="modal-header" style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--gray-e2e); display: flex; justify-content: space-between; align-items: center; background-color: white;">
+			<h3 style="margin: 0; font-size: 1.1rem; font-weight: 600;">기사 상세보기</h3>
+			<button class="close-modal-btn" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--gray-696); padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+				<i class="fa-light fa-times"></i>
+			</button>
+		</div>
+		<div class="modal-body" style="padding: 1rem; overflow-y: auto; flex: 1; background-color: white;">
+			<div id="articleDetailContent">
+				<div class="loading-spinner" style="text-align: center; padding: 2rem;">
+					<i class="fa-duotone fa-spinner-third fa-spin fa-3x"></i>
+					<p style="margin-top: 1rem; color: var(--gray-696);">데이터를 불러오는 중...</p>
+				</div>
+			</div>
+		</div>
+		<div class="modal-footer" style="padding: 0.5rem 1rem; border-top: 1px solid var(--gray-e2e); display: flex; justify-content: flex-end; background-color: white;">
+			<button class="btn close-modal-btn">닫기</button>
+		</div>
+	</div>
+</dialog>
+
+<style>
+	/* 모달 기본 스타일 */
+	#articleDetailModal::backdrop {
+		background: rgba(0, 0, 0, 0.5);
+		backdrop-filter: blur(3px);
+	}
+
+	/* 기사 상세 내용 스타일 */
+	#articleDetailContent {
+		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+		line-height: 1.7;
+	}
+
+	#articleDetailContent .article-title {
+		font-size: 1.4rem;
+		font-weight: 700;
+		color: #1a1a1a;
+		margin-top: 0;
+		margin-bottom: 0.5rem;
+		line-height: 1.3;
+	}
+
+	#articleDetailContent .article-subtitle {
+		font-size: 1rem;
+		color: #666;
+		margin-bottom: 0.75rem;
+		line-height: 1.5;
+	}
+
+	#articleDetailContent .article-meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+		padding: 0.75rem;
+		background: #f8f9fa;
+		border-radius: 8px;
+		margin-bottom: 0.75rem;
+		font-size: 0.85rem;
+		color: #666;
+	}
+
+	#articleDetailContent .article-meta-item {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+	}
+
+	#articleDetailContent .article-meta-item i {
+		color: #999;
+	}
+
+	#articleDetailContent .article-tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+		margin-bottom: 1rem;
+	}
+
+	#articleDetailContent .article-tag {
+		display: inline-block;
+		padding: 0.2rem 0.6rem;
+		background: #e3f2fd;
+		color: #1976d2;
+		border-radius: 12px;
+		font-size: 0.8rem;
+		font-weight: 500;
+	}
+
+	#articleDetailContent .article-image {
+		margin-bottom: 1.5rem;
+		text-align: center;
+	}
+
+	#articleDetailContent .article-image img {
+		max-width: 100%;
+		height: auto;
+		border-radius: 8px;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+	}
+
+	#articleDetailContent .article-body {
+		font-size: 0.95rem;
+		color: #333;
+		line-height: 1.7;
+		margin-bottom: 1rem;
+		max-height: 450px;
+		overflow-y: auto;
+		padding: 1rem;
+		width: 820px;
+		max-width: 100%;
+		border-radius: 8px;
+		background-color: #f8f9fa;
+	}
+
+	#articleDetailContent .article-body img {
+		max-width: 650px;
+		width: 100%;
+		height: auto;
+		display: block;
+		margin: 0.75rem auto;
+		border-radius: 8px;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+	}
+
+	#articleDetailContent .article-body table {
+		width: 100%;
+		border-collapse: collapse;
+		margin: 1.5rem 0;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+	}
+
+	#articleDetailContent .article-body table th,
+	#articleDetailContent .article-body table td {
+		padding: 0.75rem 1rem;
+		border: 1px solid #e0e0e0;
+		text-align: left;
+	}
+
+	#articleDetailContent .article-body table th {
+		background: #f5f5f5;
+		font-weight: 600;
+		color: #333;
+	}
+
+	#articleDetailContent .article-body table tbody tr:hover {
+		background: #fafafa;
+	}
+
+	#articleDetailContent .article-chart {
+		margin: 1.5rem 0;
+		border-radius: 8px;
+		overflow: hidden;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+	}
+
+	#articleDetailContent .article-items {
+		margin-top: 1rem;
+		padding: 0.75rem;
+		background: #f8f9fa;
+		border-radius: 8px;
+		width: 820px;
+		max-width: 100%;
+	}
+
+	#articleDetailContent .article-items-title {
+		font-size: 0.9rem;
+		font-weight: 600;
+		color: #333;
+		margin-bottom: 0.5rem;
+	}
+
+	#articleDetailContent .article-items-list {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+		width: 100%;
+	}
+
+	#articleDetailContent .article-item {
+		padding: 0.3rem 0.6rem;
+		background: white;
+		border-radius: 12px;
+		font-size: 0.8rem;
+		color: #666;
+		border: 1px solid #1976d2;
+		white-space: nowrap;
+		flex-shrink: 0;
+		max-width: 250px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	/* 제목 클릭 스타일 */
+	.article-detail-btn {
+		cursor: pointer;
+		transition: color 0.2s;
+	}
+
+	.article-detail-btn:hover {
+		color: #1976d2;
+	}
+</style>
+
+	<!-- ########## START : INLINE SCRIPT ########## -->
+	<script type="text/javascript">
+		// 이미지 더보기
+		$(document).on('mouseover','.thumbMore',function(){
+			var thumb = $(this).parents('td.thumb');
+			thumb.find('.articleImage').addClass('on');
+		});
+		$(document).on('mouseout','.thumbMore',function(){
+			var thumb = $(this).parents('td.thumb');
+			thumb.find('.articleImage').removeClass('on');
+		});
+
+		$(document).ready(function(){
+			// 초기화
+			$("#coId").val('{_SESSION.coId}');
+			$('#departmentId').val('{? !empty(_GET.departmentId)}{_GET.departmentId}{/}');
+			$('#reporterId').val('{? !empty(_GET.reporterId)}{_GET.reporterId}{/}');
+			$('#categoryId').val('{? !empty(_GET.categoryId)}{_GET.categoryId}{/}');
+			$('#programId').val('{? !empty(_GET.programId)}{_GET.programId}{/}');
+			$('#seriesId').val('{? !empty(_GET.seriesId)}{_GET.seriesId}{/}');
+			$('#publishMediaId').val('{? !empty(_GET.publishMediaId)}{_GET.publishMediaId}{/}');
+			$('#dateType').val('{? !empty(_GET.dateType)}{_GET.dateType}{/}');
+			{? !empty(_GET.searchItem)}
+				$('#searchItem').val('{_GET.searchItem}');
+			{:}
+				$('#searchItem').val('title');
+			{/}
+
+			$('#insertBtn').on('click',function(){
+				location.href = '/article/aiCreate';
+			});
+
+			// pv 조회
+			{? _GET.listType != "embargo"}
+				{? !empty(company.this.seo.matomo)}
+				getPageView();
+				{/}
+			{/}
+
+			// 기간
+			$('#period').daterangepicker({
+				ranges: {
+					'오늘': [moment(), moment()],
+					'어제': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+					'최근 7일': [moment().subtract(6, 'days'), moment()],
+					'최근 30일': [moment().subtract(29, 'days'), moment()],
+					'이번달': [moment().startOf('month'), moment().endOf('month')],
+					'지난달': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+				},
+				locale:{
+					format: 'YYYY-MM-DD',
+					applyLabel:"적용",
+					cancelLabel:"취소",
+					customRangeLabel:"기간지정",
+					weekLabel: '주',
+					daysOfWeek: ['일', '월', '화', '수', '목', '금', '토'],
+					monthNames: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
+					firstDay: 0
+				},
+				language: "kr"
+			});
+			$('#period').on('show.daterangepicker', function(ev, picker) {
+				picker.leftCalendar.month = moment(picker.endDate).subtract(1, 'month');
+				picker.rightCalendar.month = moment(picker.endDate);
+				picker.updateCalendars();
+
+				// 각 달력의 헤더 텍스트 수정
+				let leftMonth = picker.leftCalendar.month;
+				let rightMonth = picker.rightCalendar.month;
+
+				let leftHeader = picker.container.find('.drp-calendar.left .month');
+				let rightHeader = picker.container.find('.drp-calendar.right .month');
+
+				leftHeader.text(`${leftMonth.year()}년 ${leftMonth.month() + 1}월`);
+				rightHeader.text(`${rightMonth.year()}년 ${rightMonth.month() + 1}월`);
+			});
+			$('#period').data('daterangepicker').setStartDate("{? !empty(_GET.startDate)}{_GET.startDate}{:}{=date('Y-m-d',strtotime('-1 year'))}{/}");
+			$('#period').data('daterangepicker').setEndDate("{? !empty(_GET.endDate)}{_GET.endDate}{:}{=date('Y-m-d')}{/}");
+		
+			// 버튼 : 검색
+			$('#searchBtn').on('click', function(){
+				var date = ($('#period').val()).split('-');
+				$('#startDate').val(date[0]+'-'+date[1]+'-'+$.trim(date[2]));
+				$('#endDate').val($.trim(date[3])+'-'+date[4]+'-'+date[5]);
+				$("#searchForm").submit();
+			});
+
+			$(document).on('change','#departmentId, #reporterId, #categoryId, #seriesId, #programId, #publishMediaId',function(){
+				$("#searchForm").submit();
+			});
+
+			// 편집중 해제
+			$(document).on('click','#unEditing',function(){
+				if(confirm($(this).data('manager-name')+'('+$(this).data('manager-id')+')님이 '+$(this).data('date')+'부터 편집중입니다.\n편집중 상태를 해제하시겠습니까?')){
+					$.ajax({
+						url: '/article/setEditing/ajax',
+						method: 'post',
+						dataType: 'json',
+						data: {
+							"action": 'unset',
+							"aid": $(this).data('aid'),
+						},
+						async: false,
+					}).done(function(data, textStatus, jqXHR) {
+                        location.reload();
+                    }).fail(function(jqXHR, textStatus, errorThrown) {
+                        if (!!jqXHR?.responseJSON?.result?.msg) {
+                            console.log(jqXHR.responseJSON.result.msg);
+                        } else {
+                            alert(textStatus+' : '+errorThrown);
+                        }
+                    });
+				}
+			});
+
+			$("#searchText").on('keydown',function(e){
+				if (e.keyCode == 13) {
+					$("#searchForm").attr({'action':'/article/list','target':'_self'}).submit();
+				}
+			});
+		});
+				
+		let getPageView = ()=>{
+		filters = '{@ result.items}{.aid}{? .index_ != .size_-1},{/}{/}';
+		$.ajax({
+				url: "/mstatistics/pageview/ajax",
+				method : 'POST',
+				data: {"filters" : filters},
+				dataType : "json"
+			})
+			.done(function(response){
+				let data = response.result;
+				for(var i=0; i< data.length; i++){
+					let aid = data[i]['aid'];
+					$("#pv_"+aid).text($("#pv_"+aid).text()==""?Number(data[i]['pageview']):Number($("#pv_"+aid).text())+Number(data[i]['pageview']));
+				}
+			});
+		};
+		
+		// 미리보기
+		$(document).on('click', ".articlePreview", function(){
+			var aid=$(this).data('aid');
+			var type = $(this).data('type');
+			var domain = type=="mobile"? "{? !empty(result.company.domain.mobile)}{result.company.domain.mobile}{:}{? !empty(result.company.domain.pc)}{result.company.domain.pc}{:}{/}{/}" : "{? !empty(result.company.domain.pc)}{result.company.domain.pc}{:}{/}";
+			$.ajax({
+				url: '/article/item/ajax?aid='+aid,
+				method: 'GET',
+				contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+				dataType: 'json',
+				success: function (response) {
+					let data = response.result.article;
+					if(!!data?.firstPublishDate){
+						window.open(domain+"/article/view/"+data.aid, "_blank");
+					}else{
+						$("#previewForm #title").val(data.title);
+						$("#previewForm #subTitle").val(data.subTitle);
+						$("#previewForm #expTitle").val(data.subTitle);
+						$("#previewForm #expSubTitle").val(data.expSubTitle);
+						$("#previewForm #content").val(data.content);
+						$("#previewForm #aid").val(data.aid);
+						$("#previewForm #firstPublishDate").val(data.insert.date);
+						$("#previewForm #tags").val(data.tags);
+						$("#previewForm #viewTmp").val(data.viewTmp);
+						$("#previewForm").attr("method","POST");
+						$("#previewForm").attr("action", domain+"/article/view/{_SESSION.coId}0000000000");
+						$("#previewForm").submit();
+					}
+				}
+			});
+		});
+		
+
+		let sdata = [];
+	$(document).on('click',"span[id*='pv_']",(e)=>{
+		let aid = $(e.target).attr('id').substring(3);
+		let title = $("#at_"+aid+" .row-title").text();
+		$('#articleReferrerModal .title').text(title);
+
+		$.ajax({
+			url: "/mstatistics/articlereffer/ajax",
+			method : 'POST',
+			data: {"aid" : aid},
+			dataType : "json",
+			beforeSend: function( xhr ) {
+				$('#workingpopup').show();
+			},
+			success: (data)=>{
+				sdata = data.result;
+
+				openModal(document.getElementById('articleReferrerModal'))
+
+                drawSourceData(sdata[0]);
+                drawDeviceSystem(sdata[1]);
+                drawBrowserSystem(sdata[2]);
+                drawOperatingSystem(sdata[3]);
+			},
+			complete : ()=>{
+				$('#workingpopup').hide();
+			}
+		})
+	});
+
+	let drawSourceData = (data)=>{
+		let labels = [];
+		let datas = [];
+
+		if(data){
+			for(let i=0; i< data.length; i++){
+				labels.push(data[i]['name']+'('+ncomma(data[i]['pageviews'])+')');
+				datas.push(data[i]['pageviews']);
+			}
+		}
+
+		let dataset = {
+			labels: labels,
+			datasets: [
+				{
+					label: "유입경로",
+					backgroundColor: "rgba(150,200,250,0.5)",
+					borderColor: "rgba(150,200,250,0.8)",
+					data: datas
+				}
+			]
+		};
+		new Chart(makeCanvas('chart-1-container'),{
+			type: 'bar',
+			data: dataset
+		});
+
+	}
+
+	let drawDeviceSystem = (data)=>{
+		let l2 = new Array();let d2 = new Array();
+		let num = new Array();
+		for(var i=0; i< data.length; i++){
+			if( data[i]['users'] != 0){
+				num[data[i]['name']] = num[data[i]['name']]? num[data[i]['name']] + Number(data[i]['pageviews']) : Number(data[i]['pageviews']);
+			}
+		}
+
+		for(var key in num){
+			l2.push(key);
+			d2.push(num[key]);
+		}
+
+		var dataset = {
+			labels: l2,
+			datasets: [{
+				label: "기기별",
+				backgroundColor: ['rgba(255,0,116,0.8)','rgba(0,94,255,0.8)','rgba(0,255,184,0.8)'],
+				borderColor: ['rgba(255,0,116,0.8)','rgba(0,94,255,0.8)','rgba(0,255,184,0.8)'],
+				data: d2
+			}]
+		};
+		new Chart(makeCanvas('chart-2-container'),{
+			type: 'pie',
+			data: dataset
+		});
+	}
+
+
+	let drawBrowserSystem = (data)=>{
+		var l3 = new Array();var d3 = new Array();
+		for(var i=0; i< data.length; i++){
+			l3.push(data[i]['name']);
+			d3.push(data[i]['pageviews']);
+		}
+		var dataset = {
+			labels: l3,
+			datasets: [{
+				label: "브라우저",
+				backgroundColor: ['rgb(210,234,255)','rgb(223,255,228)','rgb(233,198,255)','rgb(252,255,200)','rgb(216,188,181)','rgb(255,248,183)','rgb(255,223,171)','rgb(233,198,255)','rgb(166,156,231)','rgb(255,191,248)'],
+				borderColor:['rgb(210,234,255)','rgb(223,255,228)','rgb(233,218,253)','rgb(252,255,200)','rgb(216,188,181)','rgb(255,248,183)','rgb(255,223,171)','rgb(233,198,255)','rgb(166,156,231)','rgb(255,191,248)'],
+				data: d3
+			}]
+		};
+		new Chart(makeCanvas('chart-3-container'),{
+			type: 'bar',
+			data: dataset
+		});
+	}
+
+	let drawOperatingSystem = (data) =>{
+		let l1 = new Array();
+		let d1 = new Array();
+		for(var i=0; i< data.length; i++){
+			l1.push(data[i]['name']);
+			d1.push(data[i]['pageviews']);
+		}
+		var dataset = {
+			labels: l1,
+			datasets: [{
+				label: "운영체제",
+				backgroundColor: ['rgb(255,248,183)','rgb(255,223,171)','rgb(233,198,255)','rgb(166,156,231)','rgb(255,191,248)'],
+				borderColor:['rgb(255,248,183)','rgb(255,223,171)','rgb(233,198,255)','rgb(166,156,231)','rgb(255,191,248)'],
+				data: d1
+			}]
+		};
+		new Chart(makeCanvas('chart-4-container'),{
+			type: 'pie',
+			data: dataset
+		});
+	}
+
+	
+	let searchList = (type, sort, order ) =>{
+		if( type ) $('#listType').val(type);
+		if( sort ) $('#sort').val(sort);
+		if( order ) $('#order').val(order);
+
+		// 검색 버튼 비활성화
+		$('#searchText').prop('readonly',true);
+		$('#searchBtn').prop('disabled',true);
+		$('#searchBtn').addClass('loading-white');
+
+		const date = ($('#period').val()).split('-');
+		$('#startDate').val($('#period').val()?date[0]+'-'+date[1]+'-'+$.trim(date[2]):'');
+		$('#endDate').val($('#period').val()?$.trim(date[3])+'-'+date[4]+'-'+date[5]:'');
+		$("#searchForm").attr({'action':'','target':'_self'}).submit();
+	}
+
+	// 기사 상세 모달 관련 기능
+	const articleDetailModal = document.getElementById('articleDetailModal');
+	let currentArticleAid = null;
+
+	// 제목 클릭 시 모달 오픈 및 데이터 로드
+	$(document).on('click', '.article-detail-btn', function(e) {
+		e.preventDefault();
+		currentArticleAid = $(this).data('aid');
+		openArticleDetailModal(currentArticleAid);
+	});
+
+	// 모달 닫기
+	$(document).on('click', '.close-modal-btn', function() {
+		closeArticleDetailModal();
+	});
+
+	// 모달 외부 클릭 시 닫기
+	articleDetailModal?.addEventListener('click', function(e) {
+		if (e.target === articleDetailModal) {
+			closeArticleDetailModal();
+		}
+	});
+
+	// ESC 키로 모달 닫기
+	document.addEventListener('keydown', function(e) {
+		if (e.key === 'Escape' && articleDetailModal?.open) {
+			closeArticleDetailModal();
+		}
+	});
+
+	/**
+	 * 기사 상세 모달 열기
+	 * @param {string} aid - 기사 ID
+	 */
+	function openArticleDetailModal(aid) {
+		if (!articleDetailModal) {
+			console.error('Article detail modal not found');
+			return;
+		}
+
+		// 모달 열기
+		articleDetailModal.showModal();
+
+		// 로딩 상태로 초기화
+		$('#articleDetailContent').html(`
+			<div class="loading-spinner" style="text-align: center; padding: 3rem;">
+				<i class="fa-duotone fa-spinner-third fa-spin fa-3x"></i>
+				<p style="margin-top: 1rem; color: var(--gray-696);">데이터를 불러오는 중...</p>
+			</div>
+		`);
+
+		// AJAX로 데이터 가져오기
+		$.ajax({
+			url: '/article/item/ajax?aid=' + aid,
+			method: 'GET',
+			dataType: 'json',
+			success: function(response) {
+				if (response.result && response.result.article) {
+					renderArticleDetail(response.result.article);
+				} else {
+					showError('기사 데이터를 찾을 수 없습니다.');
+				}
+			},
+			error: function(xhr, status, error) {
+				console.error('Error loading article:', error);
+				showError('기사를 불러오는 중 오류가 발생했습니다.');
+			}
+		});
+	}
+
+	/**
+	 * 기사 상세 모달 닫기
+	 */
+	function closeArticleDetailModal() {
+		if (articleDetailModal) {
+			articleDetailModal.close();
+			currentArticleAid = null;
+		}
+	}
+
+	/**
+	 * 기사 상세 내용 렌더링
+	 * @param {Object} article - 기사 데이터
+	 */
+	function renderArticleDetail(article) {
+		let html = '';
+
+		// 제목
+		if (article.title) {
+			html += '<h1 class="article-title">' + escapeHtml(article.title) + '</h1>';
+		}
+
+		// 부제목
+		if (article.subtitle) {
+			html += '<div class="article-subtitle">' + escapeHtml(article.subtitle) + '</div>';
+		}
+
+		// 메타 정보 (작성자, 작성일)
+		if (article.write) {
+			html += '<div class="article-meta">';
+			
+			if (article.write.managerName) {
+				html += '<div class="article-meta-item">' +
+					'<i class="fa-light fa-user"></i>' +
+					'<span>' + escapeHtml(article.write.managerName) + '</span>' +
+					'</div>';
+			}
+			
+			if (article.write.date) {
+				html += '<div class="article-meta-item">' +
+					'<i class="fa-light fa-calendar"></i>' +
+					'<span>' + escapeHtml(article.write.date) + '</span>' +
+					'</div>';
+			}
+
+			html += '</div>';
+		}
+
+		// 태그
+		if (article.tags && article.tags.length > 0) {
+			html += '<div class="article-tags">';
+			article.tags.forEach(tag => {
+				html += '<span class="article-tag"><i class="fa-light fa-tag"></i> ' + escapeHtml(tag) + '</span>';
+			});
+			html += '</div>';
+		}
+
+		// 이미지 (별도로 표시하지 않음 - content에 포함되어 있음)
+		
+	// 본문 내용 (HTML 포함) - string replace 방식으로 처리
+	if (article.content) {
+		html += '<div class="article-body">' + article.content + '</div>';
+	} else if (article.body) {
+		html += '<div class="article-body">' + article.body + '</div>';
+	}
+
+	// 관련 아이템
+	if (article.items && article.items.length > 0) {
+		html += '<div class="article-items">';
+		html += '<div class="article-items-title"><i class="fa-light fa-list"></i> 관련 항목</div>';
+		html += '<div class="article-items-list">';
+		article.items.forEach(item => {
+			html += '<div class="article-item">' + escapeHtml(item.title || item.id) + '</div>';
+		});
+		html += '</div>';
+		html += '</div>';
+	}
+
+		$('#articleDetailContent').html(html);
+
+		// iframe 높이 자동 조정
+		setTimeout(() => {
+			$('#articleDetailContent iframe').on('load', function() {
+				try {
+					const iframe = this;
+					iframe.style.height = (iframe.contentWindow.document.body.scrollHeight + 50) + 'px';
+				} catch(e) {
+					console.log('iframe height adjustment failed:', e);
+				}
+			});
+		}, 100);
+	}
+
+	/**
+	 * 에러 메시지 표시
+	 * @param {string} message - 에러 메시지
+	 */
+	function showError(message) {
+		$('#articleDetailContent').html(
+			'<div style="text-align: center; padding: 3rem;">' +
+				'<i class="fa-light fa-exclamation-triangle fa-3x" style="color: #dc3545;"></i>' +
+				'<p style="margin-top: 1rem; color: #dc3545; font-weight: 600;">' + escapeHtml(message) + '</p>' +
+			'</div>'
+		);
+	}
+
+	/**
+	 * HTML 이스케이프 (XSS 방지)
+	 * @param {string} text - 이스케이프할 텍스트
+	 * @returns {string} 이스케이프된 텍스트
+	 */
+	function escapeHtml(text) {
+		if (typeof text !== 'string') return '';
+		const map = {
+			'&': '&amp;',
+			'<': '&lt;',
+			'>': '&gt;',
+			'"': '&quot;',
+			"'": '&#039;'
+		};
+		return text.replace(/[&<>"']/g, m => map[m]);
+	}
+	</script>
+	<!-- ########## END : INLINE SCRIPT ########## -->
+</body>
+</html>

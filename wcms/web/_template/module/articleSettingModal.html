@@ -1,0 +1,141 @@
+<style>
+	#settingModal textarea {height: 4rem;}
+</style>
+<!-- 기사 설정 Modal -->
+<dialog id="settingModal">
+    <article class="card">
+		<header class="flex nowrap justify-between align-center mr-0">
+			<h6>기사 설정</h6>
+            <a href="#close" aria-label="Close" title="닫기" data-target="settingModal" onclick="toggleModal(event)"><i class="fa-light fa-circle-xmark fa-lg"></i></a>
+        </header>
+		<label for="orgTitle">기사 제목
+			<textarea name="orgTitle" id="orgTitle" readonly="readonly"></textarea>
+		</label>
+		<div class="grid">
+			<div>
+				<label for="pcTitle">PC 노출 제목
+					<textarea name="pcTitle" id="pcTitle"></textarea>
+				</label>
+				<label for="pcSubTitle">PC 노출 부제목
+					<textarea name="pcSubTitle" id="pcSubTitle"></textarea>
+				</label>
+			</div>
+			<div>
+				<label for="mobileTitle">MOBILE 노출 제목
+					<textarea name="mobileTitle" id="mobileTitle"></textarea>
+				</label>
+				<label for="mobileSubTitle">MOBILE 노출 부제목
+					<textarea name="mobileSubTitle" id="mobileSubTitle"></textarea>
+				</label>
+			</div>
+		</div>
+		<div class="grid grid1-1-still">
+			<label for="upload_pcImage">PC 이미지
+				<div id="upload_pcImage">
+					<div id="dropzone" class="sortable fileZone" style="margin-top: 0;cursor: pointer;height: 210px;max-height: 210px;"></div>
+					<div class="dz-preview">
+						<article>
+							<img data-dz-thumbnail class="preview-image"/>
+							<div class="dz-progress"><span class="dz-upload" data-dz-uploadprogress></span></div>
+							<div class="file-info">
+								<div data-dz-remove><i class="imageDel fa-light fa-trash-can" title="삭제"></i></div>
+								<input type="hidden" id="pcImage" name="pcImage" value="" />
+							</div>
+						</article>
+					</div>
+				</div>
+			</label>
+			<label for="upload_mobileImage">MOBILE 이미지
+				<div id="upload_mobileImage">
+					<div id="dropzone" class="sortable fileZone" style="margin-top: 0;cursor: pointer;height: 210px;max-height: 210px;"></div>
+					<div class="dz-preview">
+						<article>
+							<img data-dz-thumbnail class="preview-image"/>
+							<div class="dz-progress"><span class="dz-upload" data-dz-uploadprogress></span></div>
+							<div class="file-info">
+								<div data-dz-remove><i class="imageDel fa-light fa-trash-can" title="삭제"></i></div>
+								<input type="hidden" id="mobileImage" name="mobileImage" value="" />
+							</div>
+						</article>
+					</div>
+				</div>
+			</label>
+		</div>
+		<!--// layoutInput -->
+		<footer class="flex justify-end">
+			<button type="button" class="btn btn-md"  id="settingBtn">저장</button>
+			<button type="button" class="btn btn-md btn-gray"  data-target="settingModal" onclick="toggleModal(event);">취소</button>
+		</footer>
+	</article>
+</dialog>
+<!-- //기사 설정 Modal -->
+
+<script>
+let layoutPreview = $('#upload_pcImage .dz-preview').html();
+$('#upload_pcImage .dz-preview').remove();
+
+let layoutMobilePreview = $('#upload_mobileImage .dz-preview').html();
+$('#upload_mobileImage .dz-preview').remove();
+
+let layoutPcInputData = new Object();
+layoutPcInputData["pcImage"] = "path";
+
+let layoutMobileInputData = new Object();
+layoutMobileInputData["mobileImage"] = "path";
+
+let option = new Object();
+option["maxFile"] = 1;
+
+let layoutPcImage = new fileUpload('upload_pcImage', "/file/save/ajax", layoutPreview, layoutPcInputData, option);
+layoutPcImage.init();
+let layoutMobileImage = new fileUpload('upload_mobileImage', "/file/save/ajax", layoutMobilePreview, layoutMobileInputData, option);
+layoutMobileImage.init();
+
+let settingObject = null;
+
+$('#layoutBase').on("click",'.edit',function(e){
+	settingObject = $(this).closest('.articleObj ');
+	let extVal = ['null','undefined'];
+	let pcTitle = $(settingObject).attr('data-pctitle');
+		pcTitle = extVal.indexOf(pcTitle)!=-1?'':pcTitle;
+	let mobileTitle = $(settingObject).attr('data-mobiletitle');
+		mobileTitle = extVal.indexOf(mobileTitle)!=-1?'':mobileTitle;
+	let pcSubTitle = $(settingObject).attr('data-pcsubtitle');
+		pcSubTitle = extVal.indexOf(pcSubTitle)!=-1?'':pcSubTitle;
+	let mobileSubTitle = $(settingObject).attr('data-mobilesubtitle');
+		mobileSubTitle = extVal.indexOf(mobileSubTitle)!=-1?'':mobileSubTitle;
+
+	openModal(document.getElementById('settingModal'));
+	$('#orgTitle').val($(settingObject).find(".title").text());
+	$('#pcTitle').val(pcTitle);
+	$('#mobileTitle').val(mobileTitle);
+	$('#pcSubTitle').val(pcSubTitle);
+	$('#mobileSubTitle').val(mobileSubTitle);
+
+	let fileData = new Object();
+
+	let pcImage = $(settingObject).attr('data-pcimage');
+		pcImage = extVal.indexOf(pcImage)!=-1?'':pcImage;
+	fileData["pcImage"] = pcImage;
+	layoutPcImage.fileAllDelete();
+	pcImage? layoutPcImage.fileAdd(pcImage, fileData):'';
+	fileData = new Object();
+
+	let mobileImage = $(settingObject).attr('data-mobileimage');
+		mobileImage = extVal.indexOf(mobileImage)!=-1?'':mobileImage;
+	fileData["mobileImage"] = mobileImage;
+	layoutMobileImage.fileAllDelete();
+	mobileImage ? layoutMobileImage.fileAdd(mobileImage,fileData):'';
+});
+
+$('#settingBtn').click(()=>{
+	$(settingObject).attr('data-pctitle', $('#pcTitle').val());
+	$(settingObject).attr('data-mobiletitle', $('#mobileTitle').val());
+	$(settingObject).attr('data-pcsubtitle', $('#pcSubTitle').val());
+	$(settingObject).attr('data-mobilesubtitle', $('#mobileSubTitle').val());
+	$(settingObject).attr('data-pcimage', $('#pcImage').val());
+	$(settingObject).attr('data-mobileimage', $('#mobileImage').val());
+
+	closeModal(document.getElementById('settingModal'));
+})
+</script>

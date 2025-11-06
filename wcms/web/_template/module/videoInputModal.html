@@ -1,0 +1,234 @@
+
+<!-- Modal DB 동영상 입력 -->
+<dialog id="videoInputModal">
+    <article class="card">
+        <header>
+            <a href="#close" aria-label="Close" class="close" data-target="videoInputModal" onclick="toggleModal(event)"></a>
+            <h6 id="videoInputModalLabel">DB 동영상 입력</h6>
+        </header>
+        <form id="videoInputForm" name="videoInputForm" method="POST">
+            <input type="hidden" name="coId" id="coId" value="{_SESSION.coId}">
+            <input type="hidden" name="id" id="id" value="">
+            <div class="grid">
+                <div>
+                    <label for="showSite">노출 미디어
+                        <select name="showSite" id="showSite">
+                            <option value="site">Site</option>
+                            <option value="youtube">Youtube</option>
+                            <option value="navertv">네이버TV</option>
+                            <option value="kakaotv">카카오TV</option>
+                        </select>
+                    </label>
+                    <label for="title">제목
+                        <input type="text" name="title" id="title" placeholder="제목을 입력하세요." value="" required="">
+                    </label>
+                    <label for="title">Site
+                        <input type="text" name="url-site" id="url-site" data-site-id="site" placeholder="자체 동영상 주소를 입력하세요." value="" required="">
+                        <input type="hidden" name="thumbnail-site" id="thumbnail-site" data-site-id="site" placeholder="자체 동영상 썸네일" value="" required="">
+                        <input type="hidden" name="url-path" id="url-path" data-site-id="site" placeholder="자체 동영상 위치" value="" required="">
+                    </label>
+                    <label for="url-youtube">Youtube
+                        <input type="text" name="url-youtube" id="url-youtube" data-site-id="youtube" placeholder="Youtube 공유주소를 입력하세요." value="" required="">
+                    </label>
+                    <label for="url-navertv">네이버TV
+                        <input type="text" name="url-navertv" id="url-navertv" data-site-id="navertv" placeholder="네이버TV 공유주소를 입력하세요." value="" required="">
+                    </label>
+                    <label for="url-kakaotv" >카카오TV
+                        <input type="text" name="url-kakaotv" id="url-kakaotv" data-site-id="kakaotv" placeholder="카카오TV 공유주소를 입력하세요." value="" required="">
+                    </label>
+                </div>
+                <div>
+                    <label for="dropzone">
+                        <!--label for="second" class="flex nowrap justify-between">
+                            <div>썸네일</div>
+                            <div class="button-input justify-end align-end">
+                                <button type="button" id="btn-thumbnail">썸네일 추출</button>
+                                <input type="text" class="quarter" name="second" id="second" value="30"><small>초</small>
+                            </div>
+                        </label-->
+                        <!-- 썸네일 추출은 로컬 파일에서 추출이고, 플랫폼 썸네일은 저장시 생성된다. -->
+                        <div id="vidoeDropzone" class="fileZone">
+                            <small class="boxMessage">파일을 끌어오거나, 클릭하시면 첨부가 가능합니다.</small>
+                            <input type="hidden" id="imagePath" name="imagePath" value="" />
+                        </div>
+                    </label>
+                    <!-- BEGIN: 동영상 미리보기 -->
+                    <div id="videoPreview" class="col-span-12 mt-3 flex gap-4">
+                        <div id="preview-site"></div>
+                        <div id="preview-youtube"></div>
+                        <div id="preview-navertv"></div>
+                        <div id="preview-kakaotv"></div>
+                    </div>
+                    <!-- END: 동영상 미리보기 -->
+                </div>
+            </div>
+        </form>
+        <footer class="flex justify-end">
+            <button type="button" class="btn btn-md" id="videoSaveBtn">저장</button>
+            <button type="button" class="btn btn-md" id="videoCloselBtn" data-target="videoInputModal" onclick="toggleModal(event)">취소</button>
+        </footer>
+    </article>
+</dialog>
+<!-- //Modal DB 동영상 입력 -->
+
+<script>
+    // 업로드 설정
+    let dropzoneImagePath = new singleFileUpload({
+        uploadId: '#vidoeDropzone', 
+		pathId: '#imagePath', 
+		uploadUrl: '/file/upload/ajax', 
+	});
+
+    let videoThumbnailDropzone = null;
+    // Modal open : video 입력
+    $(document).on('click', "#btn_videoInputModal", function(){
+        var form = $('#videoInputForm');
+        form.find('#id').val('');
+        form.find('[id^="url-"]').val('');
+        form.find('[id^="thumbnail-"]').val('');
+        form.find('#title').val('');
+        $('#videoInputModal #videoPreview [id^="preview-"]').empty();
+        dropzoneImagePath.empty();
+    });
+
+    // Modal open : video 수정
+    $(document).on('click', "#videoEditBtn", function(){
+        openModal(document.getElementById('videoInputModal'));
+        var card = $(this).closest('article');
+        var form = $('#videoInputForm');
+        form.find('[id^="url-"]').val('');
+        form.find('[id^="thumbnail-"]').val('');
+        form.find('#id').val(card.find('#video-id').val());
+        form.find('#showSite').val(card.find('#video-showSite').val());
+        form.find('#title').val(card.find('#video-title').val());
+        $('#videoInputModal #videoPreview [id^="preview-"]').empty();
+        card.find('[data-platform]').each(function(){
+            var siteId = $(this).find('#video-platform-siteId').val();
+            var url = $(this).find('#video-platform-url').val();
+            var thumbnail = $(this).find('#video-platform-thumbnail').val();
+            var path = $(this).find('#video-platform-path').val();
+            form.find('#url-'+siteId).val(url);             // url
+            form.find('#thumbnail-'+siteId).val(thumbnail); // thumbnail
+            if(path){
+                form.find('#url-path').val(path); // path
+            }
+            previewVideo(siteId, url);                      // 미리보기
+        });
+        dropzoneImagePath.empty();
+        dropzoneImagePath.add(card.find('#video-imagePath').val());
+    });
+
+    // 미리보기 : url change
+    $(document).on('change','#videoInputModal [id^="url-"]',function(){
+        previewVideo($(this).data('site-id'), $(this).val());
+    });
+
+    // 동영상 미리보기
+    function previewVideo(siteId, url){
+        // site
+        if(siteId == 'site'){
+            if(url){
+                var type = '';
+                if((new RegExp('\.(m3u8)','i')).test(url)) {
+                    // type : application/x-mpegURL
+                    type = 'application/x-mpegURL';
+                }else if((new RegExp('\.(mp4)','i')).test(url)) {
+                    // type : video/mp4
+                    type = 'video/mp4';
+                }
+                var html = '<video id="mediaVideo" poster="" class="video-js vjs-default-skin vjs-big-play-centered" width="100%" height="auto" controls preload="metadata" data-setup="{}">'+
+                    '<source src="'+url+'" type="'+type+'">'+
+                    '<p class="vjs-no-js">To view this video please enable JavaScript, and consider upgrading to a web browser that<a href="http://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a></p>'+
+                '</video>';
+                $('#videoInputModal #videoPreview #preview-site').html(html);
+            }else{
+                $('#videoInputModal #videoPreview #preview-site').empty();
+            }
+        }
+
+        // youtube
+        if(siteId == 'youtube'){
+            if(url && url.indexOf('youtu') > -1){
+                var regex = /\/shorts\/([a-zA-Z0-9-_]{11})/;
+                var match = url.match(regex);
+                if( match ){
+                    url = 'https://www.youtube.com/embed/' + match[1];
+                }else{
+                    url = url.replace('//youtu.be/', '//www.youtube.com/embed/');
+                }
+                $('#videoInputModal #videoPreview #preview-youtube').html('<iframe width="100%" contenteditable="true" src="'+url+'?ecver=1" frameborder="0" allowfullscreen></iframe>');
+            }
+        }
+
+        // navertv
+        if(siteId == 'navertv'){
+            if(url && url.indexOf('naver') > -1){
+                url = url.replace('/v/', '/embed/');
+                $('#videoInputModal #videoPreview #preview-navertv').html('<iframe width="100%" contenteditable="true" src="'+url+'" frameborder="0" allowfullscreen></iframe>');
+            }else{
+                $('#videoInputModal #videoPreview #preview-navertv').empty();
+            }
+        }
+
+        // kakaotv
+        if(siteId == 'kakaotv'){
+            if(url && url.indexOf('kakao') > -1){
+                url = url.replace('/v/', '/embed/player/cliplink/');
+                $('#videoInputModal #videoPreview #preview-kakaotv').html('<iframe width="100%" contenteditable="true" src="'+url+'" frameborder="0" allowfullscreen></iframe>');
+            }else{
+                $('#videoInputModal #videoPreview #preview-navertv').empty();
+            }
+        }
+    }
+
+    // video 저장
+    $(document).on('click','#videoSaveBtn',function(){
+        var form = $('#videoInputForm');
+        $.ajax({
+            url: '/video/save/ajax',
+            method : 'POST',
+            data : form.serialize(),
+            dataType : 'json',
+        }).done(function(data) {
+            if(data.result.msg) {alert(data.result.msg)}
+            if (location.pathname.indexOf('/list') > -1) {
+                location.reload();
+            } else {
+                $('#videoCloselBtn').trigger('click');
+
+                if ($('#videoList')) {
+                    let item = data.result.item;
+                    addVideoList(item);
+                }
+            }
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+            if (!!jqXHR?.responseJSON?.result?.msg) {
+                alert(jqXHR.responseJSON.result.msg);
+            } else {
+                alert(textStatus+' : '+errorThrown);
+            }
+        });
+    });
+
+    $(document).on('click', "#btn-thumbnail", function (){
+        if($('#second').val()==""){
+            alert("동영상 추출 시간을 입력하세요.");
+            return false;
+        }
+
+        var form = $('#videoInputForm');
+        $.ajax({
+            url: '/video/thumbnail/ajax',
+            method : 'POST',
+            data : form.serialize(),
+            beforeSend: (xhr)=>{
+                $('#workingpopup').show();
+            }
+        }).done(function(data) {
+            alert('썸네일이 생성되었습니다.');
+            //location.reload();
+        }).always(function(){
+            $('#workingpopup').hide();
+        });
+    });
+</script>

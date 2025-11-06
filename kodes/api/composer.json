@@ -1,0 +1,24 @@
+{
+    "name": "kodes/wcms",
+    "description": "KODES hankyung.com price WCMS",
+    "type": "project",
+    "license": "KODES",
+    "autoload": {
+        "psr-4": {
+            "Kodes\\Api\\": "classes"
+        }
+    },
+    "authors": [
+        {
+            "name": "KODES.inc"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+    },
+    "config": {
+        "allow-plugins": {
+            "symfony/flex": true
+        }
+    }
+}

@@ -1,0 +1,29 @@
+
+<div class="page">
+  <small>{=number_format(result.totalCount)} 건</small>
+  <nav aria-label="Page navigation" role="navigation">
+    <ul>
+      {? result.page.prevPage}
+      <li> 
+        <a style="color: var(--gray-ccc);" href="{_GET._url}?{=preg_replace('/([&]?page=[0-9]+)|(_url=[^&]+&)/i','', _SERVER.QUERY_STRING)}&page={result.page.prevPage}" aria-label="Previous">
+          <i class="fa-light fa-circle-chevron-left fa-lg"></i>
+        </a>
+      </li>
+      {/}
+      {@ result.page.navibar}
+      {?.page>0}
+      <li class="page-item {.class}">
+        <a href="{_GET._url}?{=preg_replace('/([&]?page=[0-9]+)|(_url=[^&]+&)/i','', _SERVER.QUERY_STRING)}&page={.page}">{.page}</a>
+      </li>
+      {/}
+      {/}
+      {? result.page.nextPage}
+      <li> 
+        <a style="color: var(--gray-ccc);" href="{_GET._url}?{=preg_replace('/([&]?page=[0-9]+)|(_url=[^&]+&)/i','', _SERVER.QUERY_STRING)}&page={result.page.nextPage}" aria-label="Next">
+          <i class="fa-light fa-circle-chevron-right fa-lg"></i>
+        </a>
+      </li>
+      {/}
+    </ul>
+  </nav>
+</div> 

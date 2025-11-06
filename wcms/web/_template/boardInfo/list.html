@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+    {# head}
+    
+</head>
+<body>
+    
+    {# header}
+    {# left}
+    
+    <main class="container">
+        <div role="document">
+            <div role="heading">게시판 관리</div>
+            <section class="section-search"> 
+                <form role="search" name="searchForm" id="searchForm" method="get">
+                    <select name="isUse" id="isUse">
+                        <option value="">사용여부</option>
+                        <option value="Y">사용</option>
+                        <option value="E">종료</option>
+                        <option value="N">미사용</option>
+                    </select>
+                    <select name="searchItem" id="searchItem">
+                        <option value="id">게시판 ID</option>
+                        <option value="name">게시판 이름</option>
+                    </select>
+                    <div class="search-input">
+                        <input type="text" name="searchText" id="searchText" value="{? _GET.searchText}{_GET.searchText}{/}" placeholder="검색어를 입력하세요">
+                        <button id="searchBtn" class="btn-search" type="button"><i class="fa-light fa-magnifying-glass"></i></button>
+                    </div>
+                    <button type="button" class="btn" id="insertBtn"><span>게시판 생성</span></button>
+                </form>
+            </section>
+            <section role="list">
+                <div class="list-cont">
+                    <table>
+                        <thead>
+                          <tr>
+                            <th>게시판ID</th>
+                            <th>게시판이름</th>
+                            <th>프로그램</th>
+                            <th>사용여부</th>
+                            <th>WCMS템플릿</th>
+                            <th>PC템플릿</th>
+                            <th>Mobile템플릿</th>
+                            <th>게시글 보기</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                            {@ result.items}
+                            <tr>
+                                <td><a href="/boardInfo/editor?id={.id}"><strong>{.id}</strong></a></td>
+                                <td><a href="/boardInfo/editor?id={.id}"><strong>{.name}</strong></a></td>
+                                <td>{? !empty(.program.name)}{.program.name}{/}</td>
+                                <td>{? .isUse}사용{:}미사용{/}</td>
+                                <td>{.wcmsSkin}</td>
+                                <td>{.pcSkin}</td>
+                                <td>{.mobileSkin}</td>
+                                <td><a href="/board/list/{.id}"><strong>게시글 보기</strong></a></td>
+                            </tr>
+                            {/}
+                        </tbody>
+                    </table>
+                </div>
+                {# paging}
+            </section>
+        </div>
+    </main>
+    <script type="text/javascript">
+        $(document).ready(function(){
+            $('#programId').val('{? _GET.programId}{_GET.programId}{/}');
+            $('#isUse').val('{? _GET.isUse}{_GET.isUse}{/}');
+            $('#searchItem').val('{? _GET.searchItem}{_GET.searchItem}{/}');
+    
+            $('#insertBtn').click(function(){
+                location.href='/boardInfo/editor';
+            });
+
+            // event : select change
+            $('#searchForm select:not(#searchItem)').on('change',function() {
+                searchList();
+            });
+    
+            // event : searchText enter
+            $("#searchText").on('keyup',(e)=>{
+                if(e.keyCode == 13){
+                    searchList();
+                }
+            });
+    
+            // event : 검색버튼 click
+            $('#searchBtn').on('click',function(){
+                searchList();
+            });
+        });
+    
+        function searchList() {
+            // 검색 버튼 비활성화
+            $('#searchText').prop('readonly',true);
+            $('#searchBtn').prop('disabled',true);
+            $('#searchBtn').addClass('loading-black');
+    
+            $('#searchForm').submit();
+        }
+    
+        $("#boardSetAllSave").click(function(){
+            if(confirm("게시판 세팅의 저장은 시간이 오래걸립니다.\n그래도 실행하시겠습니까?")){
+                $("#workingpopup").show();
+                $.ajax({
+                    url: '/boardInfo/boardSettingAllSave',
+                    method : 'post',
+                    dataType: 'json',
+                }).done(function(data, textStatus, jqXHR) {
+                    $('#workingpopup').hide();
+                    alert("전체를 저장하였습니다.");
+                });
+            }
+        });
+    
+        // 차단리스트 보기 click (스팸관리 리스트 새창)
+        $(document).on('click','#spamList',function(){
+            window.open($(this).data('link'));
+            return false;
+        });
+        </script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{   
+    "wcmsDB":{
+        "server":"mongodb://username:password@host:port/database?options",
+        "db":"wcms",
+        "user":"username",
+        "passwd":"password"
+    },
+    "apiDB":{
+        "server":"mongodb://username:password@host:port/database?options",
+        "db":"apiData",
+        "user":"username",
+        "passwd":"password"
+    }
+}
+

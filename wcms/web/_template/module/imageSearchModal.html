@@ -1,0 +1,159 @@
+
+<style>
+    #imgSearchModal .imgCard {border: var(--border-width) solid var(--black-transp07);padding: 0.5rem;position: relative;display: flex;align-items: center;justify-content: center;}
+    #imgSearchModal .imgCard .img {max-width:100%;max-height:100%;object-fit: contain;}
+    #imgSearchModal .imgCard p {padding:0.2rem;line-height: normal;word-break: break-all;background-color:#0007;color:var(--white);font-size: var(--font-size-xs);width:100%;max-height: 40px;overflow: hidden;position:absolute;bottom:0;left:0}
+    #imgSearchModal .imgCard.border {border-width: 2px;border-color: var(--gray-dimgray);}
+    #imgSearchModal .imgCard .imgCheckbox {position: absolute;top: 0.3rem;left: 0.3rem;background-color: var(--gray-inn2);}
+    #imgSearchModal .imgCard .imgCheckbox:checked {background-color: var(--gray-434);}
+</style>
+
+<dialog id="imgSearchModal">
+    <article class="card">
+        <header>
+            <a href="#close" aria-label="Close" class="close" data-target="imgSearchModal" onclick="toggleModal(event)"></a>
+            <h6>DB 이미지</h6>
+        </header>
+        <form name="frm_imgSearch" id="frm_imgSearch" onsubmit="return false;" role="search">
+            <select name="type" id="type">
+                <option value="">모든파일</option>
+                <option value="image" selected>이미지</option>
+                <option value="doc">문서</option>
+            </select>
+            <div class="select-input search-input">
+                <select name="searchItem" id="searchItem">
+                    <option value="caption">캡션</option>
+                    <option value="createName">업로더</option>
+                    <option value="file_id">이미지 ID</option>
+                </select>
+                <input type="text" id="searchText" name="searchText" placeholder="" value="">
+                <button id="btn_imgSearch" class="btn-search" type="button"><i class="fa-light fa-magnifying-glass"></i></button>
+            </div>
+            <button type="button" class="btn" id="btn_imgSelectOk" data-target="imgSearchModal" onclick="toggleModal(event)">선택완료</button>
+        </form>
+        <div id="imageRow" class="grid grid5" style="padding: 1rem;"></div>
+        <footer><div id="paging"></div></footer>
+    </article>
+</dialog>
+<!-- imgCardClone(modal) -->
+<div style="display: none;" id="imgCardClone">
+    <label class="imgCard" style="aspect-ratio: 10 / 8;cursor: pointer;">
+        <input type="checkbox" class="imgCheckbox" name="file_Id[]" id="" value="">
+        <input type="hidden" class="src" id="src" value="">
+        <input type="hidden" class="thumbnail" id="thumbnail" value="">
+        <input type="hidden" class="caption" id="caption" value="">
+        <input type="hidden" class="ext" id="ext" value="">
+        <input type="hidden" class="type" id="type" value="">
+        <input type="hidden" class="mimeType" id="mimeType" value="">
+        <input type="hidden" class="width" id="width" value="">
+        <input type="hidden" class="height" id="height" value="">
+        <input type="hidden" class="size" id="size" value="">
+        <input type="hidden" class="orgName" id="orgName" value="">
+        <input type="hidden" class="watermarkPlace" id="watermarkPlace" value="">
+        <img class="img" src="" alt="">
+        <p></p>
+    </label>
+</div>
+<!--// imgCardClone(modal) -->
+
+<script>
+            $(document).on('click', "#btn_imgModal", function (){
+                imageSearch($("#frm_imgSearch #categoryId").val(), $("#frm_imgSearch #type").val(),$("#frm_imgSearch #searchItem").val(), $("#frm_imgSearch #searchText").val(), 1, 'imageRow');
+            });
+
+            $(document).on('click', "#btn_imgSearch", function (){
+                imageSearch($("#frm_imgSearch #categoryId").val(), $("#frm_imgSearch #type").val(),$("#frm_imgSearch #searchItem").val(), $("#frm_imgSearch #searchText").val(), 1, 'imageRow');
+            });
+
+            $('#imgSearchModal #searchText').on("keyup",function(e){
+                if(e.keyCode == 13){
+                    imageSearch($("#frm_imgSearch #category").val(), $("#frm_imgSearch #type").val(),$("#frm_imgSearch #searchItem").val(), $("#frm_imgSearch #searchText").val(), 1, 'imageRow' );
+                }
+            });
+
+            // 검색 : 사진 및 파일
+            function imageSearch(categoryId, type, searchItem, searchText, page, listObjId){
+                var params = {
+                    categoryId: categoryId,
+                    type: type,
+                    searchItem: searchItem,
+                    searchText: searchText,
+                    page: page,
+                    noapp: '20',
+                    returnType: 'ajax',
+                };
+                var tmp;
+                $("#"+listObjId).empty();
+                $.ajax({
+                    url: '/image/list/ajax',
+                    method: 'GET',
+                    data: params,
+                    contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                    dataType: 'json',
+                    success: function (data) {
+                        // console.log(data.result);
+                        $(data.result.items).each(function () {
+                            htmlCaption=(typeof this.caption !== 'undefined' && this.caption != null ?convertSpecialChar(this.caption):"");
+                            tmp = $('#imgCardClone').clone();
+                            tmp.find('.imgCard').attr('for','id_'+this.id);
+                            tmp.find('.imgCheckbox').attr('id','id_'+this.id).val(this.id);
+                            tmp.find('.src').attr('id','src_'+this.id).val(this.path);
+                            tmp.find('.thumbnail').attr('id','thumbnail_'+this.id).val(this.listPath);
+                            tmp.find('.caption').attr('id','caption_'+this.id).val(htmlCaption);
+                            tmp.find('.ext').attr('id','ext_'+this.id).val(this.ext);
+                            tmp.find('.type').attr('id','type_'+this.id).val(this.type);
+                            tmp.find('.width').attr('id','width_'+this.id).val(this.width);
+                            tmp.find('.height').attr('id','height_'+this.id).val(this.height);
+                            tmp.find('.size').attr('id','size_'+this.id).val(this.size);
+                            tmp.find('.orgName').attr('id','orgName_'+this.id).val(this.orgName);
+                            tmp.find('.watermarkPlace').attr('id','watermarkPlace_'+this.id).val(this.watermarkPlace);
+                            tmp.find('.img').attr('src',this.listPath);
+                            if(htmlCaption == ''){
+                                tmp.find('p').remove();
+                            }else{
+                                tmp.find('p').text(htmlCaption);
+                            }
+                            $("#"+listObjId).append(tmp.html());
+                        });
+
+                        var paging = '';
+                        paging +='<div class="page">';
+                        paging +=' <small>'+data.result.totalCount+' 건</small>';
+                        paging +=' <nav aria-label="Page navigation" role="navigation">';
+                        paging +='    <ul>';
+                        if(data.result.page.prevPage){
+                        paging +='       <li>';
+                        paging +='         <a href=\'javascript:imageSearch("'+categoryId+'" ,"'+type+'","'+searchItem+'", "'+searchText+'", '+data.result.page.prevPage+',"'+listObjId+'");\' aria-label="Previous">';
+                        paging +='          <i class="fa-light fa-circle-chevron-left fa-lg"></i>';
+                        paging +='        </a>';
+                        paging +='      </li>';
+                        }	  
+                        $(data.result.page.navibar).each(function() {
+                            paging +=' <li class="page-item '+(page==this.page?'active':'')+'"><a href=\'javascript:imageSearch("'+categoryId+'", "'+type+'", "'+searchItem+'", "'+searchText+'", '+this.page+',"'+listObjId+'");\'>'+this.page+'</a></li>';
+                        });
+                        if(data.result.page.nextPage){
+                        paging +='      <li>';
+                        paging +='        <a href=\'javascript:imageSearch("'+categoryId+'", "'+type+'", "'+searchItem+'", "'+searchText+'", '+data.result.page.nextPage+',"'+listObjId+'");\' aria-label="Next">';
+                        paging +='           <i class="fa-light fa-circle-chevron-right fa-lg"></i>';
+                        paging +='        </a>';
+                        paging +='      </li>';
+                        }
+                        paging +='    </ul>';
+                        paging +='  </nav>';
+                        paging +='</div>';
+
+                        $("#"+listObjId).parents('article').find('#paging').empty().append(paging);
+                    }
+                });
+            }
+
+            $(document).on('click','.imgCard', function(){
+                if($(this).find('.imgCheckbox').prop('checked')){
+                    $(this).addClass('border');
+                }else{
+                    $(this).removeClass('border');
+                }
+            });  
+            
+            
+</script>

@@ -1,0 +1,154 @@
+<style>
+    .display-none{display: none;}
+    #webPushWriteModal .card {position: relative;height: 760px;}
+    #webPushWriteModal .card .scroll-box.scroll-box-lg {max-height: 602px;}
+    #webPushWriteModal .card input[type=date]:read-only,
+    #webPushWriteModal .card input[type=time]:read-only {background-color: var(--gray-inn2);}
+</style>
+
+<dialog id="webPushWriteModal">
+    <article class="card">
+        <header>
+            <a href="#close" aria-label="Close" class="close" data-target="webPushWriteModal" onclick="toggleModal(event)"></a>
+            <h6>웹푸시 작성</h6>
+        </header>
+
+        <div class="scroll-box scroll-box-lg" data-section="aiDoc" style="padding-top:10px;padding-bottom:10px;">
+            <form id="webPushForm">
+                <input type="hidden" name="webpush_topic" value="general">
+                <label>제목
+                    <input name="webpush_title" id="webpush_title">
+                </label>
+                <label>내용 (100자 이내로 전송 됨)
+                    <textarea name="webpush_body" id="webpush_body"></textarea>
+                </label>
+                <label>Link
+                    <input name="webpush_link" id="webpush_link">
+                </label>
+                <label>예약전송
+                    <div class="fieldView flex nowrap align-center mr-0">
+                        <label for="reserve_is" style="margin-bottom: 0;">
+                            <input type="checkbox" id="reserve_is" name="reserve[is]" aria-label="예약전송 체크" value="1">
+                            <small>예약</small>
+                        </label>
+                        <input type="hidden" id="reserve_date" name="reserve[date]" value="" placeholder="예약일시" autocomplete="off">
+                        <input type="date" id="_reserve_date" value="" placeholder="예약일" autocomplete="off" readonly>
+                        <input type="time" id="_reserve_time" value="" placeholder="예약시간" autocomplete="off" readonly>
+                    </div>
+                </label>
+                <label for="webpush_upload_image">이미지
+                    <div id="webpush_upload_image" class="fileZone">
+                        <small class="boxMessage">클릭 또는 파일을 올려주세요.</small>
+                        <input type="hidden" id="webpush_image" name="webpush_image" value=""/>
+                    </div>
+                </label>
+            </form>
+        </div>
+        <footer class="flex justify-end">
+            <button type="button" class="btn btn-md btn-blue" onclick="saveWebPush();"> 등록 </button>
+            <button type="button" class="btn btn-md" id="btn-closeWebPush" data-target="webPushWriteModal" onclick="toggleModal(event)">닫기</button>
+        </footer>
+    </article>
+</dialog>
+
+<link href="/lib/dropzone/dropzone.css" rel="stylesheet" type="text/css" />
+<script src="/lib/dropzone/dropzone-min.js"></script>
+<link href="/css/upload.css" rel="stylesheet" type="text/css" />
+<script src="/js/upload.js" type="text/javascript"></script>
+<script>
+    let dropzoneWebPushImage = new singleFileUpload({
+		uploadDir: 'webPush', 
+		uploadId: '#webpush_upload_image', 
+		pathId: '#webpush_image', 
+		path: '', 
+		acceptedFiles : '.jpeg,.jpg,.png,.gif'
+	});
+
+    $('#reserve_is').on('click', function(){
+        if ($(this).is(':checked')) {
+            $('#_reserve_date').prop('readonly', false);
+            $('#_reserve_time').prop('readonly', false);
+        } else {
+            $('#_reserve_date').prop('readonly', true);
+            $('#_reserve_time').prop('readonly', true);
+        }
+    });
+ 
+    $(document).on('click',".btn-webPush", function(){
+        let aid = $(this).data('aid');
+        if (!!aid) {
+            $.ajax({
+                url: '/article/item/ajax?aid='+aid+'&isText=1&isThumbnail=1',
+                method: 'GET',
+                contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                dataType: 'json',
+                success: function (response) {
+                    let data = response.result.article;
+                    if(data.status == 'publish'){
+                        $('#webPushForm #webpush_title').val(data.title);
+                        $('#webPushForm #webpush_body').val(data.contentText);
+                        $('#webPushForm #webpush_link').val('{company.this.domain.pc}/article/view/'+data.aid);
+                        dropzoneWebPushImage.empty();
+                        dropzoneWebPushImage.add(data.thumbnail);
+                        openModal(document.getElementById('webPushWriteModal'));
+                    } else {
+                        alert('발행되지 않은 기사입니다.');
+                    }
+                }
+            });
+        } else {
+            $('#webPushForm #webpush_title').val('');
+            $('#webPushForm #webpush_body').val('');
+            $('#webPushForm #webpush_link').val('');
+            dropzoneWebPushImage.empty();
+            openModal(document.getElementById('webPushWriteModal'));
+        }
+	});
+
+    function saveWebPush() {
+        if ($('#webPushForm #webpush_title').val() == '') {
+            alert('제목을 입력해주세요.');
+            return;
+        }
+        if ($('#webPushForm #webpush_body').val() == '') {
+            alert('내용을 입력해주세요.');
+            return;
+        }
+        if ($('#webPushForm #webpush_link').val() == '') {
+            alert('링크를 입력해주세요.');
+            return;
+        }
+
+        // 예약전송 처리
+        if ($('#reserve_is').is(':checked') && $('#_reserve_date').val()) {
+            $('#reserve_date').val($('#_reserve_date').val()+' '+($('#_reserve_time').val() ? $('#_reserve_time').val() : '00:00'));
+        } else {
+            $('#reserve_date').val('');
+        }
+
+        $.ajax({
+            url: '/webPush/setMessage/ajax',
+            method: 'POST',
+            data: $('#webPushForm').serialize(),
+            dataType: 'json',
+            beforeSend: function () {
+                $("#load-status").empty().append('처리중입니다.');
+                $('#workingpopup').show();
+            },
+        }).done(function(data, textStatus, jqXHR) {
+            if (!!data?.result?.msg) {
+                alert(data.result.msg);
+            }
+            $('#btn-closeWebPush').trigger('click');
+            location.reload();
+        }).fail((jqXHR, textStatus, errorThrown)=>{
+            if (!!jqXHR?.responseJSON?.result?.msg) {
+                alert(jqXHR.responseJSON.result.msg);
+            } else {
+                alert(textStatus+' : '+errorThrown);
+            }
+        }).always(function(){
+            $('#workingpopup').hide();
+        });
+    }
+</script>

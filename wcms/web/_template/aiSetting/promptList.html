@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}
+</head>
+<body>
+    {# left}
+    {# header}
+    <style>
+        /* 
+            .content의 크기를 줄여 한 화면에 모든 데이터가 보이도록 조정합니다.
+            - min-height와 width를 줄이고, 텍스트가 길 경우 말줄임 처리(ellipsis)로 가독성을 높입니다.
+        */
+        .list-cont .table {
+            width: 100%;
+        }
+        .content {
+            min-height: 3em;         /* 최소 높이 축소 */
+            max-width: 600px;        /* 최대 너비 제한 */
+            width: 15%;              /* 상대적 너비 축소 */
+            overflow: hidden;        /* 넘치는 내용 숨김 */
+            text-overflow: ellipsis; /* 말줄임표 처리 */
+            white-space: nowrap;     /* 한 줄로 표시 */
+            resize: none;            /* 크기 조절 비활성화 */
+        }
+    </style>
+    <main class="container">
+        <div role="document">
+			<div role="heading">AI 프롬프트</div>
+			<section class="section-search"> 
+                <form role="search" name="searchForm" id="searchForm">
+                    <input type="hidden" id="coId" name="coId" value="{_SESSION.coId}"/>
+
+                    <select name="category" id="category">
+                        <option value="">선택하세요</option>
+                        {@ result.category.item}
+                        <option value="{.category}"{?_GET.category == .category} selected{/}>{.category}</option>
+                        {/}
+                    </select>
+					<div class="search-input">
+                        <input type="text" name="searchText" id="searchText" value="{? _GET.searchText}{_GET.searchText}{/}" placeholder="검색어를 입력하세요">
+                        <button id="searchBtn" class="btn-search" type="button"><i class="fa-light fa-magnifying-glass"></i></button>
+                    </div>
+					<button type="button" class="btn" id="insertBtn"><i class="fa-light fa-plus"></i>프롬프트 등록</button>
+                    <!-- <button type="button" class="btn btn-black" id="deleteBtn">삭제</button> -->
+				</form>
+			</section>
+			<section role="list">
+                <div class="list-cont">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="chkSelectAll"/></th>
+                                <th>명칭</th>
+                                <th class="content">프롬프트</th>
+                                <th>사용여부</th>
+                                <th>생성일자</th>
+                                <th>수정일자</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {@ result.items}
+                            <tr data-collection="{.collection}">
+                                <td><input type="checkbox" name="apiSelect" value="{.id}"/></td>
+                                <td><strong><a href="/aiSetting/promptEdit?idx={.idx}" class="title" title="{.title}">{? empty(.title)}<span class="red">제목없음</span>{:}{.title}{/}</a></strong></td>
+                                <td class="content">{? empty(.content)}<span class="red">내용없음</span>{:}{.content}{/}</td>
+                                <td>{? .isUse}사용{:}미사용{/}</td>
+                                <td>{=substr(.insert.date,0,10)}<br/>({.insert.managerName})</td>
+                                <td>{=substr(.update.date,0,10)}<br/>({.update.managerName})</td>
+                            </tr>
+                            {/}
+                        </tbody>
+                    </table>
+                </div>
+                {#paging}
+            </section>
+        </div>
+    </main>
+
+<!-- 마지막 데이터 Modal -->
+<dialog id="dataModal">
+    <article style="width:600px;">
+        <header>
+            <a href="#close" aria-label="Close" class="close" data-target="dataModal" onClick="toggleModal(event);"></a>
+            <h6>제목</h6>
+        </header>
+        <div style="height:400px;overflow-y:scroll;">
+            <table id="dataTable1" class="th-bg">
+                <thead><tr></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <footer>
+            <a href="#cancel" role="button" data-target="dataModal" onClick="toggleModal(event);"> 닫기</a>
+          </footer>
+    </article>
+</dialog>
+
+<script type="text/javascript">
+    $(document).ready(function(){
+        $('#insertBtn').click(function(){
+            location.href='/aiSetting/promptEdit';
+        });
+    
+        $('#deleteBtn').click(function(){
+            var chkCompany = '';
+            $("input[name=apiSelect]:checked").each(function(){
+                chkCompany += $(this).val() + '|';
+            });
+    
+            if(chkCompany == '' ){
+                alert('Please select the api information to be deleted.');
+            }else{
+                apiDelete(chkCompany);
+            }
+        });
+    
+        $('#chkSelectAll').click(function(){
+            $("input[name=apiSelect]").prop('checked', $("input:checkbox[id='chkSelectAll']").is(":checked"));
+        });
+
+        $('#searchBtn').click(function(){
+            $('#searchForm').attr('action','/aiSetting/promptList').submit();
+        });
+    });
+    
+    function apiDelete(apiId){
+        if( confirm('Are you sure you want to delete the selected API?') ){
+            $.ajax({
+                url: '/apis/delete/ajax',
+                method : 'POST',
+                data : {'apiId': apiId}
+            }).done(function() {
+                alert('API has been removed.');
+                location.href='/apis/list';
+            });
+        }
+    }
+    </script>
+</body>
+</html>

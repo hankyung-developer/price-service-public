@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta name='robots' content='noindex,follow' />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>KODE[S] WCMS 로그인</title>
+    <!--link rel="stylesheet" href="/css/pico.min.css"-->
+    <script src="/lib/jquery/jquery-3.6.0.min.js"></script>
+    <style>
+        * {margin: 0;padding: 0;box-sizing: border-box;font-family: Arial, sans-serif;}
+        body {display: flex;justify-content: center;align-items: center;height: 100vh;background-image:url('/img/login-background.png');background-size:cover;}
+        .container {background-color: #fff;border-radius: 8px;box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);padding: 40px;width: 395px;height: 517px;}
+        .login-box {text-align: center;}
+        .login-title{margin-bottom:20px;}
+        .login-title h1{font-size: 32px;font-weight: bold;margin-bottom: 10px;}
+        .login-title h2{color: var(--Grey, #6C7278);text-align: center;font-family: Pretendard;font-size: 12px;font-style: normal;font-weight: 400;line-height: 150%;letter-spacing: -0.12px;}
+        .login-box p {font-size: 14px;color: #666;margin-bottom: 20px;}
+        .input-group {margin-bottom: 15px;text-align: left;}
+        .input-group:not(:first-child){padding-top:27px;}
+        .input-group label {display: block;font-size: 14px;color: #6C7278;margin-bottom: 5px;}
+        .input-group input {width: 100%;height: 46px;padding: 10px;border: 1px solid #b2b2b2;border-radius: 10px;font-size: 14px;}
+
+        .options {display: flex;justify-content: space-between;align-items: center;margin:20px 0;}       
+        .options input {margin-right: 5px;}
+        .options label {font-size: 14px;color: #6C7278;text-decoration: none;}
+        .options .forgot-password {font-size: 12px;color: #007BFF;text-decoration: none;}
+        .options .forgot-password:hover {text-decoration: underline;}
+        .options .remember-me {font-size: 12px;color: #6C7278;text-decoration: none;}
+        .options .remember-me:hover {text-decoration: underline;}
+
+        .login-btn {width: 100%;padding: 10px;background-color: #007BFF;color: #fff;border: none;border-radius: 10px;font-size: 16px;cursor: pointer;}
+        .login-btn:hover {background-color: #0056b3;}
+        
+        .signup {margin-top: 20px;}
+        .signup p {font-size: 14px;}
+        .signup a {color: #375DFB;text-decoration: none;}
+        .signup a:hover {text-decoration: underline;}
+    </style>
+</head>
+<body>
+    <!-- Main -->
+    <main class="container">
+        <div class="login-box">
+            <hgroup class="login-title">
+                <h1>한경닷컴 PRICE</h1>
+                <h2>Kode[s] Mojaik WCMS</h2>
+            </hgroup>
+            <!--p>Create an account or log in to explore our app</p-->
+            
+            <form id="loginFrom">
+                <div class="input-group">
+                    <label for="email">ID</label>
+                    <input type="text" id="id" name="id" placeholder="ID를 입력하세요." aria-label="Login" autocomplete="" required="" autofocus="">
+                </div>
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <input type="password" name="password" id="password" placeholder="Password를 입력하세요." aria-label="Password" autocomplete="" required>
+                </div>
+                <div class="options">
+                    <div>
+                        <input type="checkbox" id="remember">
+                        <label for="remember">아이디 저장하기</label>
+                    </div>
+                    <!--a href="#" class="forgot-password">Forgot Password ?</a-->
+                </div>
+                <button type="button" class="login-btn" id="btn_signin">로그인</button>
+            </form>
+            <div style="margin-top:20px;display: flex;align-items: flex-end;justify-content: center;font-size:12px;">제작지원 : <img src="/img/kpf_icon.png"></div>
+        </div>
+    </main><!-- ./ Main -->
+
+    <script type="text/javascript">
+        // 비밀번호 입력란에 엔터키로 로그인 처리
+        const passwordInput = document.getElementById('password');
+
+        passwordInput.addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); 
+                document.getElementById('btn_signin').click();
+            }
+        });
+
+        // 쿠키 저장 함수
+        function setCookie(name, value, days) {
+            var expires = "";
+            if (days) {
+                var date = new Date();
+                date.setTime(date.getTime() + (days*24*60*60*1000));
+                expires = "; expires=" + date.toUTCString();
+            }
+            document.cookie = name + "=" + encodeURIComponent(value) + expires + "; path=/";
+        }
+        // 쿠키 읽기 함수
+        function getCookie(name) {
+            var nameEQ = name + "=";
+            var ca = document.cookie.split(';');
+            for(var i=0;i < ca.length;i++) {
+                var c = ca[i];
+                while (c.charAt(0)==' ') c = c.substring(1,c.length);
+                if (c.indexOf(nameEQ) == 0) return decodeURIComponent(c.substring(nameEQ.length,c.length));
+            }
+            return null;
+        }
+        // 쿠키 삭제 함수
+        function eraseCookie(name) {
+            document.cookie = name+'=; Max-Age=-99999999; path=/';
+        }
+
+        // 페이지 로드 시 쿠키에서 id 불러오기
+        $(document).ready(function () {
+            var savedId = getCookie('saved_id');
+            if (savedId) {
+                $('#id').val(savedId);
+                $('#remember').prop('checked', true);
+            }
+        });
+
+        // 로그인 버튼 클릭 시 아이디 저장 체크 여부에 따라 쿠키 저장/삭제
+        $("#btn_signin").on('click', function () {
+            if ($('#remember').is(':checked')) {
+                setCookie('saved_id', $('#id').val(), 30); // 30일간 저장
+            } else {
+                eraseCookie('saved_id');
+            }
+            $.ajax({
+                url: "/login/check/ajax?debug=1",
+                data: $('#loginFrom').serialize(),
+                method: "post",
+                dataType: 'json',
+            }).done((data, textStatus, jqXHR)=>{
+                console.log(data);
+                if (data.result.link) {
+                    location.href = data.result.link;
+                } else {
+                    alert('접근 권한이 없습니다.');
+                }
+            }).fail((jqXHR, textStatus, errorThrown)=>{
+                console.log(jqXHR.responseText);
+                if (!!jqXHR?.responseJSON?.result?.msg) {
+                    alert(jqXHR.responseJSON.result.msg);
+                } else {
+                    alert(textStatus+' : '+errorThrown);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

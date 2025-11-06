@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}
+
+    <script src="/lib/tinymce/tinymce.min.js"></script>
+    <!-- <link href="/lib/dropzone/dropzone.css" rel="stylesheet" type="text/css" /> -->
+    <script src="/lib/dropzone/dropzone-min.js" type="text/javascript"></script>
+    <link href="/css/upload.css" rel="stylesheet" type="text/css" />
+	<script src="/js/upload.js" type="text/javascript"></script>
+    <style>
+        .check-label {width:fit-content;}
+    </style>
+</head>
+<body>
+    {# header}
+    {# left}
+
+    <main class="container">
+        <div role="document">
+            <div role="heading">게시판 관리</div>
+            <section>
+                <form id="inputForm" method="post" class="spacing">
+                    <input type="hidden" id="coId" name="coId" value="{? result.item.coId}{result.item.coId}{:}{_SESSION.coId}{/}">
+                    <input type="hidden" name="action" value="{? result.item.id}update{:}insert{/}">
+                    <div class="grid">
+                        <label for="id">
+                            게시판 ID
+                            <input type="text" id="id" name="id" placeholder="게시판 ID 입력" value="{_GET.id}" {? _GET.id}readonly{/}>
+                        </label>
+                        <label for="name">
+                            게시판 이름
+                            <input type="text" id="name" name="name" placeholder="게시판 이름 입력" value="{result.item.name}">
+                        </label>
+                    </div>
+                    <div class="grid">
+                        <label for="isUse">
+                            게시판 사용여부
+                            <select id="isUse" name="isUse">
+                                <option value="Y">사용</option>
+                                <option value="E">종료</option>
+                                <option value="N">비노출</option>
+                            </select>
+                        </label>
+                        <label for="wcmsSkin">
+                            WCMS 스킨
+                            <select id="wcmsSkin" name="wcmsSkin">
+                                <option value="text">text</option>
+                                <option value="photo">photo</option>
+                                <option value="calendar">calendar</option>
+                                <option value="intra">내부게시판</option>
+                            </select>
+                        </label>
+                        <label for="pcSkin">
+                            PC 스킨
+                            <select id="pcSkin" name="pcSkin">
+                                <option value="text">text</option>
+                                <option value="photo">photo</option>
+                                <option value="inquiry">inquiry(문의)</option>
+                                <option value="fleaMarket">중고거래</option>
+                            </select>
+                        </label>
+                        <label for="mobileSkin">
+                            Mobile 스킨
+                            <select id="mobileSkin" name="mobileSkin">
+                                <option value="text">text</option>
+                                <option value="photo">photo</option>
+                                <option value="inquiry">inquiry(문의)</option>
+                                <option value="fleaMarket">중고거래</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="grid">
+                        <label for="pagePerNum">
+                            페이지당 목록 수
+                            <input type="number" id="pagePerNum" name="pagePerNum" value="{? result.item.pagePerNum}{result.item.pagePerNum}{:}15{/}">
+                        </label>
+                        <label for="mobile_pagePerNum">
+                            모바일 페이지당 목록 수
+                            <input type="number" id="mobile_pagePerNum" name="mobile_pagePerNum" value="{? result.item.mobile_pagePerNum }{ result.item.mobile_pagePerNum }{:}15{/}">
+                        </label>
+                        <label for="uploadFileNum">
+                            파일 업로드 개수
+                            <input type="number" id="uploadFileNum" name="uploadFileNum" value="{? result.item.uploadFileNum}{result.item.uploadFileNum}{:}3{/}">
+                        </label>
+                        <label for="uploadFileSize">
+                            파일 업로드 용량(MB)
+                            <input type="number" id="uploadFileSize" name="uploadFileSize" value="{? result.item.uploadFileSize}{result.item.uploadFileSize}{:}10{/}">
+                        </label>
+                    </div>
+                    <div class="grid">
+                        <label class="check-label" for="isPrivate"><input type="checkbox" name="isPrivate" id="isPrivate" value="1" {? result.item.isPrivate}checked{/}>비공개</label>
+                        <label class="check-label" for="useSecret"><input type="checkbox" name="useSecret" id="useSecret" value="1" {? result.item.useSecret}checked{/}>비밀글 사용</label>
+                        <label class="check-label" for="useNotice"><input type="checkbox" name="useNotice" id="useNotice" value="1" {? result.item.useNotice}checked{/}>공지글 사용</label>
+                        <label class="check-label" for="useEdit"><input type="checkbox" name="useEdit" id="useEdit" value="1" {? result.item.useEdit}checked{/}>DHTML 에디터 사용</label>
+                        <label class="check-label" for="useComment"><input type="checkbox" name="useComment" id="useComment" value="1" {? result.item.useComment}checked{/}>댓글 사용</label>
+                    </div>
+                    <div class="grid spacing">
+                        <label class="check-label" for="useReply"><input type="checkbox" name="useReply" id="useReply" value="1" {? result.item.useReply}checked{/}>답글 사용</label>
+                        <label class="check-label" for="useCaptcha"><input type="checkbox" name="useCaptcha" id="useCaptcha" value="1" {? result.item.useCaptcha}checked{/}>캡챠 사용</label>
+                        <label class="check-label" for="useImgZoomin"><input type="checkbox" name="useImgZoomin" id="useImgZoomin" value="1" {? result.item.useImgZoomin}checked{/}>이미지확대 사용</label>
+                        <label class="check-label" for="useLike"><input type="checkbox" name="useLike" id="useLike" value="1" {? result.item.useLike}checked{/}>추천(좋아요) 사용</label>
+                        <label class="check-label" for="useSearch"><input type="checkbox" name="useSearch" id="useSearch" value="1" {? result.item.useSearch}checked{/}>검색 사용</label>
+                    </div>
+                    <div class="grid spacing">
+                        <div>
+                            <label for="content">게시판 안내(게시판 안내문구 또는 이용자 동의사항 등을 작성합니다.)</label>
+                            <textarea id="content" name="content" placeholder="내용">{result.item.content}</textarea>
+                        </div>
+                        <div>
+                            <label for="dropzone">파일업로드</label>
+                            <div id="dropzone" class="sortable fileZone">
+                                <small class="boxMessage">파일을 끌어오거나, 클릭하시면 첨부가 가능합니다.</small>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 글쓰기창 placeholder -->
+                    <div class="spacing">
+                        <label for="placeholder">
+                            글쓰기창 안내문구(placeholder)
+                            <textarea name="placeholder" id="placeholder" placeholder="게시판 글쓰기창에 들어가는 안내문구입니다." class="form-control" rows="5">{= str_replace('<br />',"\n",result.item.placeholder)}</textarea>
+                        </label>
+                    </div>
+                    <div class="card spacing">
+                        <small>
+                            주소필드 추가시 주소검색 적용이 필요할 경우 아래와 같이 필드를 추가해주세요.<br/>
+                            - 필드명: 우편번호 / 필드ID: address1 <br/>
+                            - 필드명: 주소 / 필드ID: address2 <br/>
+                            - 필드명: 상세주소 / 필드ID: address3 <br/>
+                        </small>
+                    </div>
+                    <!-- 필드 -->
+                    {? empty(result.item.field) || count(result.item.field) == 0}
+                    <article class="card fieldRow">
+                        <header class="flex">
+                            <span>필드</span> <button type="button" class="btn btn-sm" id="addBtn"><span>추가</span><i class="fa-regular fa-plus"></i></button>
+                        </header>
+                        <div class="grid">
+                            <label for="fieldName"><small>필드명</small><input type="text" id="fieldName" name="field[name][]" value=""></label>
+                            <label for="fieldId"><small>필드ID</small><input type="text" id="fieldId" name="field[id][]" value=""></label>
+                            <label for="fieldInputType"><small>입력형태</small>
+                                <select name="field[inputType][]" id="fieldInputType">
+                                    <option value="text">text</option>
+                                    <option value="textarea">textarea</option>
+                                    <option value="date">date</option>
+                                    <option value="checkbox">checkbox</option>
+                                    <option value="select">select</option>
+                                    <option value="radio">radio</option>
+                                </select>
+                            </label>
+                            <label for="fieldCodeType"><small>코드연동</small>
+                                <select name="field[codeType][]" id="fieldCodeType">
+                                    <option value="">없음</option>
+                                    <option value="category">카테고리</option>
+                                    <option value="department">부서</option>
+                                    <!-- <option value="code">공통코드</option> -->
+                                </select>
+                            </label>
+                            <label for="fieldRequired"><small>필수항목</small>
+                                <select name="field[required][]" id="fieldRequired">
+                                    <option value="">선택</option>
+                                    <option value="Y">예</option>
+                                    <option value="N">아니오</option>
+                                </select>
+                            </label>
+                            <div>
+                                <label for="field_useList">
+                                    <input type="checkbox" id="field_useList" value="1">목록 사용
+                                    <input type="hidden" name="field[useList][]" value="">
+                                </label>
+                                <label for="field_useSearch">
+                                    <input type="checkbox" id="field_useSearch" value="1">검색조건 사용
+                                    <input type="hidden" name="field[useSearch][]" value="">
+                                </label>
+                            </div>
+                        </div>
+                    </article>
+                    {:}
+                        {@ result.item.field}
+                        <article class="card fieldRow">
+                            <header class="flex">
+                                <span>필드</span> <button type="button" class="btn btn-sm" id="addBtn"><span>추가</span><i class="fa-regular fa-plus"></i></button>
+                            </header>
+                            <div class="grid">
+                                <label for="fieldName"><small>필드명</small><input type="text" id="fieldName" name="field[name][]" value="{.name}"></label>
+                                <label for="fieldId"><small>필드ID</small><input type="text" id="fieldId" name="field[id][]" value="{.id}"></label>
+                                <label for="fieldInputType"><small>입력형태</small>
+                                    <select name="field[inputType][]" id="fieldInputType">
+                                        <option value="text" {? '' == .inputType}selected{/}>text</option>
+                                                <option value="textarea" {? 'textarea' == .inputType}selected{/}>textarea</option>
+                                                <option value="date" {? 'date' == .inputType}selected{/}>date</option>
+                                                <option value="checkbox" {? 'checkbox' == .inputType}selected{/}>checkbox</option>
+                                                <option value="select" {? 'select' == .inputType}selected{/}>select</option>
+                                                <option value="radio" {? 'radio' == .inputType}selected{/}>radio</option>
+                                    </select>
+                                </label>
+                                <label for="fieldCodeType"><small>코드연동</small>
+                                    <select name="field[codeType][]" id="fieldCodeType">
+                                        <option value="" {? '' == .codeType}selected{/}>없음</option>
+                                        <option value="category" {? 'category' == .codeType}selected{/}>카테고리</option>
+                                        <option value="department" {? 'department' == .codeType}selected{/}>부서</option>
+                                    </select>
+                                </label>
+                                <label for="fieldRequired"><small>필수항목</small>
+                                    <select name="field[required][]" id="fieldRequired">
+                                        <option value="" {? .required == ''}selected{/}>선택</option>
+                                        <option value="Y" {? .required == 'Y'}selected{/}>예</option>
+                                        <option value="N" {? .required == 'N'}selected{/}>아니오</option>
+                                    </select>
+                                </label>
+                                <div>
+                                    <label for="field_useList">
+                                        <input type="checkbox" id="field_useList" value="1" {? .useList}checked{/}>목록 사용
+                                        <input type="hidden" name="field[useList][]" value="">
+                                    </label>
+                                    <label for="field_useSearch">
+                                        <input type="checkbox" id="field_useSearch" value="1"{? .useSearch}checked{/}>검색조건 사용
+                                        <input type="hidden" name="field[useSearch][]" value="">
+                                    </label>
+                                </div>
+                            </div>
+                        </article>
+                        {/}
+                    {/}
+                    <!-- 필드 -->
+                    
+                    <!-- 권한 -->
+                    <div class="grid">
+                        <article class="card">
+                            <header>WCMS 사용자 권한</header>
+                            <div class="flex">
+                                <label for=""><input type="checkbox" name="auth[manager][]" value="R">읽기</label>
+                                <label for=""><input type="checkbox" name="auth[manager][]" value="C">쓰기</label>
+                                <label for=""><input type="checkbox" name="auth[manager][]" value="U">수정</label>
+                                <label for=""><input type="checkbox" name="auth[manager][]" value="D">삭제</label>
+                            </div>
+                        </article>
+                        <article class="card">
+                            <header>WEB 사용자 권한</header>
+                            <div class="flex">
+                                <label><input type="checkbox" name="auth[member][]" value="R">읽기</label>
+                                <label><input type="checkbox" name="auth[member][]" value="C">쓰기</label>
+                                <label><input type="checkbox" name="auth[member][]" value="U">수정</label>
+                                <label><input type="checkbox" name="auth[member][]" value="D">삭제</label>
+                                <label><input type="checkbox" name="auth[member][]" value="FU">파일업로드</label>
+                            </div>
+                        </article>
+                         <article class="card">
+                            <header>WEB 비로그인 사용자 권한</header>
+                            <div class="flex">
+                                <label><input type="checkbox" name="auth[noLogin][]" value="R">읽기</label>
+                                <label><input type="checkbox" name="auth[noLogin][]" value="C">쓰기</label>
+                                <label><input type="checkbox" name="auth[noLogin][]" value="FU">파일업로드</label>
+                            </div>
+                        </article>
+                    </div>
+                    <!-- 권한 -->
+
+                    <div class="grid">
+                        <article class="card">
+                            <header>WCMS 메뉴 노출</header>
+                            <div class="flex">
+                                <label><input type="radio" name="wcmsMenu" value="">없음</label>
+                                {? !empty(result.parentMenu)}
+                                    {@ result.parentMenu}
+                                    <label><input type="radio" name="wcmsMenu" value="{.menuId}">{.menuName}</label>
+                                    {/}
+                                {/}
+                            </div>
+                        </article>
+                        <article class="card">
+                            <header>관리자 계정</header>
+                            <div id="card-body-manager">
+                                <input type="hidden" id="manager" name="manager" value="" >
+                                <input type="text" id="managerInput" value="" data-role="tagsinput">
+                            </div>
+                        </article>
+
+                        {? result.item.id}
+                        <article class="card">
+                            <header>등록일자</header>
+                            <small>{result.item.insert.date} - {result.item.insert.managerId}</small>
+                        </article>
+                        <article class="card">
+                            <header>수정일자</header>
+                            <small>{result.item.update.date} - {result.item.update.managerId}</small>
+                        </article>
+                        {/}
+                    </div>
+                </form>
+                <div class="flex justify-center">
+                    <button type="button" class="btn btn-md" id="saveBtn"><span>저장</span></button>
+                    <button type="button" class="btn btn-md" id="listBtn"><span>목록</span></button>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <script>
+        $(document).ready(function(){
+            // 초기화
+            {@ result.item.auth.manager}
+                $('input[name="auth[manager][]"][value="{.value_}"]').prop('checked', true);
+            {/}
+            {@ result.item.auth.member}
+                $('input[name="auth[member][]"][value="{.value_}"]').prop('checked', true);
+            {/}
+            {@ result.item.auth.noLogin}
+                $('input[name="auth[noLogin][]"][value="{.value_}"]').prop('checked', true);
+            {/}
+
+            $('#isUse').val('{result.item.isUse}');
+            $('#wcmsSkin').val('{result.item.wcmsSkin}');
+            $('#pcSkin').val('{result.item.pcSkin}');
+            $('#mobileSkin').val('{result.item.mobileSkin}');
+            $('input[name="wcmsMenu"][value="{result.item.wcmsMenu}"]').prop('checked', true);
+
+        });
+
+        $('#listBtn').on('click', function(){
+            location.href = '/boardInfo/list';
+        });
+
+        $('#saveBtn').on('click', function(){
+
+            $("#content").val(tinyMCE.get('content').getContent());
+
+            if(!$('#id').val()){
+                alert('게시판 ID를 입력하세요.');
+                $('#id').focus();
+                return false;
+            }
+
+            {? empty(result.item.id)}
+            // id 중복체크
+            var coId = $('#coId').val();
+            var id = $('#id').val();
+            var duplication = false;
+            $.ajax({
+                url: '/boardInfo/item/ajax',
+                type: 'GET',
+                data: {'returnType':'ajax', 'id':id},
+                dataType: 'json',
+                async: false,
+                success: function (data) {
+                    console.log(data);
+                    if(data && data.result.item.id){
+                        duplication = true;
+                    }
+                }
+            });
+            if(duplication){
+                alert("이미 사용중인 게시판ID입니다.");
+                $('#id').focus();
+            }
+            {/}
+
+            if(!$('#name').val()){
+                alert('게시판 이름을 입력하세요.');
+                $('#name').focus();
+                return false;
+            }
+
+            // 추가 필드
+            if(checkField()){
+                return false;
+            }
+
+            // 관리자 계정 설정
+            $('#manager').val(JSON.stringify($('#managerInput').tagsinput('items')));
+
+            // 저장
+            $.ajax({
+                url: '/boardInfo/save/ajax',
+                method : 'post',
+                data : $('#inputForm').serialize(),
+                dataType: 'json',
+            }).done((data, textStatus, jqXHR)=>{
+                if(data.result.msg){alert(data.result.msg)}
+                location.reload();
+            }).fail((jqXHR, textStatus, errorThrown)=>{
+                if (!!jqXHR?.responseJSON?.result?.msg) {
+                    alert(jqXHR.responseJSON.result.msg);
+                } else {
+                    alert("오류가 발생하였습니다.\n관리자에게 문의하세요.");
+                }
+            });
+        });
+
+        {? result.item.id}
+        // 삭제
+        $('#btn_delete').on('click', ()=>{
+            var id = $('#id').val();
+            if( confirm('삭제하시겠습니까?') ) {
+                $.ajax({
+                    url: '/boardInfo/delete/ajax',
+                    method : 'post',
+                    dataType: 'json',
+                    data : {id: '{result.item.id}'},
+                }).done(function(data, textStatus, jqXHR) {
+                    if(data.result.msg) {alert(data.result.msg)}
+                    location.href = '/boardInfo/list';   // 이동 페이지
+                }).fail(function(jqXHR, textStatus, errorThrown) {
+                    if (!!jqXHR?.responseJSON?.result?.msg) {
+                        alert(jqXHR.responseJSON.result.msg);
+                    } else {
+                        alert(textStatus+' : '+errorThrown);
+                    }
+                });
+            }
+        });
+        {/}
+
+        // input text enter시 sumbit 막기
+        // $('input[type="text"]').keyup(function() {
+        //     if (event.keyCode === 13) {
+        //     event.preventDefault();
+        //     };
+        // });
+
+        // 에디터 세팅
+        var tinySet = {
+            selector: '#content',
+            language_url : '/lib/tinymce/langs/ko_KR.js',
+            language: 'ko_KR',
+            plugins: ['advlist autolink lists link charmap print preview anchor table textcolor colorpicker',
+                'searchreplace visualblocks code fullscreen image',
+                'insertdatetime table contextmenu paste'
+            ],
+            contextmenu: "copy cut paste | link image inserttable | cell row column deletetable",
+            toolbar: 'fontselect fontsizeselect forecolor backcolor | bold italic underline strikethrough subscript superscript blockquote | alignleft aligncenter alignright | bullist numlist outdent indent | table charmap | code ',
+            menubar: false,
+            toolbar_items_size: 'small',
+            forced_root_block: false,
+            image_caption: true,
+            object_resizing: true,
+            content_css: "/lib/tinymce/skins/lightgray/content.min.css",
+            draggable_modal: true,
+            min_height: 300,
+            max_height: 500,
+            font_formats: 'Pretendard=Pretendard Variable;노토 산스=Noto Sans KR;굴림=Gulim,GulimChe,Arial;돋움=DotumChe, AppleGothic;바탕=Batang,BatangChe,Verdana;궁서=궁서, Gungsuh, GungSeo',
+            charmap_append: [[0x00B7,'·'],[0x2026,'…'],
+                                    [0x25C7,'◇'],[0x25C6,'◆'],[0x25B3,'△'],[0x25B2,'▲'],[0x25B7,'▷'],[0x25B6,'▶'],
+                                    [0x339D, '㎝'],[0x339C, '㎜'],[0x339E, '㎞'],[0x339B, '㎛'],[0x339A, '㎚'],
+                                    [0x33A0, '㎠'],[0x33A1, '㎡'],[0x33A2, '㎢'],[0x33A3, '㎣'],[0x33A4, '㎥'],[0x33A5, '㎦'],
+                                    [0x338D, '㎍'],[0x338E, '㎎'],[0x338F, '㎏'],
+                                    [0x3395, '㎕'],[0x3396, '㎖'],[0x3397, '㎗'],[0x3398, '㎘']
+            ],
+            table_default_attributes: {
+                'padding' : '0', 'margin' : '0', 'border': '1px solid'
+            },
+            table_default_styles: {
+                width: '100%'
+            }
+        };
+
+        tinymce.init(tinySet);
+
+        // html 입력
+        function insertHtml(html) {
+            tinymce.execCommand('mceInsertContent', false, html+"<br />");
+        }
+
+        // 파일 업로드
+        let init = {
+            uploadId: '#dropzone',
+            uploadDir: 'boardInfo/{_GET.id}',
+            coId: $('#coId').val(),
+            maxFiles: 10,
+            funcInsertEditor: insertHtml,
+            files: [],
+        };
+        {? !empty(result.item.files)}
+            {@ result.item.files}
+            init.files.push({
+                path: "{.path}",
+                orgName: "{.orgName}",
+                ext: "{.ext}",
+                type: "{.type}",
+                mimeType: "{.mimeType}",
+                size: "{.size}",
+                width: "{.width}",
+                height: "{.height}",
+            });
+            {/}
+        {/}
+        fileUpload2(init);
+        //  파일 첨부 드래그 설정
+        $(".sortable").sortable();
+
+        /********************************************************************************
+         * 게시판 관리자 계정
+         */
+        // 계정 조회
+        var managerList = null;
+        var coId = $('#coId').val();
+        $.ajax({
+            url: '/manager/list/ajax',
+            method: 'GET',
+            dataType: 'json',
+            data: {coId:coId}
+        }).done(function (data) {
+            // console.log(data.result.managerList);
+            managerList = data.result.managerList;
+        });
+
+        // 게시판 관리자 계정 : tagsinput
+        $('#managerInput').tagsinput({itemValue: 'id', itemText: 'name'});
+        {@ result.item.manager}
+        $('#managerInput').tagsinput('add', {id: '{.id}', name: '{.name}'});
+        {/}
+
+        // 관리자 입력 시 자동완성
+        $(document).on('keyup','#card-body-manager .bootstrap-tagsinput input',function(){
+            searchManager('#card-body-manager .bootstrap-tagsinput', $(this).val());
+        });
+
+        // 자동완성 관리자 검색
+        var searchManager = function(obj, name){
+            var dwidth = Number($(obj).width())+26;
+            var dtop = Number($(obj).parent().find('input').offset().top)+85;
+            if( event.keyCode != 38 &&  event.keyCode != 40 ){
+                $(obj).closest('#card-body-manager').find('#managerFreeview').remove();
+                if (name) {
+                    $.ajax({
+                        url : '/manager/search/ajax',
+                        method: 'get',
+                        contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                        dataType: 'json',
+                        data: {name: name},
+                    }).done(function(data, textStatus, jqXHR) {
+                        if (data.result && data.result.length > 0) {
+                            var html = '<div id="managerFreeview" style="position: absolute;z-index: 999;background-color: #fff;border: 1px solid;width:'+dwidth+'px;top:'+dtop+'px;">';
+                            html += '<ul style="margin-bottom:0;padding:1px;list-style: none;">';
+                            $(data.result).each((index, item)=>{
+                                html += '<li class="rptRecom" style="padding:1px 2px 1px 0;" onclick="javascript:inputManager(this, \''+item.name+'\',\''+item.id+'\');">'+item.name+'('+item.id+')</li>';
+                            });
+                            html += '</ul></div>';
+                            $(obj).closest('#card-body-manager').append(html);
+                        }
+                    }).fail(function(jqXHR, textStatus, errorThrown) {
+                        if (!!jqXHR?.responseJSON?.result?.msg) {
+                            alert(jqXHR.responseJSON.result.msg);
+                        } else {
+                            alert(textStatus+' : '+errorThrown);
+                        }
+                    });
+                }
+            }
+        };
+
+        // 자동완성 관리자 입력
+        var inputManager = function(obj, name, id){
+            $(obj).closest('#card-body-manager').find('#managerInput').tagsinput('add', {id: id, name: name});
+            $(obj).closest('#card-body-manager').find('.bootstrap-tagsinput input').val('');
+            $(obj).closest('#card-body-manager').find('#managerFreeview').remove();
+        }
+
+        // 게시판 관리자 계정 입력
+        var managerInput = $('#managerInput').tagsinput('input');
+        $(managerInput).on('keyup',function(evt){
+            event.preventDefault();
+            // enter(13)
+            if(evt.keyCode == 13) {
+                if(!managerList) {
+                    alert('관리자 계정이 없습니다.\n관리자에게 문의하세요.');
+                    return;
+                }
+
+                var text = $(this).val();
+                var isSet = false;
+                $(managerList).each(function(){
+                    if(text == this.name || text == this.id){
+                        $('#managerInput').tagsinput('add', {id: this.id, name: this.name});
+                        isSet = true;
+                        return false;
+                    }
+                });
+                if(isSet){
+                    $(managerInput).val('');
+                }else{
+                    alert('이름을 정확히 입력하세요.');
+                }
+            }
+        });
+
+        // 필드 추가
+        $(document).on('click','#addBtn',function(){
+            $obj = $(this).closest('.fieldRow');
+            $obj.after($obj.clone());
+        });
+        // 필드 checkbox 선택 처리
+        // field_useList
+        $(document).on('click','[id="field_useList"]',function(){
+            if ($(this).is(':checked')) {
+                $(this).siblings('input[type="hidden"]').val($(this).val());
+            } else {
+                $(this).siblings('input[type="hidden"]').val('');
+            }
+        });
+        // field_useSearch
+        $(document).on('click','[id="field_useSearch"]',function(){
+            if ($(this).is(':checked')) {
+                $(this).siblings('input[type="hidden"]').val($(this).val());
+            } else {
+                $(this).siblings('input[type="hidden"]').val('');
+            }
+        });
+        // inputType
+        $('[name="field\[inputType\]\[\]"]').each(function(){
+            enableCodeType(this);
+        });
+        $(document).on('change','[name="field\[inputType\]\[\]"]',function(){
+            enableCodeType(this);
+        });
+        // enableCodeType
+        function enableCodeType(obj){
+            if($(obj).val() == 'select' || $(obj).val() == 'radio'){
+                $(obj).closest('.row').find('[name="field\[codeType\]\[\]"]').prop('disabled', false);
+            }else{
+                $(obj).closest('.row').find('[name="field\[codeType\]\[\]"]').prop('disabled', true);
+                $(obj).closest('.row').find('[name="field\[codeType\]\[\]"]').val('');
+            }
+        }
+        // checkField
+        function checkField(){
+            var stop = false;
+            var msg = '';
+            var focus = null;
+            // field_name
+            if (!stop) {
+                var selector = '[name="field\[name\]\[\]"]';
+                $(selector).each(function(){
+                    var $this = $(this);
+                    var value = $(this).val();
+                    if (value) {
+                        $(selector).not($this).each(function(){
+                            if (value == $(this).val()) {
+                                stop = true;
+                                msg = '필드명이 중복되었습니다.';
+                                focus = this;
+                                return false;
+                            }
+                        });
+                    }
+                 });
+            }
+            // field_id
+            if (!stop) {
+                var selector = '[name="field\[id\]\[\]"]';
+                $(selector).each(function(){
+                    var $this = $(this);
+                    var value = $(this).val();
+                    if (value) {
+                        $(selector).not($this).each(function(){
+                            if (value == $(this).val()) {
+                                stop = true;
+                                msg = '필드ID가 중복되었습니다.';
+                                focus = this;
+                                return false;
+                            }
+                        });
+                    }
+                 });
+            }
+            
+            if (stop) {
+                alert(msg);
+                focus.focus();
+            } else {
+                $('[name="field\[codeType\]\[\]"]').prop('disabled', false);
+            }
+            return stop;
+        }
+
+    </script>
+</body>
+</html>

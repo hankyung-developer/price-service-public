@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}
+    <style>
+        .w-50{width: 50px;}
+        [type="checkbox"]:not([role=switch]) {margin-right: 0.1rem}
+        .flex > *:not(:last-child) {margin-right: 1rem;}
+    </style>
+</head>
+<body>
+	{#left}
+	{#header}
+    <main class="container">
+        <div role="document">
+			<div role="heading">권한</div>
+			<section>
+                <!-- form -->
+				<form method="post" name="inputForm" id="inputForm" role="form" class="spacing">
+                    <input type="hidden" id="coId" name="coId" value="{_SESSION.coId}"/>
+                    <input type="hidden" id="id" name="id" value="{result.auth.id}"/>
+                    <!-- grid -->
+                    <div class="grid">
+                        <label for="name">권한명
+                            <input type="text" name="name" id="name" autocomplete="off" maxlength="60" value="{result.auth.name}"/>
+                        </label>
+                        <label class="isUse">사용여부
+                            <select id="isUse" name="isUse">
+                                <option value="1" {? result.auth.isUse || !result.auth.id}selected{/}>사용</option>
+                                <option value="" {? !result.auth.isUse && result.auth.id}selected{/}>미사용</option>
+                            </select>
+                        </label>
+                    </div>
+                    <!--// grid -->
+                    <!-- grid -->
+                    <div class="grid">
+                        <div>
+                            <label class="spacing">
+                                <div class="flex">
+                                    카테고리 <span class="blue">(* 체크 된 항목이 없으면 전체 권한) </span>
+                                    <button type="button" class="btn btn-sm btn-blue" onclick="javascript:categoryselect()">전체선택</button>
+                                </div>
+                                <ul class="scroll-box scroll-box-lg">
+                                    {@ result.categoryTree}
+                                    <li>
+                                        <label for="category_{.id}"><input value="{.id}" type="checkbox" name="category[]" id="category_{.id}" onclick="javascript:categoryparent(this, '{.id}')">{.name}</label>
+                                        {? !empty(.child)}
+                                        <ul id="{.id}_child">
+                                            {@ .child}
+                                            <li>
+                                                <label for="category_{..id}"><input value="{..id}" type="checkbox" name="category[]" id="category_{..id}" onclick="javascript:categoryparent(this, '{..id}')">{..name}</label>
+                                                {? !empty(..child)}
+                                                <ul class="flex">
+                                                    {@ ..child}
+                                                    <li id="{..id}_child"><label for="category_{...id}"><input value="{...id}" type="checkbox" name="category[]" id="category_{...id}">{...name}</label></li>
+                                                    {/}
+                                                </ul>
+                                                {/}
+                                            </li>
+                                            {/}
+                                        </ul>
+                                        {/}
+                                    </li>
+                                    {/}
+                                </ul>
+                            </label>
+                        </div>
+                        <div>
+                            <label>
+                                <div class="flex">
+                                    <span>메뉴</span>
+                                    <button type="button" class="btn btn-sm btn-blue" onclick="javascript:menuselect()">전체선택</button>
+                                </div>
+                                <ul class="scroll-box scroll-box-lg">
+                                    {@ result.menu}
+                                    <li>
+                                        <label for="menu_{.menuId}"><input value="{.menuId}" type="checkbox" name="menu[]" id="menu_{.menuId}" onclick="javascript:menuparent(this, '{.menuId}')"> {.menuName}</label>
+                                        {? !empty(.child)}
+                                        <ul>
+                                            <li class="flex" id="{.menuId}_child">
+                                                {@ .child}
+                                                <label for="menu_{..menuId}"><input value="{..menuId}" type="checkbox" name="menu[]" id="menu_{..menuId}" onclick="javascript:menuchild(this, '{.menuId}')"> {..menuName}</label>
+                                                {/}
+                                            </li>
+                                        </ul>
+                                        {/}
+                                    </li>
+                                    {/}
+                                </ul>
+                            </label>
+                        </div>
+                    </div>
+                    <!--// grid -->
+                    <!-- grid -->
+                    <div class="grid">
+                        <div>
+                            <label>AI
+                                <table class="th-bg border">
+                                    <colgroup>
+                                        <col width="25%"><col width="*">
+                                    </colgroup>
+                                    <tbody>
+                                        <tr>
+                                            <th>AI 사용</th>
+                                            <td><label for="ai_use" class="w-50"></label><input type="checkbox" id="ai_use" name="ai[use]" role="switch" data-on="사용" data-off="미사용"></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </label>
+                        </div>
+                        <div>
+                            {? !empty(result.auth.insert.date)}
+                            <label for="">입력
+                                <input type="text" value="{result.auth.insert.date} {result.auth.insert.managerName}({result.auth.insert.managerId})" disabled>
+                            </label>
+                            {/}
+                            {? !empty(result.auth.update.date)}
+                            <label for="">수정
+                                <input type="text" value="{result.auth.update.date} {result.auth.update.managerName}({result.auth.update.managerId})" disabled>
+                            </label>
+                            {/}
+                        </div> 
+                    </div>
+                    <!--// grid -->
+                </form>
+                <!--// form -->
+                <div class="flex justify-center">
+                    <button type="button" class="btn btn-md" id="saveBtn">저장</button>
+                    <button type="button" class="btn btn-md" id="listBtn">목록</button>
+                    {? !empty(result.auth.id)}
+                    <button type="button" class="btn btn-md btn-black" id="deleteBtn">삭제</button>
+                    {/}
+                </div>
+            </section>
+        </div>
+    </main>
+    
+	<!-- 토스트 -->
+	{# toast}
+	<!-- //토스트 -->
+	
+    <!-- ########## START : INLINE SCRIPT ########## -->
+    <script type="text/javascript">
+
+        // 저장
+        $('#saveBtn').on('click', function(){
+            $('#article_write').val($('#article_write').prop('checked')?true:false);
+            $('#article_delete').val($('#article_delete').prop('checked')?true:false);
+            $('#article_deleteDB').val($('#article_deleteDB').prop('checked')?true:false);
+            $('#article_publish').val($('#article_publish').prop('checked')?true:false);
+            $('#article_pubUpdate').val($('#article_pubUpdate').prop('checked')?true:false);
+            $('#article_pubDelete').val($('#article_pubDelete').prop('checked')?true:false);
+            $('#article_unEditing').val($('#article_unEditing').prop('checked')?true:false);
+            // $('#article_allArticle').val($('#toggle_article_allArticle').data('toggles').active);
+            $('#layout_update').val($('#layout_update').prop('checked')?true:false);
+            $('#ai_use').val($('#ai_use').prop('checked')?true:false);
+            $('#webPush_use').val($('#webPush_use').prop('checked')?true:false);
+  
+            $.ajax({
+                url: '/auth/saveProc/ajax',
+                method : 'post',
+                data : $('#inputForm').serialize(),
+                dataType: 'json',
+            }).done((data, textStatus, jqXHR)=>{
+                if(data.result.msg){alert(data.result.msg)}
+                if ('{result.auth.id}') {
+                    location.reload();   // 저장 후 새로고침
+                } else {
+                    location.href = '/auth/list';
+                }
+            }).fail((jqXHR, textStatus, errorThrown)=>{
+                if (!!jqXHR?.responseJSON?.result?.msg) {
+                    alert(jqXHR.responseJSON.result.msg);
+                } else {
+                    alert("오류가 발생하였습니다.\n관리자에게 문의하세요.");
+                }
+            });
+        });
+
+        // 목록으로
+        $('#listBtn').on('click', function(){
+            location.href = '/auth/list';
+        });
+
+        // 삭제
+        $('#deleteBtn').on('click', ()=>{
+            var id = $('#id').val();
+            if( confirm('권한을 삭제하시겠습니까?') ) {
+                $.ajax({
+                    url: '/auth/deleteProc/ajax',
+                    method : 'post',
+                    dataType: 'json',
+                    data : {'id': id},
+                }).done(function(data, textStatus, jqXHR) {
+                    if(data.result.msg) {alert(data.result.msg)}
+                    location.href = '/auth/list';   // 이동 페이지
+                }).fail(function(jqXHR, textStatus, errorThrown) {
+                    if (!!jqXHR?.responseJSON?.result?.msg) {
+                        alert(jqXHR.responseJSON.result.msg);
+                    } else {
+                        alert(textStatus+' : '+errorThrown);
+                    }
+                });
+            }
+        });
+
+        var menuflag = true;
+        var menuselect = function(){
+            $('input:checkbox[name="menu[]"]').prop('checked',menuflag);
+            menuflag = menuflag == true ? false : true;
+        }
+
+        var menuparent = function(obj, menuId){
+            var chk = $(obj).prop("checked");
+            $("#"+menuId+"_child input").prop('checked', chk);
+        }
+
+        var menuchild = function(obj, menuId){
+            var chk = $(obj).prop("checked");
+            var len = $("#"+menuId+"_child input:checked").length;
+            if(chk){
+                $("#"+menuId+"_parent input").prop('checked', chk);
+            }else{
+                if(len == 0){
+                    $("#"+menuId+"_parent input").prop('checked', chk);
+                }
+            }
+        }
+
+        var categoryflag = true;
+        var categoryselect = function(){
+            $('input:checkbox[name="category[]"]').prop('checked',categoryflag);
+            categoryflag = categoryflag == true ? false : true;
+        }
+
+        var categoryparent = function(obj, categoryId){
+            var chk = $(obj).prop("checked");
+            $("#"+categoryId+"_child input").prop('checked', chk);
+        }
+
+        var categorychild = function(obj, categoryId){
+            var chk = $(obj).prop("checked");
+            var len = $("#"+categoryId+"_child input:checked").length;
+            if(chk){
+                $("#"+categoryId+"_parent input").prop('checked', chk);
+            }else{
+                if(len == 0){
+                    $("#"+categoryId+"_parent input").prop('checked', chk);
+                }
+            }
+        }
+
+        // programSelectAll
+        var programFlag = true;
+        var programSelectAll = function(){
+            $('input:checkbox[name="program[]"]').prop('checked', programFlag);
+            programFlag = programFlag == true ? false : true;
+        }
+
+        // 값 설정
+        $(document).ready(function(){
+            // loop checkbox
+            /*
+        {= print_r(result.auth) }
+            */
+            {@ result.auth.category} $("#category_{.value_}").prop("checked", true); {/}
+
+            {@ result.auth.menu} $("#menu_{.value_}").prop("checked", true); {/}
+
+            // article 관련 val
+            {? result.auth.ai.use} $('#ai_use').prop('checked',{? result.auth.ai.use}true{:}false{/}); {/}
+            
+            $.each($('input[role="switch"]'),(idx, obj)=>{
+                const checked = $(obj).prop('checked');
+                if(checked){
+                    $(obj).siblings('label').empty().append($(obj).attr('data-on'));
+                }else{
+                    $(obj).siblings('label').empty().append($(obj).attr('data-off'));
+                }
+            })
+            $('input[role="switch"]').on('change',(e)=>{
+                const checked = $(e.target).prop('checked');
+                if(checked){
+                    $(e.target).siblings('label').empty().append($(e.target).attr('data-on'));
+                }else{
+                    $(e.target).siblings('label').empty().append($(e.target).attr('data-off'));
+                }
+            })
+        })
+    </script>
+    <!-- ########## END : INLINE SCRIPT ########## -->
+</body>
+</html>

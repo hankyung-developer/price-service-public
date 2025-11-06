@@ -1,0 +1,145 @@
+<style>
+	#historyModal tbody {display: none;}
+	#historyModal tbody.active {display: table-row-group;}
+	#historyModal td button {margin-right: 0;}
+	#historyModal .layoutInput {min-height: calc(80vh - 130px);}
+</style>
+<!-- history Modal s -->
+<dialog id="historyModal">
+    <article class="card">
+		<header>
+            <a href="#close" aria-label="Close" class="close" title="닫기" data-target="historyModal" onclick="toggleModal(event)"></a>
+			<h6>히스토리</h6>
+        </header>
+		<div class="layoutInput list-cont">
+			<nav role="tab" class="spacing" id="historyTab">
+				<ul>
+					<li><a href="javascript:;" id="articleHistroy-tab" title="기사" class="active" data-target="#historyArticleList" role="tab">기사</a></li>
+					<li><a href="javascript:;" id="bannerHistroy-tab" title="배너" class=""  data-target="#historyBannerList" role="tab">배너</a></li>
+					<li><a href="javascript:;" id="boardHistroy-tab" title="게시판" class=""  data-target="#historyBoardList" role="tab">게시판</a></li>
+					<li><a href="javascript:;" id="boardHistroy-tab" title="그래프" class=""  data-target="#historyGraphList" role="tab">그래프</a></li>
+					<li><a href="javascript:;" id="boardHistroy-tab" title="프로그램" class=""  data-target="#historyManualEditList" role="tab">프로그램</a></li>
+					<li><a href="javascript:;" id="boardHistroy-tab" title="수동편집" class=""  data-target="#historyBoardList" role="tab">수동편집</a></li>
+					<li><a href="javascript:;" id="layoutHistroy-tab" title="설정" class=""  data-target="#historyLayoutList" role="tab">설정</a></li>
+				</ul>
+			</nav>
+			<table class="th-bg border">
+				<colgroup>
+					<col width=""/><col width="20%"/><col width="15%"/><col width="12%"/><col width="12%"/>
+				</colgroup>
+				<thead>
+					<tr>
+						<th class="text-center">내용</th>
+						<th class="text-center">수정일</th>
+						<th class="text-center">수정자</th>
+						<th class="text-center">미리보기</th>
+						<th class="text-center">복구</th>
+					</tr>
+				</thead>
+				<tbody id="historyArticleList" class="active" role="tablist"></tbody>
+				<tbody id="historyBoardList" role="tablist"></tbody>
+				<tbody id="historyBannerList" role="tablist"></tbody>
+				<tbody id="historyGraphList" role="tablist"></tbody>
+				<tbody id="historyProgramList" role="tablist"></tbody>
+				<tbody id="historyManualEditList" role="tablist"></tbody>
+				<tbody id="historyLayoutList" role="tablist"></tbody>
+			</table>
+		</div>
+		<footer class="flex justify-end">
+			<button type="button" class="btn btn-md"  data-target="historyModal" onclick="toggleModal(event);">닫기</button>
+		</footer>
+	</article>
+</dialog>
+<!--// history Modal e -->
+<script>
+
+	// 히스토리 보기
+	$(document).on('click',"#btn_history", (e)=>{
+		openModal(document.getElementById('historyModal'));
+		history();
+	});
+
+	$('#historyModal nav[role="tab"] a').on('click',function(){
+		var tabList = $(this).data('target');
+		console.log(tabList);
+		$('#historyModal nav[role="tab"] a').removeClass('active');
+		$('#historyModal [role="tablist"]').removeClass('active');
+		$(this).addClass('active');
+		$(tabList).addClass('active');
+		history();
+	});
+
+	// 히스토리 조회
+	function history(){
+		let pageId = $('#layoutSelect').val();
+		$.ajax({
+			url: '/layout/getHistory/ajax?pageId='+pageId,
+			type: 'GET',
+			dataType: "json",
+			traditional : true,
+			async : false,
+			success: (data)=>{
+				let items = data.result;
+	
+				drawHistory('historyArticleList', items.article);
+				drawHistory('historyBoardList', items.board);
+				drawHistory('historyBannerList', items.banner);
+				drawHistory('historyGraphList', items.graph);
+				drawHistory('historyProgramList', items.program);
+				drawHistory('historyManualEditList', items.manualEdit);
+				drawHistory('historyLayoutList', items.layout);
+			}
+		});
+	}
+
+	// 히스토리 목록 출력
+	function drawHistory(id, data){
+		$('#historyModal').find("#"+id).empty();
+		for(let i=0; i< data.length; i++){
+			let row = data[i];
+	
+			$('#historyModal').find("#"+id).append(
+				"<tr>" +
+					"<td> "+row.description+" </td>" +
+					"<td class='text-center'> "+row.update.date+" </td>"+
+					"<td class='text-center'> "+row.update.managerName+" </td>"+
+					"<td class='text-center'><button type='button' class='btn btn-sm btn-blue' onclick='javascript:historyPreview(\""+row.historyId+"\");'>미리보기</button></td>"+
+					"<td class='text-center'><button type='button' class='btn btn-sm btn-yello' onclick='javascript:restore(\""+row.historyId+"\",\""+row.type+"\")'>복구</button></td>"+
+				"</tr>"
+			);
+		}
+	}
+
+	// 히스토리 미리보리
+	function historyPreview(historyId){
+		let pageId = $('#layoutSelect').val();
+		$.ajax({
+			url: '/layout/previewHistory/ajax?pageId='+pageId+"&historyId="+historyId,
+			type: 'GET',
+			dataType: "json",
+			traditional : true,
+			async : false,
+			success: (data)=>{
+				let item = data.result;
+				window.open("{company.this.domain.pc}/layout/view/"+ pageId + "?history="+item,"history");
+			}
+		});
+	}
+
+	// 히스토리 복구
+	function restore(historyId, type){
+		let pageId = $('#layoutSelect').val();
+		$.ajax({
+			url: '/layout/restoreHistory/ajax?pageId='+pageId+"&historyId="+historyId+"&type="+type,
+			type: 'GET',
+			dataType: "json",
+			traditional : true,
+			async : false,
+			success: (data)=>{
+				let item = data.result;
+				alert('복구되었습니다.');
+				location.reload();
+			}
+		});
+	}
+</script>

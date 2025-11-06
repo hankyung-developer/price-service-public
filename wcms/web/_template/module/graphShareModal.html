@@ -1,0 +1,88 @@
+<!-- graphShare MODAL -->
+<dialog id="shareModal">
+    <article class="card card-sm">
+        <header>
+            <a href="#close" aria-label="Close" class="close" data-target="shareModal" onclick="toggleModal(event)"></a>
+            <h6></h6>
+        </header>
+		<!-- layoutInput -->
+		<div class="layoutInput">
+			<input type="hidden" id="objId">
+			<div class="row">
+				<span class="label">제목</span>
+				<input type="text" id="title" placeholder="화면에 표출될 박스 명입니다." readonly />
+			</div>
+			<!-- <div class="grid">
+				<div class="row">
+					<span class="label">PC노출</span>
+					<input type="checkbox" role="switch" id="showpc" data-on="ON" data-off="OFF" checked/>
+					<span class="switch-label">ON</span>
+				</div>
+				<div class="row">
+					<span class="label">MOBILE노출</span>
+					<input type="checkbox" role="switch" id="showmobile" data-on="ON" data-off="OFF" checked/>
+					<span class="switch-label">ON</span>
+				</div>
+			</div> -->
+			<div class="row">
+                <span class="label">사이즈 W/H</span>
+                <input type="text" name="xsize" id="xsize" value="730px" placeholder="가로px">
+                <input type="text" name="ysize" id="ysize" value="400px" placeholder="세로px">
+            </div>
+            <div class="row" style="height: 200px;">
+                <span class="label" style="height: 100%;width: 73px;">Html</span>
+                <textarea id="shareHtml" style="height: 100%;"></textarea>
+            </div>
+            <!-- <div class="row" style="height: 200px;">
+                <span class="label" style="height: 100%;width: 70px;">Image</span>
+                <textarea id="shareImage" style="height: 100%;"></textarea>
+            </div> -->
+		</div>
+		<!--// layoutInput -->
+		<footer class="flex justify-end">
+			<button type="button" class="btn btn-md"  id="shareBtn">복사</button>
+			<button type="button" class="btn btn-md"  data-target="shareModal" onclick="toggleModal(event);">닫기</button>
+		</footer>
+	</article>
+</dialog>
+<!-- graphShare MODAL -->
+
+<input type="hidden" id="domain" name="domain" value="{company.this.domain.pc}" />
+
+<script>
+    $(document).ready(function(){
+        const domain = $('#domain').val();
+        let graphInfo = [];
+        let graphShare = (coId, idx, makeDate, title)=>{
+            $('#shareHtml').text("<iframe frameborder='0' style='width:730px;height:400px;' src='"+domain+"/data/"+coId+"/chart/"+makeDate+"/"+idx+".html' data-img='"+domain+"/data/"+coId+"/chart/"+makeDate+"/"+idx+".png' data-thumb='"+domain+"/data/"+coId+"/chart/"+makeDate+"/"+idx+"_thumb.png'></iframe>");
+            // $('#shareImage').text("<img src='"+domain+"/data/"+graphInfo['coId']+"/chart/"+graphInfo['makeDate']+"/"+graphInfo['idx']+".png'>");
+
+            $('#shareModal').find('header > h6').empty().append(title);
+
+            graphInfo['coId'] = coId;
+            graphInfo['idx'] = idx;
+            graphInfo['makeDate'] = makeDate;
+            graphInfo['title'] = title;
+
+        }
+
+        $('#shareBtn').on('click', ()=>{
+            $("#shareHtml").select();
+            document.execCommand('copy');
+            alert("클립보드에 복사되었습니다.");
+        })
+
+        const xsize = document.getElementById ('xsize');
+        const ysize = document.getElementById ('ysize');
+
+        let changeSize = ()=> {
+            let x = xsize.value;
+            let y = ysize.value;
+            $('#shareHtml').text("<iframe frameborder='0' style='width:"+x+";height:"+y+";' src='"+domain+"/data/"+graphInfo['coId']+"/chart/"+graphInfo['makeDate']+"/"+graphInfo['idx']+".html' data-img='"+domain+"/data/"+graphInfo['coId']+"/chart/"+graphInfo['makeDate']+"/"+graphInfo['idx']+".png' data-thumb='"+domain+"/data/"+graphInfo['coId']+"/chart/"+graphInfo['makeDate']+"/"+graphInfo['idx']+"_thumb.png'></iframe>");
+            // $('#shareImage').text("<img src='"+domain+"/data/"+graphInfo['coId']+"/chart/"+graphInfo['makeDate']+"/"+graphInfo['idx']+".png'>");
+        }
+
+        xsize.addEventListener ( 'keyup', changeSize);
+        ysize.addEventListener ( 'keyup', changeSize);
+    });
+</script>

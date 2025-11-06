@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}
+</head>
+<body>
+	{#left}
+	{#header}
+    <main class="container">
+        <div role="document">
+			<div role="heading">기자</div>
+			<section class="section-search">
+                <form role="search" name="searchForm" id="searchForm">
+                    <input type="hidden" name="coId" id="coId" value="{_SESSION.coId}"/>
+                    <select name="authId" id="authId">
+						<option value="">권한 선택</option>
+						{@ result.authList}
+						<option value="{.id}">{.name}</option>
+						{/}
+					</select>
+                    <div class="search-input">
+                        <input type="text" name="searchText" id="searchText" value="{? _GET.searchText}{_GET.searchText}{/}" placeholder="검색어를 입력하세요">
+                        <button id="searchBtn" class="btn-search" type="button"><i class="fa-light fa-magnifying-glass"></i></button>
+                    </div>
+					<button type="button" class="btn" id="insertBtn">입력</button>
+                    <button type="button" class="btn btn-black" id="deleteBtn">삭제</button>
+                </form>
+            </section>
+			<section role="list">
+				<div class="list-cont">
+					<table>
+						<thead>
+							<tr>
+								<th><label class="ckbox"><input id="checkAll" type="checkbox"></label></th>
+								<th>사용자 ID</th>
+								<th>이름</th>
+								<th>이메일</th>
+								<th>부서</th>
+								<th>권한</th>
+								{? _SESSION.isSuper}
+								<th>최종 로그인</th>
+								{/}
+							</tr>
+						</thead>
+						<tbody>
+							{@ result.managerList}
+							<tr id="{.id}">
+								<th>
+									<label class="ckbox"><input type="checkbox" name="checkRow" id="checkRow" class="subscriber" value="{.id}"><span></span></label>
+								</th>
+								<td>
+									{? .imagePath}
+									<img src="{.imagePath}" width="32" height="32"/>
+									{/}
+									<strong><a href="javascript:editor('{.id}');">{.id}</a></strong>
+								</td>
+								<td>{.name}</td>
+								<td><a href="mailto:{.email}">{.email}</a></td>
+								<td>{.dept}</td>
+								<td>{.authName}</td>
+								{? _SESSION.isSuper}
+								<td>{.latestLogin.date}</td>
+								{/}
+							</tr>
+							{/}
+						</tbody>
+					</table>
+				</div>
+				{# paging}
+			</section>
+		</div>
+	</main>
+
+	<!-- ########## START : INLINE SCRIPT ########## -->
+	<script type="text/javascript">
+		$(document).ready(function(){
+			
+			$('#authId').val('{? !empty(_GET.authId)}{_GET.authId}{/}');
+			
+			// 버튼 : 추가
+			$('#insertBtn').click(function(){
+				location.href = '/manager/editor?action=insert';
+			});
+
+			// event : select change
+			$('#searchForm select:not(#searchItem)').on('change',function() {
+                searchList();
+            });
+
+            // event : searchText enter
+            $("#searchText").on('keyup',(e)=>{
+                if(e.keyCode == 13){
+                    searchList();
+                }
+            });
+
+            // event : 검색버튼 click
+            $('#searchBtn').on('click',function(){
+                searchList();
+            });
+		
+			$('#deleteBtn').click(function(){
+				var check = '';
+				$("input[name=checkRow]:checked").each(function() {
+					check += $(this).val() + '|';
+				});
+		
+				if(!check){
+					alert('삭제할 항목을 선택하세요.');
+				}else{
+					if( confirm('선택한 관리자를 삭제하시겠습니까?') ){
+						$.ajax({
+							url: '/manager/deleteProc/ajax',
+							method : 'post',
+							data : {id: check},
+							dataType: 'json',
+						}).done(function(data, textStatus, jqXHR) {
+							if(data.result.msg) {alert(data.result.msg)}
+							location.reload();
+						}).fail(function(jqXHR, textStatus, errorThrown) {
+							if (!!jqXHR?.responseJSON?.result?.msg) {
+								alert(jqXHR.responseJSON.result.msg);
+							} else {
+								alert(textStatus+' : '+errorThrown);
+							}
+						});
+					}
+				}
+			});
+			
+			// 검색
+			$('#searchBtn').click(function(){
+				if(!$('#searchText').val() && !$('#coId').val()){
+					alert('검색할 관리자 이름을 입력하세요');
+				}else{
+					$('#searchForm').attr('action','/manager/list').submit();
+				}
+			})
+		
+			// 전체 체크
+			$('#checkAll').click(function(){
+				$("input:checkbox[id='checkRow']").prop('checked', $("input:checkbox[id='checkAll']").is(":checked"));
+			});
+		});
+		
+		// 수정
+		function editor(id){
+			location.href = '/manager/editor?action=update&id='+id;
+		}
+
+		function searchList() {
+            // 검색 버튼 비활성화
+            $('#searchText').prop('readonly',true);
+            $('#searchBtn').prop('disabled',true);
+            $('#searchBtn').addClass('loading-black');
+
+            $('#searchForm').submit();
+        }
+	</script>
+	<!-- ########## END : INLINE SCRIPT ########## -->
+
+</body>
+</html>

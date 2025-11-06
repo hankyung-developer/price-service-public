@@ -1,0 +1,288 @@
+<dialog id="videoSearchModal">
+    <article class="card">
+        <header>
+            <a href="#close" aria-label="Close" class="close" data-target="videoSearchModal" onclick="toggleModal(event)"></a>
+            <h6>DB 동영상</h6>
+        </header>
+        <form name="frm_videoSearch" id="frm_videoSearch" onsubmit="return false;" role="search">
+            <div class="select-input search-input">
+                <select name="searchItem" id="searchItem">
+                    <option value="title">제목</option>
+                    <option value="insert.managerName">입력자 이름</option>
+                    <option value="insert.managerId">입력자 ID</option>
+                    <option value="id">동영상ID</option>
+                </select>
+                <input type="text" id="searchText" name="searchText" placeholder="" value="">
+                <button id="btn_videoSearch" class="btn-search" type="button"><i class="fa-light fa-magnifying-glass"></i></button>
+            </div>
+        </form>
+        <div id="searchList" class="grid grid5" style="padding: 1rem;"></div>
+        <footer><div id="paging"></div></footer>
+    </article>
+</dialog>
+    <!-- videoCardClone(modal) -->
+    <div style="display: none;" id="videoCardClone">
+    <label class="videoCard flex align-start nowrap" style="aspect-ratio: 10 / 8;cursor: pointer;">
+        <span><i class="fa-solid fa-hexagon-plus fa-lg addVideo"></i></span>
+        <input type="hidden" name="videoId[]" id="videoId" value="">
+        <div style="width:100%;height: 100%;position: relative;margin-top: 0;" class="flex column nowrap justify-start align-center">
+            <img class="img" src="" alt="" style="max-width:100%;max-height:100%;aspect-ratio: 16 / 9;">
+            <p style="padding:0.1rem 0.2rem;line-height: normal;word-break: break-all;background-color:var(--black-transp30);color:var(--white);font-size: var(--font-size-xs);width:100%;max-height: 38px;overflow: hidden;position:absolute;bottom:0;left:0">
+            </p>
+        </div>
+    </label>
+</div>
+<!--// videoCardClone(modal) -->
+<!-- videoListCard(#videoList) -->
+<div style="display: none;" id="videoListCard">
+    <article data-videoId="">
+        <img class="thumbnail dropzoneImg" onerror="javascript:this.src='/img/etc.png'" />
+        <div class="dz-progress"><span class="dz-upload" data-dz-uploadprogress></span></div>
+        <div class="file-info">
+            <div class="orgFilename"></div>
+            <label for="captionYN" class="flex nowrap justify-end align-center">
+                <input type="checkbox" class="captionYN sm" id="captionYN" style="border-color: var(--gray-ddd);margin-right:2px;">
+                <small>제목 제외</small>
+            </label>
+            <div class="flex justify-between">
+                <div>
+                    <i class="videoPlace fa-light fa-right-to-bracket" onclick="videoPlace(this)" title="본문 삽입" id="videoPlace"></i>
+                    <i class="videoEditor fa-light fa-pen-to-square" id="videoEditBtn" title="비디오 편집" ></i>
+                    <i class="videoDel fa-light fa-trash-can" id="btn_deleteVideo" title="비디오 삭제"></i>
+                </div>
+                <span class="flex mr-0 nowrap align-center link">
+                    <a style="display: none;" href="javascript:alert('준비중입니다.')" class="site"><i class="fa-light fa-globe" style="margin-right: 4px;"></i></a>
+                    <a style="display: none;" href="" target="_blank" class="youtube"><img src="https://www.youtube.com/s/desktop/1b183e4b/img/favicon.ico" style="height: 18px;margin-right: 4px;" alt="youtube"></a>
+                    <a style="display: none;" href="" target="_blank" class="navertv"><img src="https://tv.naver.com/favicon.ico" style="height: 18px;margin-right: 4px;" alt="navertv"></a>
+                    <a style="display: none;" href="" target="_blank" class="kakaotv"><img src="https://tv.kakao.com/favicon.ico" style="height: 18px;margin-right: 4px;" alt="kakaotv"></a>
+                </span>
+            </div>
+            <input type="hidden" id="videoId" name="videoId[]" value="">
+            <input type="hidden" id="video-thumbnail" value="">
+            <input type="hidden" id="video-title" value="">
+            <input type="hidden" id="video-showSite" value="">
+            <input type="hidden" id="video-imagePath" value="">
+            <div class="platform" data-platform="" style="display: none;">    
+                <input type="hidden" id="video-platform-siteId" value="">    
+                <input type="hidden" id="video-platform-url" value="">    
+                <input type="hidden" id="video-platform-id" value="">    
+                <input type="hidden" id="video-platform-thumbnail" value="">
+            </div>
+        </div>
+    </article>
+</div>
+<!--// videoListCard(#videoList) -->
+<script>
+    /********************************************************************************
+     * 동영상 modal
+     */
+    // 동영상 검색 modal(videoSearchModal) 동영상리스트 세팅 
+    $(document).on('click', "#btn_videoSearchModal", function (){
+        var frm = $("#frm_videoSearch");
+        videoSearch(frm.find("#searchItem").val(), frm.find("#searchText").val(), 1, '#videoSearchModal #searchList');
+    });
+    // 동영상 검색
+    $(document).on('click', "#btn_videoSearch", function (){
+        var frm = $("#frm_videoSearch");
+        videoSearch(frm.find("#searchItem").val(), frm.find("#searchText").val(), 1, '#videoSearchModal #searchList');
+    });
+
+    $('#videoSearchModal #searchText').on("keyup",function(e){
+        if(e.keyCode == 13){
+            var frm = $("#frm_videoSearch");
+            videoSearch(frm.find("#searchItem").val(), frm.find("#searchText").val(), 1, '#videoSearchModal #searchList');
+        }
+    });
+
+    // 동영상 검색 실행
+    var videoSearch = function(searchItem, searchText, page, listSelector){
+        var params = {
+            searchItem: searchItem,
+            searchText: searchText,
+            page: page,
+            noapp: '12',
+        };
+        var tmp;
+        $(listSelector).empty();
+        $.ajax({
+            url: '/video/list/ajax',
+            method: 'get',
+            data: params,
+            contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+            dataType: 'json',
+            success: function (data) {
+                // console.log(data);
+                $(data.result.items).each(function () {
+                    htmlTitle = (typeof this.title !== undefined && this.title != null ?convertSpecialChar(this.title):"");
+                    tmp = $('#videoCardClone').clone();
+                    tmp.find('#videoId').val(this.id);
+                    tmp.find('.img').attr('src',this.thumbnail);
+                    if(htmlTitle == ''){
+                        tmp.find('p').remove();
+                    }else{
+                        tmp.find('p').text(htmlTitle);
+                    }
+                        
+                    $(listSelector).append(tmp.html());
+                });
+
+                var paging = '';
+                paging +='<div class="page">';
+                paging +=' <small>'+data.result.totalCount+' 건</small>';
+                paging +=' <nav aria-label="Page navigation" role="navigation">';
+                paging +='    <ul>';
+                if(data.result.page.prevPage){
+                paging +='       <li>';
+                paging +='         <a href=\'javascript:videoSearch("'+searchItem+'", "'+searchText+'", '+data.result.page.prevPage+',"'+listSelector+'");\' aria-label="Previous">';
+                paging +='          <i class="fa-light fa-circle-chevron-left fa-lg"></i>';
+                paging +='        </a>';
+                paging +='      </li>';
+                }	  
+                $(data.result.page.navibar).each(function() {
+                    paging +=' <li class="page-item '+(page==this.page?'active':'')+'"><a href=\'javascript:videoSearch("'+searchItem+'", "'+searchText+'", '+this.page+',"'+listSelector+'");\'>'+this.page+'</a></li>';
+                });
+                if(data.result.page.nextPage){
+                paging +='      <li>';
+                paging +='        <a href=\'javascript:videoSearch("'+searchItem+'", "'+searchText+'", '+data.result.page.nextPage+',"'+listSelector+'");\' aria-label="Next">';
+                paging +='           <i class="fa-light fa-circle-chevron-right fa-lg"></i>';
+                paging +='        </a>';
+                paging +='      </li>';
+                }
+                paging +='    </ul>';
+                paging +='  </nav>';
+                paging +='</div>';
+
+                $(listSelector).parents('article').find('#paging').empty().append(paging);
+            }
+        });
+    }
+
+    // 동영상 추가
+    $(document).on('click','.videoCard', function(){
+        var id = $(this).find('#videoId').val();
+        if (confirm('동영상을 추가하시겠습니까?')) {
+            $.ajax({
+                url: '/video/item/ajax',
+                method : 'get',
+                dataType: 'json',
+                data : {id: id},
+            }).done(function(data, textStatus, jqXHR) {
+                addVideoList(data.result.item);
+                closeModal(document.getElementById('videoSearchModal'));
+            }).fail(function(jqXHR, textStatus, errorThrown) {
+                if (!!jqXHR?.responseJSON?.result?.msg) {
+                    alert(jqXHR.responseJSON.result.msg);
+                } else {
+                    alert(textStatus+' : '+errorThrown);
+                }
+            });
+        }
+    });
+
+    // 동영상 목록에 추가
+    var addVideoList = function(data){
+        var htmlTitle = convertSpecialChar(data.title);
+        var tmp = $('#videoListCard').clone();
+        tmp.find('article').attr('data-videoId', data.id);
+        tmp.find('#videoId').val(data.id);
+        tmp.find('#video-thumbnail').val(data.thumbnail);
+        tmp.find('.orgFilename').text(htmlTitle);
+        tmp.find('#video-title').val(htmlTitle);
+        tmp.find('#video-showSite').val(data.showSite);
+        tmp.find('#video-imagePath').val(data.imagePath);
+        tmp.find('.thumbnail').attr('src', data.thumbnail);
+        $(data.platform).each(function(){
+            if(this.siteId == 'site'){
+                tmp.find('.site').attr('style','display:inline;');
+            }else{
+                tmp.find('.'+this.siteId).attr('style','display:inline;').attr('href',this.url);
+            }
+        });
+        $(data.platform).each(function(){
+            tmp.find('.platform').data('platform',this.siteId);
+            tmp.find('#video-platform-siteId').val(this.siteId);
+            tmp.find('#video-platform-url').val(this.url);
+            tmp.find('#video-platform-id').val(this.id);
+            tmp.find('#video-platform-thumbnail').val(this.thumbnail);
+        });
+
+        // 동일한 id가 존재할 경우 업데이트
+        if($('#videoList article[data-videoId="'+data.id+'"]').length > 0){
+            $('#videoList article[data-videoId="'+data.id+'"]').html(tmp.html());
+        }else{
+            // 추가
+            $("#videoList").append(tmp.html());
+
+            // 이미지 파일 등록
+            $.ajax({
+                url: '/image/item/ajax',
+                method: 'get',
+                data: {'path':data.thumbnail},
+                contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                dataType: 'json'
+            });
+            // 
+            // .done(function(response, textStatus, jqXHR) {
+            //     let idata = response.result.image;
+
+            //     mockFile = {
+            //         "fileId": idata.id,
+            //         "thumb": idata.path.replace(/(.+)[.]([a-z]+)$/g,"$1.120x120.0.$2"),
+            //         "caption": idata.caption,
+            //         "width": idata.width,
+            //         "height": idata.height,
+            //         "size": idata.size,
+            //         "filePath": idata.path,
+            //         "type": idata.type,
+            //         "ext": idata.ext,
+            //         "watermarkPlace": idata.watermarkPlace,
+            //     };
+
+            //     imgDropzone.emit('addedfile', mockFile);
+            //     $(mockFile.previewElement).attr("file_id", mockFile['fileId']);
+            //     $(mockFile.previewElement).find('.file_path').val(mockFile['filePath']);
+            //     $(mockFile.previewElement).find('.file_id').val(mockFile['fileId']);
+            //     $(mockFile.previewElement).find('.file_caption').val(mockFile['caption']);
+            //     $(mockFile.previewElement).find('.file_width').val(mockFile['width']);
+            //     $(mockFile.previewElement).find('.file_height').val(mockFile['height']);
+            //     $(mockFile.previewElement).find('.file_size').val(mockFile['size']);
+            //     $(mockFile.previewElement).find('.file_type').val(mockFile['type']);
+            //     $(mockFile.previewElement).find('.file_watermarkPlace').val(mockFile['watermarkPlace']);
+            //     $(mockFile.previewElement).find('.orgFileName').text(mockFile['caption']);
+            //     $(mockFile.previewElement).find('.type').val(mockFile['type']);
+            //     $(mockFile.previewElement).find('.ext').val(mockFile['ext']);
+
+            //     imgDropzone.emit('thumbnail', mockFile, mockFile['thumb']);
+            // }).fail(function(jqXHR, textStatus, errorThrown) {
+            //     if (!!jqXHR?.responseJSON?.result?.msg) {
+            //         alert(jqXHR.responseJSON.result.msg);
+            //     } else {
+            //         alert(textStatus+' : '+errorThrown);
+            //     }
+            // });
+        }
+
+        // 동영상 영역 open
+        if(!$('[data-target="video"]').attr('open')){
+            $('[data-target="video"] summary').trigger('click');
+        }
+    };
+    
+    // video 태그 생성
+    var getVideoTag = function(url, thumb){
+        // var url = 'https://bitmovin-a.akamaihd.net/content/playhouse-vr/m3u8s/105560.m3u8';
+        var type = '';
+        var thumb = thumb?thumb:'/img/videoDefault.png';
+        if((new RegExp('\.(m3u8)','i')).test(url)) {
+            // type : application/x-mpegURL
+            type = 'application/x-mpegURL';
+        }else if((new RegExp('\.(mp4)','i')).test(url)) {
+            // type : video/mp4
+            type = 'video/mp4';
+        }
+        return '<video id="mediaVideo" poster="'+thumb+'" class="video-js vjs-default-skin vjs-big-play-centered" width="100%" height="auto" controls preload="metadata" data-setup="{}">'+
+            '<source src="'+url+'" type="'+type+'">'+
+            '<p class="vjs-no-js">To view this video please enable JavaScript, and consider upgrading to a web browser that<a href="http://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a></p>'+
+        '</video>';
+    };
+</script>

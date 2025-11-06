@@ -1,0 +1,174 @@
+<script src="/lib/jquery-ui-touch-punch/jquery.ui.touch-punch.min.js"></script>
+<style>
+    [role="leftmenu"] .ui-state-highlight {background-color: transparent;border-radius: var(--border-radius);width: 40px !important;height: 60px;min-height: unset;margin: 0 auto;}
+    [role="leftmenu"] .ui-sortable-helper a {background-color: #ffffff5c;}
+    [role="leftmenu"] .ui-sortable-handle {border: 1px dotted #FFF;border-radius: var(--border-radius);}
+    .sortable .item .delLike {position: absolute;z-index: 5;right: -0.4rem;top: -0.4rem;}
+    .sortable .item .delLike:is(:hover,:focus,:active) {cursor: pointer;transform: rotate(180deg);transition: transform .3s ease-in-out;}
+</style>
+<!-- ########## START: LEFT PANEL ########## -->
+<div role="leftmenu">
+    <aside class="like-menu">
+        <div id="edit-likeMenu" data-tooltip="즐겨찾기메뉴 위치변경" data-placement="right"><i class="fa-kit fa-book-svg" style="font-size: 2.2rem;"></i></div>
+        <nav>
+            {_SESSION.likemenu}
+        </nav>
+    </aside>
+    <aside class="aside-menu">
+        <a href="{? company.this.domain.pc==''}javascript:;{:}{company.this.domain.pc}{/}"{? company.this.domain.pc!=''} target="_blank" {/} style="display: block;padding: 1.5rem 1rem;cursor: pointer;color: black;font-size: 1rem;font-weight: 600;text-align: center;">
+            {? !empty(company.this.image.logo)}<img src="{company.this.image.logo}" alt="{company.this.name}" style="max-width: 100%;width: 80%;">{:}[ HK Price ]{/}
+        </a>
+        <nav>
+            {_SESSION.leftmenu}            
+        </nav>
+    </aside>
+</div>
+
+<ul id="likeItemClone" style="display: none;">
+    <li class="item" data-idx="" data-selector=""><a href="" ><i></i><span></span></a></li>
+</ul>
+<script>
+    $(()=>{
+        // aside-menu active
+        {? !empty(_SESSION.selector)}
+        const activeLink=$("aside a#{_SESSION.selector}"), activeLi=activeLink.closest('li'), parentAccordion=activeLink.closest("details");
+        activeLi.attr("aria-current","page"),parentAccordion.attr("open","true");
+        {/}
+
+        // 즐겨찾기메뉴 재정렬
+        var $ul = $('#likeMenuSortable');
+        var $items = $ul.children('li').detach().toArray().sort(function(a, b) {
+            return $(a).data('idx') - $(b).data('idx');
+        });
+        $ul.append($items);
+
+        // 메뉴 즐겨찾기 추가/삭제
+        const addMenu=$('aside .add_menu');
+        addMenu.click(function(e){
+            e.preventDefault();
+            
+            $(this).find('.fa-star').toggleClass('fa-light').toggleClass('fa-solid');
+           
+            let addFavorites = $(this).closest('li').find('a').attr('id');
+            let addMenuTarget = $(this).closest('li').find('a').attr('target');
+            let addMenuName = $(this).closest('li').find('a').text();
+            let addMenuLink = $(this).closest('li').find('a').attr('href');
+            let addMenuIcon = $(this).closest('details').find('summary i').attr('class');
+
+            // 추가된 메뉴일 경우 li.item append
+            if( $(this).find('.fa-star').hasClass('fa-solid')){
+                var clone = '';
+                if($('#likeMenuSortable .item').length > 0){
+                    clone = $('#likeMenuSortable .item:last-child').clone();
+                    clone.attr('data-idx', parseInt(clone.attr('data-idx'))+1).attr('data-selector', addFavorites);
+                }else{
+                    clone = $('#likeItemClone .item').clone();
+                    clone.attr('data-idx', 0).attr('data-selector', addFavorites);
+                }
+                clone.find('a').attr('href', addMenuLink);
+                clone.find('a').attr('target', addMenuTarget);
+                clone.find('i').attr('class',addMenuIcon);
+                clone.find('span').text(addMenuName);
+                $('#likeMenuSortable').append(clone);
+            }else{
+                $('#likeMenuSortable [data-selector="'+addFavorites+'"]').remove();
+            }
+
+            // 즐겨찾기 저장
+            setFavoritesMenu(addFavorites,null);
+        })
+
+        // 즐겨찾기메뉴 드래그 위치변경
+        const editLikeMenu = $('#edit-likeMenu');
+        const editLikeEnd = $('#edit-likeMenu.editing');
+
+        if(isMobile()){
+            editLikeMenu.removeAttr('data-tooltip');
+        }
+        editLikeMenu.click(function(){
+
+            // 변경 후 클릭 : 위치변경 저장
+            if($(this).hasClass('editing')){
+                let favoritesArray = new Array;
+                $('#likeMenuSortable .item').each(function(){
+                    favoritesArray.push($(this).attr('data-selector'));
+                });
+
+                // 즐겨찾기 저장
+                setFavoritesMenu(null,favoritesArray);
+                $("#likeMenuSortable").sortable("destroy"); // sortable 해제
+            }
+
+            $('#likeMenuSortable').toggleClass('sortable');
+
+            editLikeMenu.toggleClass('editing');
+
+            if(editLikeMenu.hasClass('editing')){
+                editLikeMenu.append('<span>변경 중</span>');
+                if(!isMobile()){
+                    editLikeMenu.attr('data-tooltip','변경완료 후 클릭해주세요');
+                }
+                
+                $("#likeMenuSortable").sortable({
+                    connectWith: "#likeMenuSortable .item",
+                    placeholder: "ui-state-highlight",
+                    cursor: "grabbing",
+                });
+                
+                // 즐겨찾기삭제버튼 prepend
+                $('#likeMenuSortable .item').each(function(){
+                    $(this).prepend('<i class="fa-solid fa-circle-xmark delLike" style="color:#FFF;"></i>');
+                });
+                
+            }else{
+                editLikeMenu.find('span').remove();
+                
+                // 즐겨찾기삭제버튼 remove
+                $('#likeMenuSortable .item').each(function(){
+                    $(this).find('.delLike').remove();
+                });
+                
+                if(!isMobile()){
+                    editLikeMenu.attr('data-tooltip','즐겨찾기메뉴 위치변경');
+                }
+            }
+
+            // 즐겨찾기 삭제
+            $('.item .delLike').click(function(){
+                let delLikeMenu = $(this).closest('.item').attr('data-selector');
+                let addMenu = $('aside #'+delLikeMenu).closest('li').find('.add_menu');
+                setFavoritesMenu(delLikeMenu,null);
+                addMenu.find('.fa-star').toggleClass('fa-light').toggleClass('fa-solid');
+                addMenu.attr('data-tooltip','즐겨찾기추가');
+                $(this).closest('.item').remove();
+            });
+
+        });
+
+        
+        // 즐겨찾기 메뉴 저장처리
+        function setFavoritesMenu(add, array){
+            $.ajax({
+                url: '/manager/setFavoritesMenu/ajax',
+                method: 'post',
+                dataType: 'json',
+                data: {
+                    'favoritesMenu': add,
+                    'favoritesArray': array
+                }
+            }).done(function(data, textStatus, jqXHR) {
+                if(data.result.msg) {
+                    alert(data.result.msg)
+                }
+            }).fail(function(jqXHR, textStatus, errorThrown) {
+                if (!!jqXHR?.responseJSON?.result?.msg) {
+                    alert(jqXHR.responseJSON.result.msg);
+                } else {
+                    alert(textStatus+' : '+errorThrown);
+                }
+            });
+        }
+
+    })
+    </script>
+<!-- ########## END: LEFT PANEL ########## -->

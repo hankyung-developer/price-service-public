@@ -1,0 +1,257 @@
+<!-- articleList Setup Modal -->
+<style>
+	#articleListModal .select2-container--default .select2-results>.select2-results__options {max-height: 500px;}
+	#articleListModal .select2-container--default .select2-results>.select2-results__options img{height:140px;}
+</style>
+<dialog id="articleListModal">
+    <article class="card">
+        <header class="flex nowrap justify-between align-center mr-0">
+			<h6></h6>
+            <a href="#close" aria-label="Close" title="닫기" data-target="articleListModal" onclick="toggleModal(event)"><i class="fa-light fa-circle-xmark fa-lg"></i></a>
+        </header>
+		<!-- layoutInput -->
+		<div class="layoutInput">
+			<input type="hidden" id="objId">
+			<div class="row">
+				<span class="label">제목</span>
+				<input type="text" id="title" placeholder="화면에 표출될 박스 명입니다." />
+			</div>
+			<div class="row">
+				<span class="label">custom boxId</span>
+				<input type="text" id="customBoxId" placeholder="사용자 지정 boxId (옵션)" />
+			</div>
+			<div class="group">
+				<div class="label">PC설정</div>
+				<div class="grid grid1-2">
+					<div>
+						<div class="row">
+							<span class="label">노출</span>
+							<input type="checkbox" role="switch" class="" id="showpc" data-on="ON" data-off="OFF" checked/>
+							<span class="switch-label">ON</span>
+						</div>
+						<div class="row">
+							<span class="label">기사갯수</span>
+							<input type="text" class="showArticleNum" id="showarticlenum" data-type='num'/>
+						</div>
+						<div class="row">
+							<span class="label">본문글자수</span>
+							<input type="text" class="contentcutnum" id="contentcutnum" data-type='num'/>
+						</div>
+						<div class="row">
+							<span class="label">썸네일 노출</span>
+							<input type="checkbox" role="switch" class="" id="showthumbpc" data-on="ON" data-off="OFF" checked/>
+							<span class="switch-label">ON</span>
+						</div>
+						<div class="row">
+							<span class="label">썸네일 W/H</span>
+							<input type="text" class="thumbwidthpc" id="thumbwidthpc" placeholder="가로px" />
+							<input type="text" class="thumbheightpc" id="thumbheightpc" placeholder="세로px" />
+						</div>
+					</div>
+					<div>
+						<div class="row image-skin">
+							<span class="label">PC Skin</span>
+							<select class="select2" id="pcSkin">
+								<option value="">안보이기</option>
+							</select>
+						</div>
+						<!--div class="row" style="height: 200px;max-height: 200px;justify-content: center;">
+							<img id="pcSkinPreview" src="" onError="this.src='/img/skin/show-hidden-icons.png';" style="width: auto;height: auto;max-width: 100%;max-height: 200px;">
+						</div-->
+					</div>
+				</div>
+			</div>
+			<div class="group">
+				<div class="label">MOBILE설정</div>
+				<div class="grid grid1-2">
+					<div>
+						<div class="row">
+							<span class="label">노출</span>
+							<input type="checkbox" role="switch" class="" id="showmobile" data-on="ON" data-off="OFF" checked/>
+							<span class="switch-label">ON</span>
+						</div>
+						<div class="row">
+							<span class="label">기사갯수</span>
+							<input type="text" class="mobileshowArticleNum" id="mobileshowarticlenum" data-type='num'/>
+						</div>
+						<div class="row">
+							<span class="label">본문글자수</span>
+							<input type="text" class="contentcutnummobile" id="contentcutnummobile" data-type='num'/>
+						</div>
+						<div class="row">
+							<span class="label">썸네일 노출</span>
+							<input type="checkbox" role="switch" class="" id="showthumbmobile" data-on="ON" data-off="OFF" checked/>
+							<span class="switch-label">ON</span>
+						</div>
+						<div class="row">
+							<span class="label">썸네일 W/H</span>
+							<input type="text" class="thumbwidthmobile" id="thumbwidthmobile" placeholder="가로px" />
+							<input type="text" class="thumbheightmobile" id="thumbheightmobile" placeholder="세로px" />
+						</div>
+					</div>
+					<div>
+						<div class="row image-skin">
+							<span class="label">MOBILE Skin</span>
+							<select class="select2" id="mobileSkin">
+								<option value="">안보이기</option>
+							</select>
+						</div>
+						<!--div class="row" style="height: 200px;max-height: 200px;justify-content: center;">
+							<img id="mobileSkinPreview" src="" onError="this.src='/img/skin/show-hidden-icons.png';" style="width: auto;height: auto;max-width: 100%;max-height: 200px;">
+						</div-->
+					</div>
+				</div>
+			</div>
+		</div>
+		<!--// layoutInput -->
+		<footer class="flex justify-end">
+			<button type="button" class="btn btn-md"  id="btn_articleListObjSetup">저장</button>
+			<button type="button" class="btn btn-md btn-gray"  data-target="articleListModal" onclick="toggleModal(event);">취소</button>
+		</footer>
+	</article>
+</dialog>
+<!-- //articleList Setup Modal -->
+
+
+<script>
+/*******************************************************************************
+ * 기사리스트 박스 설정
+ */
+
+// 기사리스트 영역 세팅 모달창
+$('#layoutBase').on("click",".articleListMoreBt",function(){
+	var obj=$(this).closest('.object');
+
+	var modal = $('#articleListModal');
+	openModal(document.getElementById('articleListModal'));
+
+	// skin select 로딩
+	setSelectSkin(modal.find('select#pcSkin'), $(this).closest('[data-dinnum]').data('dinnum'), 'pc', obj.attr('data-objecttype'));
+	setSelectSkin(modal.find('select#mobileSkin'), $(this).closest('[data-dinnum]').data('dinnum'), 'mobile', obj.attr('data-objecttype'));
+
+	modal.find('article.card').attr('data-objectType',obj.attr('data-objectType'));
+	modal.find('header h6').html((obj.attr('data-title')?obj.attr('data-title'):'기사리스트')+' <small>(objId : '+obj.attr('data-objid')+')</small>');
+	modal.find('#objId').val(obj.attr('data-objid'));
+	modal.find('#title').val(obj.attr('data-title'));
+	modal.find('#customBoxId').val(obj.attr('data-customboxid'));
+	modal.find('#showpc').prop('checked',obj.attr('data-showpc')=="N"?false:true);
+	modal.find('#showmobile').prop('checked',obj.attr('data-showmobile')=="N"?false:true);
+	modal.find('#showarticlenum').val(obj.attr('data-showarticlenumpc'));
+	modal.find('#mobileshowarticlenum').val(obj.attr('data-showarticlenummobile'));
+	modal.find('#showthumbpc').prop('checked',obj.attr('data-showthumbpc')=="N"?false:true);
+	modal.find('#showthumbmobile').prop('checked',obj.attr('data-showthumbmobile')=="N"?false:true);
+	modal.find('#thumbwidthpc').val(obj.attr('data-thumbwidthpc'));
+	modal.find('#thumbheightpc').val(obj.attr('data-thumbheightpc'));
+	modal.find('#thumbwidthmobile').val(obj.attr('data-thumbwidthmobile'));
+	modal.find('#thumbheightmobile').val(obj.attr('data-thumbheightmobile'));
+	modal.find('#contentcutnum').val(obj.attr('data-contentcutnumpc'));
+	modal.find('#contentcutnummobile').val(obj.attr('data-contentcutnummobile'));
+	modal.find('#pcSkin').val(obj.attr('data-pcskin'));
+	modal.find('#mobileSkin').val(obj.attr('data-mobileskin'));
+
+	modal.find('#pcSkin').select2({
+		dropdownParent: modal,
+		width:"100%",
+		templateResult: formatState,
+		templateSelection: formatState
+	});
+	modal.find('#mobileSkin').select2({
+		dropdownParent: modal,
+		width:"100%",
+		templateResult: formatState,
+		templateSelection: formatState
+	});
+
+	// 각각의 체크박스에 대해 초기값 설정
+	$('input[role="switch"]').each(function(){
+		var checked = $(this).prop('checked');
+		var row = $(this).closest('.row');
+		var on = $(this).data('on');
+		var off = $(this).data('off');
+		if (checked) {
+			row.find('.switch-label').empty().append(on);
+		} else {
+			row.find('.switch-label').empty().append(off);
+		}
+	});
+
+	setPreview(modal);
+});
+
+// 기사리스트 세팅사항 저장
+$('#articleListModal').on('click','#btn_articleListObjSetup',function(e){
+	let modal = $(this).closest('#articleListModal');
+
+	let dataObject = new Object();
+	dataObject['objId'] = modal.find("#objId").val();
+	dataObject['title'] = modal.find('#title').val();
+	dataObject['customBoxId'] = modal.find('#customBoxId').val();
+	dataObject['showPC'] = modal.find('#showpc').prop('checked')?"Y":"N";
+	dataObject['showMobile'] = modal.find('#showmobile').prop('checked')?"Y":"N";
+	dataObject['showArticleNumPC'] = modal.find('#showarticlenum').val();
+	dataObject['showArticleNumMobile'] = modal.find('#mobileshowarticlenum').val();
+	dataObject['showThumbPC'] = modal.find('#showthumbpc').prop('checked')?"Y":"N";
+	dataObject['showThumbMobile'] = modal.find('#showthumbmobile').prop('checked')?"Y":"N";
+	dataObject['thumbWidthPC'] = modal.find('#thumbwidthpc').val();
+	dataObject['thumbHeightPC'] = modal.find('#thumbheightpc').val();
+	dataObject['thumbWidthMobile'] = modal.find('#thumbwidthmobile').val();
+	dataObject['thumbHeightMobile'] = modal.find('#thumbheightmobile').val();
+	dataObject['contentCutNumPC'] = modal.find('#contentcutnum').val();
+	dataObject['contentCutNumMobile'] = modal.find('#contentcutnummobile').val();
+	dataObject['pcSkin'] = modal.find('#pcSkin').val();
+	dataObject['mobileSkin'] = modal.find('#mobileSkin').val();
+	
+	let selectBox = $('[data-objId="'+dataObject['objId']+'"]');
+	selectBox.find('.card-header > h6').text(dataObject['title']);
+	for (const [key, value] of Object.entries(dataObject)) {
+		selectBox.attr('data-'+key.toLowerCase() , value);
+	}
+
+	dataObject['pageId'] = $("#layoutSelect").val();
+	
+	$.ajax({
+		url: '/layout/boxSave/ajax',
+		type: 'POST',
+		data: JSON.stringify(dataObject),
+		dataType: "json",
+		success: function (data) {
+			alert('저장완료');
+			closeModal(document.getElementById('articleListModal'));
+		},
+		error: function (){
+			alert('저장 시 오류가 발생했습니다.\n다시 저장을 해주세요.\n계속해서 오류가 발생되면 관리자에게 연락해주세요');
+			closeModal(document.getElementById('articleListModal'));
+		}
+	});
+});
+
+// skin 선택시 처리
+$("#articleListModal #pcSkin").on('change',function(e,active){
+	var modal = $('#articleListModal');
+	setPreview(modal);
+	if($(this).val()){
+		var json = modal.find('#pcSkin option:selected').data('json');
+		modal.find('#showarticlenum').val(json.articleCount);
+		modal.find('#thumbwidthpc').val(json.thumbnail.pc.width);
+		modal.find('#thumbheightpc').val(json.thumbnail.pc.height);
+		modal.find('#contentcutnum').val(json.contentCutNum);
+		if(json.showThumbnail == 'Y'){
+			modal.find('#showthumbpc').prop('checked',json.showThumbnail=='Y'?true:false);
+		}
+	}
+});
+$("#articleListModal #mobileSkin").on('change',function(e,active){
+	var modal = $('#articleListModal');
+	setPreview(modal);
+	if($(this).val()){
+		var json = modal.find('#mobileSkin option:selected').data('json');
+		modal.find('#mobileshowarticlenum').val(json.articleCount);
+		modal.find('#thumbwidthmobile').val(json.thumbnail.mobile.width);
+		modal.find('#thumbheightmobile').val(json.thumbnail.mobile.height);
+		modal.find('#contentcutnummobile').val(json.contentCutNum);
+		if(json.showThumbnail == 'Y'){
+			modal.find('#showthumbmobile').prop('checked',json.showThumbnail=='Y'?true:false);
+		}
+	}
+});
+</script>

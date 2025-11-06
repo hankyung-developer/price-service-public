@@ -1,0 +1,227 @@
+
+<dialog id="relationModal">
+    <article class="card">
+        <header>
+            <a href="#close" aria-label="Close" class="close" data-target="relationModal" onclick="toggleModal(event)"></a>
+            <h6>관련기사</h6>
+        </header>
+        <div class="flex nowrap justify-end">
+            <button type="button" id="relationOk" class="btn" style="margin-bottom: calc(var(--spacing) * 0.2);">관련기사 적용</button>
+        </div>
+        <div id="relationAdd" class="scroll-box scroll-box-lg"></div>
+        <div class="addClone" style="display: none;">
+            <input type="checkbox" id="aid[]" checked="" value="" data-title="">
+            <span></span>
+        </div>
+        <form name="relationSearchForm" id="relationSearchForm" onsubmit="return false;" role="search">
+            <select name="categoryId" id="categoryId">
+                <option value="">카테고리 선택</option>
+                {@ result.categoryList}
+                <option class="level-0" value="{.id}">{? .depth == 2}&nbsp;&nbsp;{: .depth == 3}&nbsp;&nbsp;&nbsp;&nbsp;{/}{.name}</option>
+                {/}
+            </select>
+            <div class="select-input search-input">
+                <select name="searchItem" id="searchItem">
+                    <option value="">선택</option>
+                    <option value="title">제목</option>
+                    <option value="content">본문</option>
+                    <option value="report">기자</option>
+                    <option value="modifyName">수정</option>
+                    <option value="aid">기사ID</option>
+                </select>
+                <input type="text" id="searchText" name="searchText" placeholder="" value="">
+                <button id="btn_relationSearch" class="btn-search" type="button"><i class="fa-light fa-magnifying-glass"></i></button>
+            </div>
+        </form>
+        <div style="padding: 1rem;max-height: calc(50vh - 90px);overflow-y: scroll;">
+            <table>
+                <tbody id="relationTable">
+                </tbody>
+            </table>
+        </div>
+        <footer><div id="paging"></div></footer>
+    </article>
+</dialog>
+<!-- relationRowClone -->
+<table style="display: none;">
+    <tbody id="relationRowClone">
+        <tr>
+            <td width="100px">
+                <button type="button" class="btn btn-sm addRelation" value="" data-title="" ><i class="fa-solid fa-plus" style="margin-right: 0;"></i></button>
+            </td>
+            <td width="*">
+                <div class="title"></div>
+                <input type="hidden" class="title" id="" value="">
+            </td>
+            <td width="100px" class="text-center">
+                <div class="reporter"></div>
+                <input type="hidden" class="reporter" id="" value="">
+            </td>
+        </tr>
+    </tbody>
+</table>
+<!--// relationRowClone -->
+
+<script>
+    /********************************************************************************
+     * 관련기사 modal
+     */
+    // 관련기사 modal open event
+    let relationArr = new Array();
+    $('#btn_relationModal').on('click', function () {
+        $("#relationAdd").empty();
+        $("#relationTable").empty();
+        $('#paging').empty();
+
+        // 기존 관련기사 추가
+        relationArr.length = 0;
+        $('[name="relationAid[]"]').each((i, obj)=>{
+            var htmlTitle = convertSpecialChar($(obj).data('title'));
+            var addedClone = $('.addClone').clone();
+                addedClone.attr('style','display:block;').removeClass('addClone');
+                addedClone.find('input').attr('value',$(obj).val()); 
+                addedClone.find('input').attr('data-title',htmlTitle); 
+                addedClone.find('span').text($(obj).data('title')); 
+            $('#relationAdd').append(addedClone);
+            relationArr.push($(obj).val());
+
+        });
+    });
+
+    // 관련기사 검색(categoryId) : change
+    $("#relationSearchForm #categoryId").change(function(){
+        articleSearch($("#relationSearchForm #categoryId").val(), $("#relationSearchForm #searchItem").val(), $("#relationSearchForm #searchText").val(), 1, '#relationTable' );
+    });
+
+    // 관련기사 검색 : click
+    $("#btn_relationSearch").click(function(){
+        articleSearch($("#relationSearchForm #categoryId").val(), $("#relationSearchForm #searchItem").val(), $("#relationSearchForm #searchText").val(), 1, '#relationTable' );
+    });
+    // 관련기사 검색 : enter
+    $('#relationModal #searchText').keyup(function(e){
+        if(e.keyCode == 13){
+            articleSearch($("#relationSearchForm #categoryId").val(), $("#relationSearchForm #searchItem").val(), $("#relationSearchForm #searchText").val(), 1, '#relationTable' );
+        }
+    });
+    
+    // 기사 검색 : 관련기사용
+    var articleSearch = function (categoryId, searchItem, searchText, page, listObjId){
+        var params = {
+            categoryId: categoryId,
+            searchItem: searchItem,
+            searchText: searchText,
+            excludedAid: $('#aid').val()?$('#aid').val():'',
+            listType: 'publish',
+            searchType: 'relation',
+            page: page,
+            noapp: '10',
+            returnType: 'ajax',
+        };
+        $(listObjId).empty();
+        $.ajax({
+            url: '/article/list/ajax',
+            method: 'GET',
+            data: params,
+            contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+            dataType: 'json',
+            success: function (data) {
+                // console.log(data.result);
+                var thisPage = parseInt(data.result.thisPage);
+                var lastPage = parseInt(data.result.lastPage);
+                categoryId = categoryId.trim();
+
+                $(data.result.items).each(function() {
+                    htmlTitle = convertSpecialChar(this.title);
+                    var tmp = $('#relationRowClone').clone();
+                    tmp.find('.addRelation').attr('data-title',this.title).attr('value',this.aid).prop('disabled',relationArr.indexOf(this.aid)!=-1?true:false);
+                    tmp.find('div.title').text(this.title);
+                    tmp.find('input.title').attr('id','at_'+this.aid).val(htmlTitle);
+                    tmp.find('div.reporter').text(this.reporter[0].name);
+                    tmp.find('input.reporter').attr('id','rp_'+this.aid).val(this.reporter[0].name);
+                    $(listObjId).append(tmp.html());
+                });
+
+                var paging = '';
+                if(data.result.totalCount > 0) {
+                    paging +='<div class="page">';
+                    paging +=' <small>'+data.result.totalCount+' 건</small>';
+                    paging +=' <nav aria-label="Page navigation" role="navigation">';
+                    paging +='    <ul>';
+                    if(data.result.page.prevPage){
+                    paging +='       <li>';
+                    paging +='         <a href=\'javascript:articleSearch("'+categoryId+'", "'+searchItem+'", "'+searchText+'", '+data.result.page.prevPage+',"'+listObjId+'");\' aria-label="Previous">';
+                    paging +='          <i class="fa-light fa-circle-chevron-left fa-lg"></i>';
+                    paging +='        </a>';
+                    paging +='      </li>';
+                    }	  
+                    $(data.result.page.navibar).each(function() {
+                        paging +=' <li class="page-item '+(page==this.page?'active':'')+'"><a href=\'javascript:articleSearch("'+categoryId+'", "'+searchItem+'", "'+searchText+'", '+this.page+',"'+listObjId+'");\'>'+this.page+'</a></li>';
+                    });
+                    if(data.result.page.nextPage){
+                    paging +='      <li>';
+                    paging +='        <a href=\'javascript:articleSearch("'+categoryId+'", "'+searchItem+'", "'+searchText+'", '+data.result.page.prevPage+',"'+listObjId+'");\' aria-label="Next">';
+                    paging +='           <i class="fa-light fa-circle-chevron-right fa-lg"></i>';
+                    paging +='        </a>';
+                    paging +='      </li>';
+                    }
+                    paging +='    </ul>';
+                    paging +='  </nav>';
+                    paging +='</div>';
+                } else {
+                    paging +='<div class="ht-60 d-flex align-items-center justify-content-end">검색결과가 없습니다.</div>';
+                }
+
+                $(listObjId).parents('article').find('#paging').empty().append(paging);
+            }, error : function(xhr, status, error){
+                console.log(xhr, status, error);
+            }
+        });
+    }
+
+    // 관련기사 ADD click
+    $(document).on('click','.addRelation',function(){
+        if($('#relationAdd input[value="'+$(this).val()+'"]').length > 0){
+            alert('이미 추가된 기사입니다.');
+            return false;
+        }
+        var htmlTitle = convertSpecialChar($(this).data('title'));
+        var addedClone = $('.addClone').clone();
+            addedClone.attr('style','display:block;').removeClass('addClone');
+            addedClone.find('input').attr('value',$(this).val()); 
+            addedClone.find('input').attr('data-title',htmlTitle); 
+            addedClone.find('span').text($(this).data('title')); 
+        $('#relationAdd').append(addedClone);
+
+        relationArr.push($(this).val());
+        $(this).attr('disabled','disabled');
+    });
+
+    // 관련기사 적용 click
+    $("#relationOk").click(function(){
+        $("#relationOkList").empty();
+        if($("#relationAdd input:checkbox:checked").length > 0){
+            relationArr.length = 0;
+            $("#relationAdd input:checkbox:checked").each(function(){
+                var aid = $(this).val();
+                var title = $(this).data('title');
+                if($('#relationOkList input[value="'+aid+'"]').length > 0){
+                    return true;
+                }
+                $("#relationOkList").append(
+                    '<tr>' +
+                    '<td width="30px" style="padding:0;border:0;line-height:normal;"> <input type="checkbox" name="relationAid[]" class="sm" value="'+aid+'" checked data-title="'+title+'"></td>' +
+                    '<td width="*" style="font-size:var(--font-size-xs);padding:0;border:0;line-height:1.5;"> '+title+'</td>' +
+                    '</tr>'
+                );
+                relationArr.push(aid);
+            });
+            $(".relation-message").hide();
+            alert('관련기사가 적용되었습니다.');
+            $('html').removeClass('modal-is-open');
+            $('#relationModal').prop('open',false);
+        }else{
+            alert('선택한 기사가 없습니다.');
+        }
+    });
+    
+</script>

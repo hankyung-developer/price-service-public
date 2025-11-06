@@ -1,0 +1,208 @@
+
+<!-- CodeMirror -->
+<link rel="stylesheet" href="/lib/CodeMirror/lib/codemirror.css">
+<link rel="stylesheet" href="/lib/CodeMirror/theme/3024-night.css">
+<script src="/lib/CodeMirror/lib/codemirror.js"></script>
+<script src="/lib/CodeMirror/mode/xml/xml.js"></script>
+<script src="/lib/CodeMirror/mode/javascript/javascript.js"></script>
+<script src="/lib/CodeMirror/mode/css/css.js"></script>
+<script src="/lib/CodeMirror/mode/htmlmixed/htmlmixed.js"></script>
+<script src="/lib/CodeMirror/mode/htmlembedded/htmlembedded.js"></script>
+<script src="/lib/CodeMirror/addon/mode/multiplex.js"></script>
+<!-- //CodeMirror -->
+
+<!-- HTML Setup Modal -->
+<dialog id="htmlModal">
+    <article class="card card-sm">
+		<header class="flex nowrap justify-between align-center mr-0">
+			<h6></h6>
+            <a href="#close" aria-label="Close" title="닫기" data-target="htmlModal" onclick="closeAndReset(event)"><i class="fa-light fa-circle-xmark fa-lg"></i></a>
+        </header>
+		<!-- layoutInput -->
+		<div class="layoutInput">
+			<input type="hidden" id="objId">
+			<div class="row">
+				<span class="label">제목</span>
+				<input type="text" id="title" placeholder="화면에 표출될 박스 명입니다." />
+			</div>
+			<div class="row">
+				<span class="label">custom boxId</span>
+				<input type="text" id="customBoxId" placeholder="사용자 지정 boxId (옵션)" />
+			</div>
+			<div class="grid">
+				<div class="row">
+					<span class="label">PC노출</span>
+					<input type="checkbox" role="switch" id="showpc" data-on="ON" data-off="OFF" checked/>
+					<span class="switch-label">ON</span>
+				</div>
+				<div class="row">
+					<span class="label">MOBILE노출</span>
+					<input type="checkbox" role="switch" id="showmobile" data-on="ON" data-off="OFF" checked/>
+					<span class="switch-label">ON</span>
+				</div>
+			</div>
+			<div class="row" style="height: fit-content;">
+				<textarea id="content" name="content" style="height: 500px; width:100%"></textarea>
+			</div>
+		</div>
+		<!--// layoutInput -->
+		<footer class="flex justify-end">
+			<button type="button" class="btn btn-md" data-target="htmlModal" id="btn_saveHtmlObj">저장</button>
+			<button type="button" class="btn btn-md btn-gray" data-target="htmlModal" id="btn_closeThisModal" onclick="closeAndReset(event)">취소</button>
+		</footer>
+	</article>
+</dialog>
+<!-- //HTML Setup Modal -->
+
+
+<script>
+/*******************************************************************************
+ ***************************      HTML 박스 함수     ***************************
+ *******************************************************************************/
+
+// html 세팅창
+$('#layoutBase').on("click",".htmlMoreBt", function (e){
+	var obj=$(e.target).closest('.object');
+	var objId=obj.attr('data-objid');
+	var title=obj.attr('data-title');
+	var modal = $('#htmlModal');
+	openModal(document.getElementById('htmlModal'));
+
+	// 입력된 내용 초기화
+	modal.find('article.card').attr('data-objectType',obj.attr('data-objectType'));
+	modal.find('header h6').html((title?title:'HTML')+' <small>(objId : '+objId+')</small>');
+	modal.find('#objId').val(objId);
+	modal.find('#title').val((title?title:''));
+	modal.find('#customBoxId').val(obj.attr('data-customboxid'));
+	modal.find('#showpc').prop('checked',obj.attr('data-showpc')=="N"?false:true);
+	modal.find('#showmobile').prop('checked',obj.attr('data-showmobile')=="N"?false:true);
+
+	// 각각의 체크박스에 대해 초기값 설정
+	$('input[role="switch"]').each(function(){
+        var checked = $(this).prop('checked');
+        var row = $(this).closest('.row');
+        var on = $(this).data('on');
+        var off = $(this).data('off');
+
+        if (checked) {
+            row.find('.switch-label').empty().append(on);
+        } else {
+            row.find('.switch-label').empty().append(off);
+        }
+    });
+
+	var content = obj.attr('data-content');	
+	insertText(!!content?content:'');
+});
+
+
+// html 저장
+$('#htmlModal').on("click","#btn_saveHtmlObj", (e)=>{
+	let dataObject = htmlSettingData(e);
+	dataObject['pageId'] = $("#layoutSelect").val();
+
+	$.ajax({
+		url: '/layout/boxSave/ajax',
+		type: 'POST',
+		data: JSON.stringify(dataObject),
+		dataType: "json",
+		success: function (data) {
+			alert('저장완료');
+			closeAndReset(e);
+		},
+		error: function (){
+			alert('저장 시 오류가 발생했습니다.\n다시 저장을 해주세요.\n계속해서 오류가 발생되면 관리자에게 연락해주세요');
+			closeAndReset(e);
+		}
+	});
+});
+
+// $('#htmlModal').on("click","#btn_closeThisModal", (e)=>{
+// 	closeAndReset(e);
+// });
+
+let htmlCodeEditor;
+$(()=>{
+    htmlCodeEditor = CodeMirror.fromTextArea(document.getElementById("content"), {
+        lineNumbers: false,
+        mode: "application/x-ejs",
+        indentUnit: 4,
+        indentWithTabs: true,
+        dragDrop: true,
+        viewportMargin: 4,
+        theme: '3024-night',
+		autoRefresh: true
+    });
+    htmlCodeEditor.setSize('100%', '500px');
+    htmlCodeEditor.on('drop', (data, e)=>{
+        let datas = e.dataTransfer.files;
+    
+        const formData = new FormData();
+        for(let cnt =0; cnt < datas.length; cnt++){
+            files = datas[cnt];
+            formData.append('file', files);
+            
+            $.ajax({
+                url: '/file/save/ajax',
+                type: 'POST',
+                data: formData,
+                async: true,
+                success: (response)=>{
+                    let result = JSON.parse(response);
+                    let imgHtml ='<img src="'+result.result.path+'"/>';
+        
+                    insertText(imgHtml);
+                },
+                cache: false,
+                contentType: false,
+                processData: false
+            });
+        };
+    });
+});
+
+function insertText(data) {
+	//htmlCodeEditor.setValue(data);
+	const doc = htmlCodeEditor.getDoc();
+	const cursor = doc.getCursor();
+	const line = doc.getLine(cursor.line);
+	const pos = {
+		line: cursor.line
+	};
+	if (line.length === 0) {
+	 	doc.replaceRange(data, pos);
+	} else {
+	 	doc.replaceRange("\n" + data, pos);
+	}
+}
+
+let htmlSettingData = (e) =>{
+	const modal = $(e.target).closest('#htmlModal');
+
+	let dataObject = new Object();    
+    dataObject['objId'] = modal.find("#objId").val();
+	dataObject['title'] = modal.find('#title').val();
+	dataObject['customBoxId'] = modal.find('#customBoxId').val();
+	dataObject['showPC'] = modal.find('#showpc').prop('checked')?"Y":"N";
+	dataObject['showMobile'] = modal.find('#showmobile').prop('checked')?"Y":"N";
+	dataObject['content'] = htmlCodeEditor.getValue();
+
+	let selectBox = $('[data-objId="'+dataObject['objId']+'"]');
+	selectBox.find('header h6').text(dataObject['title']);
+	for (const [key, value] of Object.entries(dataObject)) {
+		selectBox.attr('data-'+key.toLowerCase() , value);
+	}
+
+	dataObject['pageId'] = $("#layoutSelect").val();
+
+    return dataObject;
+}
+
+function closeAndReset(event) {
+	htmlCodeEditor.setValue('');
+	toggleModal(event);
+}
+/*******************************************************************************
+ ***************************      HTML 박스 함수     ***************************
+ *******************************************************************************/
+</script>

@@ -1,0 +1,54 @@
+<!-- Modal : 특수문자 -->
+<dialog id="specialCharaterBox">
+    <article class="card">
+        <header>
+            <a href="#close" aria-label="Close" class="close" data-target="specialCharaterBox" onclick="toggleModal(event);"></a>
+            <h6>특수문자</h6>
+        </header>
+        <table cellspacing="0" class="mce-charmap" id="specialChar-body">
+            <tbody>
+                <tr>
+                    <td>&nbsp;</td><td>­</td><td>"</td><td>¢</td><td>€</td><td>£</td><td>¥</td><td>©</td><td>®</td><td>™</td><td>‰</td><td>µ</td><td>·</td><td>•</td><td>…</td><td>′</td><td>″</td><td>§</td><td>¶</td><td>ß</td><td>‹</td><td>›</td><td>«</td><td>»</td><td>‘</td>
+                </tr>
+                <tr>
+                    <td>’</td><td>“</td><td>”</td><td>‚</td><td>„</td><td>&lt;</td><td>&gt;</td><td>≤</td><td>≥</td><td>–</td><td>—</td><td>¯</td><td>‾</td><td>¤</td><td>¦</td><td>¨</td><td>¡</td><td>¿</td><td>ˆ</td><td>˜</td><td>°</td><td>−</td><td>±</td><td>÷</td><td>⁄</td>
+                </tr>
+                <tr>
+                    <td>×</td><td>¹</td><td>²</td><td>³</td><td>¼</td><td>½</td><td>¾</td><td>ƒ</td><td>∫</td><td>∑</td><td>∞</td><td>√</td><td>∼</td><td>≅</td><td>≈</td><td>≠</td><td>≡</td><td>∈</td><td>∉</td><td>∋</td><td>∏</td><td>∧</td><td>∨</td><td>¬</td><td>∩</td>
+                </tr>
+                <tr>
+                    <td>∪</td><td>∂</td><td>∀</td><td>∃</td><td>∅</td><td>∇</td><td>∗</td><td>∝</td><td>∠</td><td>´</td><td>¸</td><td>ª</td><td>º</td><td>†</td><td>‡</td><td>À</td><td>Á</td><td>Â</td><td>Ã</td><td>Ä</td><td>Å</td><td>Ā</td><td>Æ</td><td>Ç</td><td>È</td>
+                </tr>
+                <tr>
+                    <td>É</td><td>Ê</td><td>Ë</td><td>Ē</td><td>Ì</td><td>Í</td><td>Î</td><td>Ï</td><td>Ī</td><td>Ð</td><td>Ñ</td><td>Ò</td><td>Ó</td><td>Ô</td><td>Õ</td><td>Ö</td><td>Ø</td><td>Ō</td><td>Œ</td><td>Š</td><td>Ù</td><td>Ú</td><td>Û</td><td>Ü</td><td>Ū</td>
+                </tr>
+                <tr>
+                    <td>Ý</td><td>Ÿ</td><td>Ȳ</td><td>Þ</td><td>à</td><td>á</td><td>â</td><td>ã</td><td>ä</td><td>å</td><td>ā</td><td>æ</td><td>ç</td><td>è</td><td>é</td><td>ê</td><td>ë</td><td>ē</td><td>ì</td><td>í</td><td>î</td><td>ï</td><td>ī</td><td>ð</td><td>ñ</td>
+                </tr>
+                <tr>
+                    <td>ò</td><td>ó</td><td>ô</td><td>õ</td><td>ö</td><td>ø</td><td>ō</td><td>œ</td><td>š</td><td>ù</td><td>ú</td><td>û</td><td>ü</td><td>ū</td><td>ý</td><td>þ</td><td>ÿ</td><td>ȳ</td><td>Α</td><td>Β</td><td>Γ</td><td>Δ</td><td>Ε</td><td>Ζ</td><td>Η</td>
+                </tr>
+                <tr>
+                    <td>Θ</td><td>Ι</td><td>Κ</td><td>Λ</td><td>Μ</td><td>Ν</td><td>Ξ</td><td>Ο</td><td>Π</td><td>Ρ</td><td>Σ</td><td>Τ</td><td>Υ</td><td>Φ</td><td>Χ</td><td>Ψ</td><td>Ω</td><td>α</td><td>β</td><td>γ</td><td>δ</td><td>ε</td><td>ζ</td><td>η</td><td>θ</td>
+                </tr>
+                <tr>
+                    <td>ι</td><td>κ</td><td>λ</td><td>μ</td><td>ν</td><td>ξ</td><td>ο</td><td>π</td><td>ρ</td><td>ς</td><td>σ</td><td>τ</td><td>υ</td><td>φ</td><td>χ</td><td>ψ</td><td>ω</td><td>ℵ</td><td>ϖ</td><td>ℜ</td><td>ϒ</td><td>℘</td><td>ℑ</td><td>←</td><td>↑</td>
+                </tr>
+                <tr>
+                    <td>→</td><td>↓</td><td>↔</td><td>↵</td><td>⇐</td><td>⇑</td><td>⇒</td><td>⇓</td><td>⇔</td><td>∴</td><td>⊂</td><td>⊃</td><td>⊄</td><td>⊆</td><td>⊇</td><td>⊕</td><td>⊗</td><td>⊥</td><td>⋅</td><td>⌈</td><td>⌉</td><td>⌊</td><td>⌋</td><td>〈</td><td>〉</td>
+                </tr>
+                <tr>
+                    <td>◊</td><td>♠</td><td>♣</td><td>♥</td><td>♦</td><td> </td><td> </td><td> </td><td>‌</td><td>‍</td><td>‎</td><td>‏</td><td>·</td><td>…</td><td>◇</td><td>◆</td><td>△</td><td>▲</td><td>▷</td><td>▶</td><td>㎝</td><td>㎜</td><td>㎞</td><td>㎛</td><td>㎚</td>
+                </tr>
+                <tr>
+                    <td>㎠</td><td>㎡</td><td>㎢</td><td>㎣</td><td>㎤</td><td>㎥</td><td>㎍</td><td>㎎</td><td>㎏</td><td>㎕</td><td>㎖</td><td>㎗</td><td>㎘</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                </tr>
+            </tbody>
+        </table>
+        <div id="selectChar" style="height: 24px;min-height: 24px;"></div>
+        <footer>
+            <button type="button" class="btn btn-md" data-target="specialCharaterBox" onclick="toggleModal(event);">닫기</button>
+        </footer>
+    </article>
+</dialog>
+<!-- //Modal : 특수문자 -->

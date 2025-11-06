@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #2c3e50;
+            background-color: #ffffff;
+            scroll-behavior: smooth;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            margin-left: 280px; /* 목차 공간 확보 */
+        }
+
+        /* 목차 네비게이션 스타일 - 한국경제신문 스타일 */
+        .toc-nav {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 260px;
+            height: 100vh;
+            background: #ffffff;
+            color: #2c3e50;
+            padding: 20px 0;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 2px 0 15px rgba(0,0,0,0.08);
+            border-right: 1px solid #e9ecef;
+        }
+
+        .toc-nav::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .toc-nav::-webkit-scrollbar-track {
+            background: #f8f9fa;
+        }
+
+        .toc-nav::-webkit-scrollbar-thumb {
+            background: #dee2e6;
+            border-radius: 3px;
+        }
+
+        .toc-nav::-webkit-scrollbar-thumb:hover {
+            background: #adb5bd;
+        }
+
+        .toc-header {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid #e9ecef;
+            margin-bottom: 20px;
+        }
+
+        .toc-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #1a365d;
+        }
+
+        .toc-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .toc-item {
+            margin: 0;
+        }
+
+        .toc-link {
+            display: block;
+            padding: 12px 20px;
+            color: #495057;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .toc-link:hover {
+            background: #f8f9fa;
+            border-left-color: #007bff;
+            color: #007bff;
+            transform: translateX(3px);
+        }
+
+        .toc-link.active {
+            background: #e3f2fd;
+            border-left-color: #007bff;
+            color: #007bff;
+            font-weight: 600;
+        }
+
+        .toc-sub-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            background: #f8f9fa;
+        }
+
+        .toc-sub-link {
+            display: block;
+            padding: 8px 20px 8px 40px;
+            color: #6c757d;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 0.8rem;
+            border-left: 2px solid transparent;
+        }
+
+        .toc-sub-link:hover {
+            background: #e9ecef;
+            border-left-color: #007bff;
+            color: #007bff;
+        }
+
+        .toc-sub-link.active {
+            background: #e3f2fd;
+            border-left-color: #007bff;
+            color: #007bff;
+            font-weight: 500;
+        }
+
+        /* 모바일에서 목차 숨기기 */
+        @media (max-width: 1024px) {
+            .toc-nav {
+                display: none;
+            }
+            
+            .container {
+                margin-left: 0;
+            }
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+            color: white;
+            padding: 40px 0;
+            text-align: center;
+            margin-bottom: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(26, 54, 93, 0.15);
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .section {
+            background: white;
+            margin-bottom: 30px;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+            border: 1px solid #e9ecef;
+        }
+        
+        .section h2 {
+            color: #1a365d;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #007bff;
+            font-weight: 700;
+        }
+        
+        .endpoint {
+            background: #f8f9fa;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+            border: 1px solid #e9ecef;
+        }
+
+        /* API 목록 카드 스타일 */
+        .api-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .api-card {
+            background: white;
+            color: #2c3e50;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            border: 1px solid #e9ecef;
+        }
+
+        .api-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+            border-color: #007bff;
+        }
+
+        .api-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #007bff, #0056b3, #004085, #002752);
+        }
+
+        .api-card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .api-icon {
+            width: 40px;
+            height: 40px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 20px;
+            color: #007bff;
+        }
+
+        .api-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .api-method {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #007bff;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .api-description {
+            margin: 15px 0;
+            color: #6c757d;
+            line-height: 1.5;
+        }
+
+        .api-url {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            margin: 10px 0;
+            word-break: break-all;
+            border: 1px solid #e9ecef;
+            color: #495057;
+        }
+
+        .api-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .feature-badge {
+            background: #e3f2fd;
+            color: #007bff;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            border: 1px solid #bbdefb;
+        }
+
+        .api-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        /* 카테고리별 색상 - 한국경제신문 스타일 */
+        .api-card.data::before { background: linear-gradient(90deg, #007bff, #0056b3, #004085, #002752); }
+        .api-card.auth::before { background: linear-gradient(90deg, #dc3545, #c82333, #bd2130, #a71e2a); }
+        .api-card.utility::before { background: linear-gradient(90deg, #28a745, #1e7e34, #155724, #0d4f1a); }
+        .api-card.analytics::before { background: linear-gradient(90deg, #ffc107, #e0a800, #d39e00, #b8860b); }
+        .api-card.default::before { background: linear-gradient(90deg, #6f42c1, #5a32a3, #4c2887, #3d1f6b); }
+
+        /* 필터 버튼 스타일 */
+        .filter-btn {
+            background: #f8f9fa;
+            border: 2px solid #e1e8ed;
+            color: #6c757d;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .filter-btn:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+            color: #495057;
+        }
+
+        .filter-btn.active {
+            background: #007bff;
+            border-color: #007bff;
+            color: white;
+        }
+
+        .filter-btn.active:hover {
+            background: #0056b3;
+            border-color: #0056b3;
+        }
+
+        /* 검색 입력 필드 포커스 스타일 */
+        #apiSearch:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+
+        /* 검색 및 필터 컨테이너 스타일 */
+        .search-filter-container {
+            margin-bottom: 30px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-input-container {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        #apiSearch {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* API 코드 테이블 스타일 */
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-top: 5px;
+        }
+
+        .api-codes-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .api-codes-table thead {
+            background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+            color: white;
+        }
+
+        .api-codes-table th {
+            padding: 16px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .api-codes-table tbody tr {
+            border-bottom: 1px solid #e9ecef;
+            transition: background-color 0.2s ease;
+        }
+
+        .api-codes-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .api-codes-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .api-codes-table td {
+            padding: 16px 12px;
+            vertical-align: middle;
+        }
+
+        .code-cell {
+            font-family: 'Courier New', monospace;
+        }
+
+        .code-badge {
+            background: #007bff;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .name-cell strong {
+            color: #2c3e50;
+            font-size: 1rem;
+        }
+
+        .description-cell {
+            color: #6c757d;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .category-badge {
+            background: #e9ecef;
+            color: #495057;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-badge.active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-badge.maintenance {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .action-cell {
+            text-align: center;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            padding: 8px;
+            margin: 0 2px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s ease;
+            display: inline-block;
+        }
+
+        .action-btn:hover {
+            background: #f8f9fa;
+            transform: scale(1.1);
+        }
+
+        .copy-btn:hover {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .view-btn:hover {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .test-btn:hover {
+            background: #e8f5e8;
+            color: #388e3c;
+        }
+
+        /* 반응형 테이블 */
+        @media (max-width: 768px) {
+            .table-container {
+                overflow-x: auto;
+            }
+            
+            .api-codes-table {
+                min-width: 600px;
+            }
+            
+            .api-codes-table th,
+            .api-codes-table td {
+                padding: 12px 8px;
+                font-size: 0.8rem;
+            }
+            
+            .description-cell {
+                max-width: 200px;
+            }
+            
+            .action-btn {
+                padding: 6px;
+                margin: 0 1px;
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .api-codes-table th,
+            .api-codes-table td {
+                padding: 8px 4px;
+                font-size: 0.7rem;
+            }
+            
+            .code-badge,
+            .category-badge,
+            .status-badge {
+                font-size: 0.7rem;
+                padding: 3px 6px;
+            }
+        }
+
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+            .api-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .api-card {
+                padding: 20px;
+            }
+            
+            .api-card-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .api-icon {
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+            
+            .api-stats {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .stat-item {
+                text-align: left;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .header p {
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .api-card {
+                padding: 15px;
+            }
+            
+            .api-title {
+                font-size: 1.1rem;
+            }
+            
+            .api-url {
+                font-size: 0.8rem;
+                padding: 8px 12px;
+            }
+            
+            .feature-badge {
+                font-size: 0.7rem;
+                padding: 3px 8px;
+            }
+        }
+        
+        .endpoint h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        
+        .method {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .url {
+            font-family: 'Courier New', monospace;
+            background: #f8f9fa;
+            color: #495057;
+            padding: 8px 12px;
+            border-radius: 4px;
+            display: inline-block;
+            margin: 10px 0;
+            border: 1px solid #e9ecef;
+        }
+        
+        .parameter {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        
+        .parameter-name {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .parameter-type {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        .parameter-required {
+            color: #e74c3c;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .parameter-optional {
+            color: #95a5a6;
+            font-size: 0.8rem;
+        }
+        
+        .example {
+            background: #f8f9fa;
+            color: #495057;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            border: 1px solid #e9ecef;
+        }
+        
+        .error-code {
+            background: #e74c3c;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .test-button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px 5px;
+            transition: background 0.3s;
+        }
+        
+        .test-button:hover {
+            background: #0056b3;
+        }
+        
+        .test-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .response-example {
+            background: #f8f9fa;
+            color: #495057;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            border: 1px solid #e9ecef;
+        }
+        
+        .meta-info {
+            background: #e3f2fd;
+            color: #1a365d;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border: 1px solid #bbdefb;
+        }
+        
+        .meta-info h4 {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 목차 네비게이션 -->
+    <nav class="toc-nav">
+        <div class="toc-header">
+            <h3>📖 목차</h3>
+        </div>
+        <ul class="toc-list">
+            <li class="toc-item">
+                <a href="#overview" class="toc-link">📋 API 개요</a>
+            </li>
+            <li class="toc-item">
+                <a href="#endpoints" class="toc-link">🔗 엔드포인트</a>
+            </li>
+            <li class="toc-item">
+                <a href="#api-list" class="toc-link">🔗 API 목록</a>
+                <ul class="toc-sub-list">
+                    <li class="toc-item">
+                        <a href="#api-codes" class="toc-sub-link">API 코드</a>
+                    </li>
+                    <li class="toc-item">
+                        <a href="#response-fields" class="toc-sub-link">응답 Field</a>
+                    </li>
+                </ul>
+            </li>
+            <li class="toc-item">
+                <a href="#notes" class="toc-link">📝 주의사항</a>
+            </li>
+            <li class="toc-item">
+                <a href="#authentication" class="toc-link">🔐 인증</a>
+            </li>
+            <li class="toc-item">
+                <a href="#error-codes" class="toc-link">❌ 에러 코드</a>
+            </li>
+            <li class="toc-item">
+                <a href="#api-test" class="toc-link">🧪 API 테스트</a>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <div class="header">
+            <h1>{result.api.name}</h1>
+            <p>{result.api.description}</p>
+        </div>
+
+        <div class="section" id="overview">
+            <h2>📋 API 개요</h2>
+            <div class="meta-info">
+                <h4>API 정보</h4>
+                <p><strong>이름:</strong> {result.api.name}</p>
+                <p><strong>버전:</strong> {result.api.version}</p>
+                <p><strong>기본 URL:</strong> {result.api.baseUrl}</p>
+                <p><strong>설명:</strong> {result.api.description}</p>
+            </div>
+        </div>
+
+        <div class="section" id="endpoints">
+            <h2>🔗 엔드포인트</h2>
+            {@ result.api.endpoints}
+            <div class="endpoint">
+                <h3>{.name}</h3>
+                <span class="method">{.method}</span>
+                <div class="url">{.url}</div>
+                <p>{.description}</p>
+                
+                <h4>파라미터</h4>
+                {@ .parameters}
+                <div class="parameter">
+                    <div class="parameter-name">{..name}</div>
+                    <div class="parameter-type">{..type}</div>
+                    <div class="{? ..required}parameter-required{:}parameter-optional{/}">{? ..required}필수{:}선택{/}</div>
+                    <p>{..description}</p>
+                    <div class="example">예시: {..example}</div>
+                </div>
+                {/}
+            </div>
+            {/}
+        </div>
+
+        <div class="section" id="api-list">
+            <h2>🔗 API 목록</h2>
+            
+            <!-- API 검색 및 필터 -->
+            <!-- div class="search-filter-container">
+                <div class="search-input-container">
+                    <input type="text" id="apiSearch" placeholder="🔍 API 검색..." onkeyup="filterAPIs()">
+                </div>
+                <div class="filter-buttons">
+                    <button onclick="filterByCategory('all')" class="filter-btn active" data-category="all">전체</button>
+                    <button onclick="filterByCategory('data')" class="filter-btn" data-category="data">데이터</button>
+                    <button onclick="filterByCategory('auth')" class="filter-btn" data-category="auth">인증</button>
+                    <button onclick="filterByCategory('utility')" class="filter-btn" data-category="utility">유틸리티</button>
+                    <button onclick="filterByCategory('analytics')" class="filter-btn" data-category="analytics">분석</button>
+                </div>
+            </div -->            
+            <div class="api-grid" id="apiGrid">
+                {@ result.api.apiList.items}
+                <div class="api-card {.category}" data-category="{.category}" data-name="{.name}" data-description="{.description}">
+                    <div class="api-method">{.categoryName}</div>
+                    <div class="api-card-header">
+                        <div class="api-icon">📊</div>
+                        <h3 class="api-title">{.id}</h3>
+                    </div>
+                    <div class="api-description">{.description}</div>
+                    <div class="api-url">/api/data/{.id}</div>
+                    <div class="api-features">
+                        <span class="feature-badge">code</span>
+                        <span class="feature-badge">name</span>
+                        <span class="feature-badge">startDate</span>
+                        <span class="feature-badge">endDate</span>
+                    </div>
+                </div>
+                {/}
+            </div>
+
+            <h4 style="margin-top: 30px;" id="api-codes">API 코드</h4>
+            <div class="table-container">
+                <table class="api-codes-table">
+                    <thead>
+                        <tr>
+                            <th>code</th>
+                            <th>name</th>
+                            <th>단위</th>
+                            <th>유형</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {@ result.api.apiCodes.data}
+                        <tr>
+                            <td class="code-cell">
+                                <strong>{.code}</strong>
+                            </td>
+                            <td class="name-cell">
+                                <strong>{.name}</strong>
+                            </td>
+                            <td class="salesUnit-cell">
+                                <strong>{.salesUnit}</strong>
+                            </td>
+                            <td class="kind-cell">
+                                <strong>{.kind}</strong>
+                            </td>
+                        </tr>
+                        {/}
+                    </tbody>
+                </table>
+            </div>
+
+            <h4 style="margin-top: 30px;" id="response-fields">응답 Field</h4>
+            <div class="table-container">
+                
+                <div class="table-container">
+                    <table class="api-codes-table">
+                        <thead>
+                            <tr>
+                                <th>field</th>
+                                <th>설명</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {@ result.api.response}
+                            {? !empty(.field)}
+                            <tr>
+                                <td class="code-cell">
+                                    <strong>{.field}</strong>
+                                </td>
+                                <td class="code-cell">
+                                    <strong>{.remark}</strong>
+                                </td>
+                            </tr>
+                            {/}
+                            {/}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="section" style="margin-top: 30px;" id="notes">
+                <h2>📝 주의사항</h2>
+                <ul>
+                    <li>날짜 형식은 반드시 <code>YYYY-MM-DD</code> 형식을 사용해야 합니다.</li>
+                    <li>코드나 이름은 쉼표로 구분하여 여러 개를 지정할 수 있습니다.</li>
+                    <li>API ID는 대소문자를 구분합니다.</li>
+                    <li>데이터가 없는 경우 빈 배열이 반환됩니다.</li>
+                    <li><code>code</code>와 <code>name</code> 중 하나는 반드시 제공해야 합니다.</li>
+                    <li><code>startDate</code>는 필수이며, <code>endDate</code>는 선택사항입니다.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section" id="authentication">
+            <h2>🔐 인증</h2>
+            <div class="meta-info">
+                <h4>인증 방식</h4>
+                <p><strong>타입:</strong> {result.api.authentication.type}</p>
+                <p><strong>설명:</strong> {result.api.authentication.description}</p>
+            </div>
+        </div>
+
+        <div class="section" id="error-codes">
+            <h2>❌ 에러 코드</h2>
+            {@ result.api.errorCodes}
+            <div class="error-code">
+                <strong>{.code} {.message}</strong><br>
+                {.description}
+            </div>
+            {/}
+        </div>
+
+        <div class="section" id="api-test">
+            <h2>🧪 API 테스트</h2>
+            <div class="test-section">
+                <p>다음 버튼들을 클릭하여 API를 테스트해보세요:</p>
+                <a href="https://hkprice.kod.es/api/data/dailyAgriPrice?name=배추,상추&startDate=2020-09-01&endDate=2025-09-17" class="test-button" target="_blank" rel="noopener">농산물 가격 조회</a>
+                <a href="https://hkprice.kod.es/api/list" class="test-button" target="_blank" rel="noopener">API 목록 조회</a>
+                <a href="https://hkprice.kod.es/api/category?keyword=산" class="test-button" target="_blank" rel="noopener">카테고리 검색</a>
+                <a href="https://hkprice.kod.es/api/category?id=hkp001000000000" class="test-button" target="_blank" rel="noopener">카테고리 하위분류</a>
+                <a href="https://hkprice.kod.es/api/document" class="test-button" target="_blank" rel="noopener">문서 보기</a>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // 목차 네비게이션 활성 상태 관리
+        function updateActiveTocLink() {
+            const sections = document.querySelectorAll('.section[id], h4[id]');
+            const tocLinks = document.querySelectorAll('.toc-link, .toc-sub-link');
+            
+            let currentSection = '';
+            
+            sections.forEach(section => {
+                const rect = section.getBoundingClientRect();
+                if (rect.top <= 100 && rect.bottom >= 100) {
+                    currentSection = section.id;
+                }
+            });
+            
+            // 모든 링크에서 active 클래스 제거
+            tocLinks.forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // 현재 섹션에 해당하는 링크에 active 클래스 추가
+            if (currentSection) {
+                const activeLink = document.querySelector(`a[href="#${currentSection}"]`);
+                if (activeLink) {
+                    activeLink.classList.add('active');
+                }
+            }
+        }
+
+        // 스크롤 이벤트 리스너 추가
+        window.addEventListener('scroll', updateActiveTocLink);
+        
+        // 페이지 로드 시 초기 활성 상태 설정
+        document.addEventListener('DOMContentLoaded', function() {
+            updateActiveTocLink();
+        });
+
+        // API 검색 및 필터링 기능
+        function filterAPIs() {
+            const searchTerm = document.getElementById('apiSearch').value.toLowerCase();
+            const cards = document.querySelectorAll('.api-card');
+            const activeCategory = document.querySelector('.filter-btn.active').dataset.category;
+            
+            cards.forEach(card => {
+                const name = card.dataset.name.toLowerCase();
+                const description = card.dataset.description.toLowerCase();
+                const url = card.querySelector('.api-url').textContent.toLowerCase();
+                const category = card.dataset.category;
+                
+                const matchesSearch = name.includes(searchTerm) || 
+                                   description.includes(searchTerm) || 
+                                   url.includes(searchTerm);
+                
+                const matchesCategory = activeCategory === 'all' || category === activeCategory;
+                
+                if (matchesSearch && matchesCategory) {
+                    card.style.display = 'block';
+                    card.style.animation = 'fadeIn 0.3s ease';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        function filterByCategory(category) {
+            // 모든 필터 버튼에서 active 클래스 제거
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // 클릭된 버튼에 active 클래스 추가
+            event.target.classList.add('active');
+            
+            // 검색어가 있으면 검색 함수도 실행
+            const searchTerm = document.getElementById('apiSearch').value;
+            if (searchTerm) {
+                filterAPIs();
+            } else {
+                const cards = document.querySelectorAll('.api-card');
+                
+                cards.forEach(card => {
+                    const cardCategory = card.dataset.category;
+                    
+                    if (category === 'all' || cardCategory === category) {
+                        card.style.display = 'block';
+                        card.style.animation = 'fadeIn 0.3s ease';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            }
+        }
+
+        // 테이블 액션 버튼 기능
+        function copyCode(code) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(code).then(() => {
+                    showToast('코드가 복사되었습니다: ' + code);
+                }).catch(err => {
+                    console.error('복사 실패:', err);
+                    fallbackCopyTextToClipboard(code);
+                });
+            } else {
+                fallbackCopyTextToClipboard(code);
+            }
+        }
+
+        function viewDetails(code) {
+            // 상세 정보 모달 표시 또는 페이지 이동
+            const url = `/api/data/${code}?startDate=2024-01-01&endDate=2024-01-31`;
+            window.open(url, '_blank', 'noopener');
+        }
+
+        function testApi(code) {
+            // API 테스트 페이지로 이동
+            const testUrl = `https://hkprice.kod.es/api/data/${code}?startDate=2024-01-01&endDate=2024-01-31`;
+            window.open(testUrl, '_blank', 'noopener');
+        }
+
+        function fallbackCopyTextToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+            textArea.style.opacity = "0";
+            
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showToast('코드가 복사되었습니다: ' + text);
+                } else {
+                    console.error('복사 실패');
+                }
+            } catch (err) {
+                console.error('복사 실패:', err);
+            }
+            
+            document.body.removeChild(textArea);
+        }
+
+        function showToast(message) {
+            // 간단한 토스트 메시지 표시
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #28a745;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 6px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 1000;
+                font-size: 14px;
+                font-weight: 500;
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                document.body.removeChild(toast);
+            }, 3000);
+        }
+
+        // 카드 클릭 시 상세 정보 표시 (선택사항)
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.api-card');
+            cards.forEach(card => {
+                card.addEventListener('click', function() {
+                    // 카드 클릭 시 추가 동작 (예: 상세 모달 표시)
+                    console.log('API 카드 클릭:', this.querySelector('.api-title').textContent);
+                });
+            });
+        });
+
+        // 애니메이션 CSS 추가
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

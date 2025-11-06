@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}
+
+    <!-- datetimepicker -->
+    <link rel="stylesheet" href="/lib/tempusdominus-bootstrap/tempusdominus-bootstrap-4.min.css" />
+    <script type="text/javascript" src="/lib/tempusdominus-bootstrap/tempusdominus-bootstrap-4.min.js"></script>
+    <script src='/lib/locale/ko.js'></script>
+    <!-- //datetimepicker -->
+    <!-- fullcalendar -->
+    <link rel="stylesheet" href="/lib/fullcalendar/main.min.css" />
+    <script type="text/javascript" src="/lib/fullcalendar/main.min.js"></script>
+    <script type="text/javascript" src="/lib/fullcalendar/locales-all.min.js"></script>
+    <!-- //fullcalendar -->
+</head>
+<body>
+	{#left}
+	{#header}
+
+    <!-- ########## START: MAIN PANEL ########## -->
+    <main class="container">
+        <div role="document">
+            <div role="heading">
+                <span>{result.info.name}</span> 
+                <a role="button" class="btn btn-lg" href="/boardInfo/editor?id={result.info.id}">
+                    <span>게시판 관리</span><i class="fa-light fa-gear"></i>
+                </a>
+            </div>
+
+            <form name="frm" id="frm" method="get">
+                <div class="d-flex align-items-center justify-content-end mg-b-5">
+                    <input type="hidden" id="coId" name="coId" value="{_SESSION.coId}"/>
+                    <input type="hidden" id="id" name="id" value="{_GET.id}"/>
+
+                    {? result.permission.insert}
+                    <button type="button" class="btn btn-info pd-5 bd-0 mg-l-5 mg-t-0 tx-uppercase tx-13 tx-spacing-2" id="insertBtn"><i class="fas fa-pencil-alt"></i> 입력</button>
+                    {/}
+                </div>
+            </form>
+
+            <section role="list">
+                <div class="list-cont">
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            var calendarEl = document.getElementById('calendar');
+                            var calendar = new FullCalendar.Calendar(calendarEl, {
+                                locale: 'ko',
+                                headerToolbar: {
+                                    left: 'prevYear,prev,next,nextYear,today',
+                                    center: 'title',
+                                    right: '', // right = 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+                                },
+                                initialView: 'dayGridMonth',
+                                height: '1000px', // calendar 높이 설정
+                                expandRows: true, // 화면에 맞게 높이 재설정
+                                editable: false, // 수정 가능
+                                navLinks: true, // 날짜를 선택하면 Day 캘린더나 Week 캘린더로 링크
+                                selectable: false, // 달력 일자 드래그 설정가능
+                                // initialDate: '2021-07-15', // 초기 날짜 설정 (설정하지 않으면 오늘 날짜가 보인다.)
+                            });
+                            calendar.render();
+    
+                            // Callback event
+                            calendar.on('dateClick', function(info) {
+                                // console.log('dateClick on ' + info.dateStr);
+                                if (confirm(info.dateStr+'에 입력하시겠습니까?')) {
+                                    location.href = '/board/editor/{_GET.id}?startDate='+info.dateStr;
+                                }
+                            });
+                            calendar.on('datesSet', function(info) {
+                                // console.log('datesSet on ', info);
+                                var startDate = new Date(info.start);
+                                var endDate = new Date(info.end);
+                                getBoards(startDate.yyyymmdd(), endDate.yyyymmdd());
+                                // 해당월로 조회하는 경우
+                                // var date = new Date(calendar.getDate(), '');
+                                // getBoards(date.yyyymmdd());
+                            });
+    
+                            // 게시판 조회
+                            getBoards('');  // 초기화
+                            function getBoards(startDate, endDate) {
+                                $.ajax({
+                                    url: '/board/list/ajax',
+                                    method : 'GET',
+                                    data : {
+                                        id: $('#id').val(),
+                                        startDate: startDate,
+                                        endDate: endDate,
+                                        listType: 'calendar'
+                                    },
+                                    dataType : 'json',
+                                }).done(function(data) {
+                                    // console.log(data.result);
+                                    calendar.removeAllEvents();
+                                    $(data.result.items).each(function(i, item){
+                                        var start = item.insert.date;
+                                        var end = null;
+                                        if (item.startDate) start = item.startDate;
+                                        if (item.endDate) end = item.endDate;
+                                        if (start == end) end = null;   // 시작일 종료일이 같으면 종료일 제거
+                                        calendar.addEvent({
+                                            id: item.id,
+                                            title: item.title,
+                                            url: '/board/view/'+item.id+'?no='+item.no,
+                                            start: start,
+                                            end: end,
+                                            // allDay: true,
+                                        });
+                                    });
+                                });
+                            }
+                            $('.fc-prevYear-button').attr('title', '이전연도');
+                            $('.fc-nextYear-button').attr('title', '다음연도');
+    
+                            // calendar.gotoDate('2022-08');    // 해당월로 이동
+                            // calendar.gotoDate('2022-09-02'); // 해당일로 이동
+                        });
+    
+                        Date.prototype.yyyymmdd = function() {
+                            var yyyy = this.getFullYear().toString();
+                            var mm = (this.getMonth() + 1).toString();
+                            var dd = this.getDate().toString();
+                            return yyyy + "-" + (mm[1] ? mm : "0" + mm[0]) + "-" + (dd[1] ? dd : "0" + dd[0]);
+                        }
+                    </script>
+                    <div id="calendar"></div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- <main class="br-mainpanel">
+        <div class="br-pagebody">
+            <div class="br-section-wrapper pd-10-force">
+
+                <div class="d-flex align-items-center justify-content-between flex-wrap mg-b-5">
+                    <div class="ht-md-40 mg-b-5">
+                        <span style="font-size: 20px;font-weight: 500;">{? result.info.program.name}{result.info.program.name} - {/}{result.info.name}</span>
+                        {? result.permission.boardManager}
+                        <a href="/boardInfo/editor?id={_GET.id}" class="btn btn-info pd-5 bd-0 mg-l-5 mg-t-0 tx-uppercase tx-13 tx-spacing-2"><i class="fas fa-pencil-alt"></i> 게시판 관리</a>
+                        {/}
+                    </div>
+
+                    <form name="frm" id="frm" method="get">
+                        <div class="d-flex align-items-center justify-content-end mg-b-5">
+                            <input type="hidden" id="coId" name="coId" value="{_SESSION.coId}"/>
+                            <input type="hidden" id="id" name="id" value="{_GET.id}"/>
+    
+                            {? result.permission.insert}
+                            <button type="button" class="btn btn-info pd-5 bd-0 mg-l-5 mg-t-0 tx-uppercase tx-13 tx-spacing-2" id="insertBtn"><i class="fas fa-pencil-alt"></i> 입력</button>
+                            {/}
+                        </div>
+                    </form>
+                </div>
+
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        var calendarEl = document.getElementById('calendar');
+                        var calendar = new FullCalendar.Calendar(calendarEl, {
+                            locale: 'ko',
+                            headerToolbar: {
+                                left: 'prevYear,prev,next,nextYear,today',
+                                center: 'title',
+                                right: '', // right = 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+                            },
+                            initialView: 'dayGridMonth',
+                            height: '1000px', // calendar 높이 설정
+                            expandRows: true, // 화면에 맞게 높이 재설정
+                            editable: false, // 수정 가능
+                            navLinks: true, // 날짜를 선택하면 Day 캘린더나 Week 캘린더로 링크
+                            selectable: false, // 달력 일자 드래그 설정가능
+                            // initialDate: '2021-07-15', // 초기 날짜 설정 (설정하지 않으면 오늘 날짜가 보인다.)
+                        });
+                        calendar.render();
+
+                        // Callback event
+                        calendar.on('dateClick', function(info) {
+                            // console.log('dateClick on ' + info.dateStr);
+                            if (confirm(info.dateStr+'에 입력하시겠습니까?')) {
+                                location.href = '/board/editor/{_GET.id}?startDate='+info.dateStr;
+                            }
+                        });
+                        calendar.on('datesSet', function(info) {
+                            // console.log('datesSet on ', info);
+                            var startDate = new Date(info.start);
+                            var endDate = new Date(info.end);
+                            getBoards(startDate.yyyymmdd(), endDate.yyyymmdd());
+                            // 해당월로 조회하는 경우
+                            // var date = new Date(calendar.getDate(), '');
+                            // getBoards(date.yyyymmdd());
+                        });
+
+                        // 게시판 조회
+                        getBoards('');  // 초기화
+                        function getBoards(startDate, endDate) {
+                            $.ajax({
+                                url: '/board/list/ajax',
+                                method : 'GET',
+                                data : {
+                                    id: $('#id').val(),
+                                    startDate: startDate,
+                                    endDate: endDate,
+                                    listType: 'calendar'
+                                },
+                                dataType : 'json',
+                            }).done(function(data) {
+                                // console.log(data.result);
+                                calendar.removeAllEvents();
+                                $(data.result.items).each(function(i, item){
+                                    var start = item.insert.date;
+                                    var end = null;
+                                    if (item.startDate) start = item.startDate;
+                                    if (item.endDate) end = item.endDate;
+                                    if (start == end) end = null;   // 시작일 종료일이 같으면 종료일 제거
+                                    calendar.addEvent({
+                                        id: item.id,
+                                        title: item.title,
+                                        url: '/board/view/'+item.id+'?no='+item.no,
+                                        start: start,
+                                        end: end,
+                                        // allDay: true,
+                                    });
+                                });
+                            });
+                        }
+                        $('.fc-prevYear-button').attr('title', '이전연도');
+                        $('.fc-nextYear-button').attr('title', '다음연도');
+
+                        // calendar.gotoDate('2022-08');    // 해당월로 이동
+                        // calendar.gotoDate('2022-09-02'); // 해당일로 이동
+                    });
+
+                    Date.prototype.yyyymmdd = function() {
+                        var yyyy = this.getFullYear().toString();
+                        var mm = (this.getMonth() + 1).toString();
+                        var dd = this.getDate().toString();
+                        return yyyy + "-" + (mm[1] ? mm : "0" + mm[0]) + "-" + (dd[1] ? dd : "0" + dd[0]);
+                    }
+                </script>
+                <div id="calendar"></div>
+            </div>
+        </div>
+    </main> -->
+    <!-- ########## END: MAIN PANEL ########## -->
+
+    <script type="text/javascript">
+        $(document).ready(function(){
+            // 입력
+            $('#insertBtn').click(function(){
+                $('#frm').attr('action','/board/editor/{_GET.id}').submit();
+            });
+        });
+    </script>
+</body>
+</html>

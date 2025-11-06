@@ -1,0 +1,292 @@
+<!-- youtube Setup Modal -->
+<dialog id="youtubeModal">
+    <article class="card">
+        <header class="flex nowrap justify-between align-center">
+			<h6></h6>
+            <a href="#close" aria-label="Close" title="닫기" data-target="youtubeModal" onclick="toggleModal(event)"><i class="fa-light fa-circle-xmark fa-lg"></i></a>
+        </header>
+		<!-- layoutInput -->
+		<div class="layoutInput">
+			<input type="hidden" id="objId">
+			<div class="row">
+				<span class="label">제목</span>
+				<input type="text" id="title" placeholder="화면에 표출될 박스 명입니다." />
+			</div>
+			<div class="row">
+				<span class="label">제목링크</span>
+				<input type="text" id="moreUrl" placeholder="제목링크입니다.(옵션)" />
+			</div>
+            <div class="row">
+				<span class="label">custom boxId</span>
+				<input type="text" id="customBoxId" placeholder="사용자 지정 boxId (옵션)" />
+			</div>
+            <div class="row">
+				<span class="label">유튜브 재생목록 url</span>
+				<input type="text" id="playlistUrl" placeholder="재생목록 url" />
+                <button id="addPlaylist" style="margin-bottom: 0;"><i class="fa fa-plus"></i></button>
+			</div>
+			<div class="group">
+				<div class="label">PC설정</div>
+				<div class="grid grid1-2">
+					<div>
+						<div class="row">
+							<span class="label">노출</span>
+							<input type="checkbox" role="switch" class="" id="showPC" data-on="ON" data-off="OFF" checked/>
+							<span class="switch-label">ON</span>
+						</div>
+						<div class="row">
+							<span class="label">갯수</span>
+							<input type="text" class="showArticleCountPC" id="showArticleCountPC" data-type='num'/>
+						</div>
+						<div class="row">
+							<span class="label">본문글자수</span>
+							<input type="text" class="contentCutNumPC" id="contentCutNumPC" data-type='num'/>
+						</div>
+						<div class="row">
+							<span class="label">썸네일 노출</span>
+							<input type="checkbox" role="switch" class="" id="showThumbPC" data-on="ON" data-off="OFF" checked/>
+							<span class="switch-label">ON</span>
+						</div>
+						<div class="row">
+							<span class="label">썸네일 W/H</span>
+							<input type="text" class="thumbwidthpc" id="thumbWidthPC" placeholder="가로px" />
+							<input type="text" class="thumbheightpc" id="thumbHeightPC" placeholder="세로px" />
+						</div>
+					</div>
+					<div>
+						<div class="row">
+							<span class="label">PC Skin</span>
+							<select class="select2" id="pcSkin">
+								<option value="">안보이기</option>
+							</select>
+						</div>
+						<div class="row" style="height: 200px;max-height: 200px;justify-content: center;">
+							<img id="pcSkinPreview" src="" onError="this.src='/img/skin/show-hidden-icons.png';" style="width: auto;height: auto;max-width: 100%;max-height: 200px;">
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="group">
+				<div class="label">MOBILE설정</div>
+				<div class="grid grid1-2">
+					<div>
+						<div class="row">
+							<span class="label">노출</span>
+							<input type="checkbox" role="switch" class="" id="showMobile" data-on="ON" data-off="OFF" checked/>
+							<span class="switch-label">ON</span>
+						</div>
+						<div class="row">
+							<span class="label">갯수</span>
+							<input type="text" class="showArticleCountMobile" id="showArticleCountMobile" data-type='num'/>
+						</div>
+						<div class="row">
+							<span class="label">본문글자수</span>
+							<input type="text" class="contentCutNumMobile" id="contentCutNumMobile" data-type='num'/>
+						</div>
+						<div class="row">
+							<span class="label">썸네일 노출</span>
+							<input type="checkbox" role="switch" class="" id="showThumbMobile" data-on="ON" data-off="OFF" checked/>
+							<span class="switch-label">ON</span>
+						</div>
+						<div class="row">
+							<span class="label">썸네일 W/H</span>
+							<input type="text" class="thumbWidthMobile" id="thumbWidthMobile" placeholder="가로px" />
+							<input type="text" class="thumbHeightMobile" id="thumbHeightMobile" placeholder="세로px" />
+						</div>
+					</div>
+					<div>
+						<div class="row">
+							<span class="label">MOBILE Skin</span>
+							<select class="select2" id="mobileSkin">
+								<option value="">안보이기</option>
+							</select>
+						</div>
+						<div class="row" style="height: 200px;max-height: 200px;justify-content: center;">
+							<img id="mobileSkinPreview" src="" onError="this.src='/img/skin/show-hidden-icons.png';" style="width: auto;height: auto;max-width: 100%;max-height: 200px;">
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!--// layoutInput -->
+		<footer class="flex justify-end">
+			<button type="button" class="btn btn-md"  id="btn_youtubeObjSetup">저장</button>
+			<button type="button" class="btn btn-md btn-gray"  data-target="youtubeModal" onclick="toggleModal(event);">취소</button>
+		</footer>
+	</article>
+</dialog>
+<!-- //youtube Setup Modal -->
+
+<script>
+    /*******************************************************************************
+     * youtube box 설정
+     */
+
+    // youtube box 설정 모달창
+    $('#layoutBase').on("click",".youtubeMoreBt",function(){
+        var obj = $(this).closest('.object');
+
+        var modal = $('#youtubeModal');
+        openModal(document.getElementById('youtubeModal'));
+
+        // skin select 로딩
+        setSelectSkin(modal.find('select#pcSkin'), $(this).closest('[data-dinnum]').data('dinnum'), 'pc', obj.attr('data-objecttype'));
+        setSelectSkin(modal.find('select#mobileSkin'), $(this).closest('[data-dinnum]').data('dinnum'), 'mobile', obj.attr('data-objecttype'));
+
+        modal.find('article.card').attr('data-objectType',obj.attr('data-objectType'));
+        modal.find('header h6').html((obj.attr('data-title')?obj.attr('data-title'):'유튜브')+' <small>(objId : '+obj.attr('data-objid')+')</small>');
+        modal.find('#objId').val(obj.attr('data-objid'));
+        modal.find('#title').val(obj.attr('data-title'));
+        modal.find('#moreUrl').val(obj.attr('data-moreUrl'));
+        modal.find('#customBoxId').val(obj.attr('data-customboxid'));
+        modal.find('#showPC').prop('checked',obj.attr('data-showPC')=="N"?false:true);
+        modal.find('#showMobile').prop('checked',obj.attr('data-showMobile')=="N"?false:true);
+        modal.find('#showArticleCountPC').val(obj.attr('data-showArticleCountPC'));
+        modal.find('#showArticleCountMobile').val(obj.attr('data-showArticleCountMobile'));
+        modal.find('#showThumbPC').prop('checked',obj.attr('data-showThumbPC')=="N"?false:true);
+        modal.find('#showThumbMobile').prop('checked',obj.attr('data-showThumbMobile')=="N"?false:true);
+        modal.find('#thumbWidthPC').val(obj.attr('data-thumbWidthPC'));
+        modal.find('#thumbHeightPC').val(obj.attr('data-thumbHeightPC'));
+        modal.find('#thumbWidthMobile').val(obj.attr('data-thumbWidthMobile'));
+        modal.find('#thumbHeightMobile').val(obj.attr('data-thumbHeightMobile'));
+        modal.find('#contentCutNumPC').val(obj.attr('data-contentCutNumPC'));
+        modal.find('#contentCutNumMobile').val(obj.attr('data-contentCutNumMobile'));
+        modal.find('#pcSkin').val(obj.attr('data-pcSkin'));
+        modal.find('#mobileSkin').val(obj.attr('data-mobileSkin'));
+
+        // playlistUrl 처리
+        modal.find('[id="playlistUrl"]').each(function(i,item){
+            if (i > 0) $(item).closest('.row').remove();
+        });
+        if(!!obj.attr('data-playlistUrl')) {
+            $(obj.attr('data-playlistUrl').split(',')).each(function(i,item){
+                if (i == 0) {
+                    modal.find('#playlistUrl').val(item);
+                } else {
+                    let inputGroup = modal.find('[id="playlistUrl"]').last().closest('.row');
+                    let clone = inputGroup.clone();
+                    inputGroup.after(clone);
+                    inputGroup.next().find('#playlistUrl').val(item);
+                }
+            });
+        }
+
+        // 각각의 체크박스에 대해 초기값 설정
+        $('input[role="switch"]').each(function(){
+            var checked = $(this).prop('checked');
+            var row = $(this).closest('.row');
+            var on = $(this).data('on');
+            var off = $(this).data('off');
+            if (checked) {
+                row.find('.switch-label').empty().append(on);
+            } else {
+                row.find('.switch-label').empty().append(off);
+            }
+        });
+
+        // select2 초기화
+        modal.find('#pcSkin').select2({dropdownParent: modal, width:"100%"});
+        modal.find('#mobileSkin').select2({dropdownParent: modal, width:"100%"});
+
+        setPreview(modal);
+    });
+
+    // youtube box 설정 저장
+    $('#youtubeModal').on('click','#btn_youtubeObjSetup',function(e){
+        let modal = $(this).closest('#youtubeModal');
+        let dataObject = new Object();
+        dataObject['objId'] = modal.find("#objId").val();
+        dataObject['title'] = modal.find('#title').val();
+        dataObject['moreUrl'] = modal.find('#moreUrl').val();
+        dataObject['customBoxId'] = modal.find('#customBoxId').val();
+        dataObject['listType'] = "A"; // 고정값 : 자동
+        dataObject['showPC'] = modal.find('#showPC').prop('checked')?"Y":"N";
+        dataObject['showMobile'] = modal.find('#showMobile').prop('checked')?"Y":"N";
+        dataObject['showArticleCountPC'] = modal.find('#showArticleCountPC').val();
+        dataObject['showArticleCountMobile'] = modal.find('#showArticleCountMobile').val();
+        dataObject['showThumbPC'] = modal.find('#showThumbPC').prop('checked')?"Y":"N";
+        dataObject['showThumbMobile'] = modal.find('#showThumbMobile').prop('checked')?"Y":"N";
+        dataObject['thumbWidthPC'] = modal.find('#thumbWidthPC').val();
+        dataObject['thumbHeightPC'] = modal.find('#thumbHeightPC').val();
+        dataObject['thumbWidthMobile'] = modal.find('#thumbWidthMobile').val();
+        dataObject['thumbHeightMobile'] = modal.find('#thumbHeightMobile').val();
+        dataObject['contentCutNumPC'] = modal.find('#contentCutNumPC').val();
+        dataObject['contentCutNumMobile'] = modal.find('#contentCutNumMobile').val();
+        dataObject['pcSkin'] = modal.find('#pcSkin').val();
+        dataObject['mobileSkin'] = modal.find('#mobileSkin').val();
+        // playlistUrl
+        dataObject['playlistUrl'] = [];
+        modal.find('[id="playlistUrl"]').each(function(i,item){
+            if (!!$.trim($(item).val())) {
+                dataObject['playlistUrl'].push($.trim($(item).val()));
+            }
+        });
+
+        let selectBox = $('[data-objId="'+dataObject['objId']+'"]');
+        selectBox.find('header > h6').text(dataObject['title']);
+
+        for (const [key, value] of Object.entries(dataObject)) {
+            selectBox.attr('data-'+key.toLowerCase() , value);
+        }
+
+        dataObject['pageId'] = $("#layoutSelect").val();
+
+        $.ajax({
+            url: '/layout/boxSave/ajax',
+            type: 'POST',
+            data: JSON.stringify(dataObject),
+            dataType: "json",
+            success: function (data) {
+                if(dataObject['listType']=="A"){
+                    $(selectBox).find('.card-body').empty();
+                    $(selectBox).find(".card-body").addClass('disable');
+                }else{
+                    $(selectBox).find(".card-body").removeClass('disable');
+                }
+                alert('저장완료');
+                closeModal(document.getElementById('youtubeModal'));
+            },
+            error: function (){
+                alert('저장 시 오류가 발생했습니다.\n다시 저장을 해주세요.\n계속해서 오류가 발생되면 관리자에게 연락해주세요');
+            }
+        });
+    });
+
+    // youtube skin 선택시 처리
+    $("#youtubeModal #pcSkin").on('change',function(e,active){
+        var modal = $('#youtubeModal');
+        setPreview(modal);
+        if($(this).val()){
+            var json = modal.find('#pcSkin option:selected').data('json');
+            modal.find('#showArticleCountPC').val(json.articleCount);
+            modal.find('#thumbWidthPC').val(json.thumbnail.pc.width);
+            modal.find('#thumbHeightPC').val(json.thumbnail.pc.height);
+            modal.find('#contentCutNumPC').val(json.contentCutNum);
+            if(json.showThumbnail == 'Y'){
+                modal.find('#showThumbPC').prop('checked',json.showThumbnail=='Y'?true:false);
+            }
+        }
+    });
+    $("#youtubeModal #mobileSkin").on('change',function(e,active){
+        var modal = $('#youtubeModal');
+        setPreview(modal);
+        if($(this).val()){
+            var json = modal.find('#mobileSkin option:selected').data('json');
+            modal.find('#showArticleCountMobile').val(json.articleCount);
+            modal.find('#thumbWidthMobile').val(json.thumbnail.mobile.width);
+            modal.find('#thumbHeightMobile').val(json.thumbnail.mobile.height);
+            modal.find('#contentCutNumMobile').val(json.contentCutNum);
+            if(json.showThumbnail == 'Y'){
+                modal.find('#showThumbMobile').prop('checked',json.showThumbnail=='Y'?true:false);
+            }
+        }
+    });
+
+    // youtube 재생목록 url 추가
+    $(document).on('click','#youtubeModal #addPlaylist',function(e,active){
+        let inputGroup = $(this).closest('.row');
+        let clone = inputGroup.clone();
+        inputGroup.after(clone);
+        inputGroup.next().find('#playlistUrl').val('');
+    });
+</script>

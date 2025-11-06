@@ -1,0 +1,23 @@
+<!-- graphShow MODAL -->
+<dialog id="graphShowModal">
+    <article class="card">
+        <header>
+            <a href="#close" aria-label="Close" class="close" data-target="graphShowModal" onclick="toggleModal(event)"></a>
+            <h6></h6>
+        </header>
+        <p id="graphHtml"></p>
+        <footer class="flex justify-end">
+            <button type="button" class="btn" data-target="graphShowModal" onclick="toggleModal(event)">닫기</button>
+        </footer>
+    </article>
+</dialog>
+<!-- graphShow MODAL -->
+
+<script>
+    
+    let graphShow = (coId, idx, makeDate, title)=>{
+        $('#graphHtml').empty().append("<iframe frameborder='0' style='width:730px;height:400px;' src='/data/"+coId+"/chart/"+makeDate+"/"+idx+".html' data-img='/data/"+coId+"/chart/"+makeDate+"/"+idx+".png' data-thumb='/data/"+coId+"/chart/"+makeDate+"/"+idx+"_thumb.png'></iframe>");
+
+        $('#graphShowModal').find('header > h6').empty().append(title);
+    }
+</script>

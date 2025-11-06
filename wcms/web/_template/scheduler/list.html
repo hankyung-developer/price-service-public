@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}
+
+    <!-- datetimepicker -->
+    <link rel="stylesheet" href="/lib/tempusdominus-bootstrap/tempusdominus-bootstrap-4.min.css" />
+    <script type="text/javascript" src="/lib/tempusdominus-bootstrap/tempusdominus-bootstrap-4.min.js"></script>
+    <script src='/lib/locale/ko.js'></script>
+    <style>
+        .scheduler-status {padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;}
+        .scheduler-status.active {background-color: #d4edda; color: #155724;}
+        .scheduler-status.inactive {background-color: #f8d7da; color: #721c24;}
+        .scheduler-status.pending {background-color: #fff3cd; color: #856404;}
+    </style>
+</head>
+<body>
+
+    {# header}
+    {# left}
+
+    <main class="container">
+        <div role="document">
+            <div role="heading">
+                <span>스케줄러 관리</span> 
+                <a role="button" class="btn btn-lg" href="/scheduler/editor">
+                    <span>스케줄러 등록</span><i class="fa-light fa-plus"></i>
+                </a>
+            </div>
+            
+            <section class="section-search"> 
+                <form role="search" name="frm" id="frm" method="get">
+                    <input type="hidden" id="coId" name="coId" value="{_SESSION.coId}"/>
+
+                    <select name="searchItem" id="searchItem">
+                        <option value="name">스케줄러명</option>
+                        <option value="type">스케줄 타입</option>
+                        <option value="status">상태</option>
+                    </select>
+                    <div class="search-input">
+                        <input type="text" name="searchText" id="searchText" value="{? _GET.searchText}{_GET.searchText}{/}" placeholder="검색어를 입력하세요">
+                        <button type="button" class="btn-search" id="searchBtn"><i class="fa-light fa-magnifying-glass"></i></button>
+                    </div>
+                    <button type="button" class="btn" id="insertBtn">등록</button>
+                    <button type="button" class="btn btn-black" id="deleteBtn">삭제</button>
+                </form>
+            </section>
+
+            <section role="list">
+                <div class="list-cont">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="checkAll"></th>
+                                <th>번호</th>
+                                <th>스케줄러명</th>
+                                <th>스케줄 타입</th>
+                                <th>실행 시간</th>
+                                <th>상태</th>
+                                <th>마지막 실행</th>
+                                <th>다음 실행</th>
+                                <th>등록일</th>
+                                <th>관리</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {@ result.list}
+                            <tr data-id="{.id}">
+                                <td><input type="checkbox" name="chk" value="{.id}"></td>
+                                <td>{.id}</td>
+                                <td><a href="/scheduler/editor?id={.id}">{.name}</a></td>
+                                <td>
+                                    {? .type == 'daily'}일간
+                                    {: .type == 'weekly'}주간
+                                    {: .type == 'monthly'}월간
+                                    {: .type == 'quarterly'}분기
+                                    {: .type == 'yearly'}년간
+                                    {/}
+                                </td>
+                                <td>{.scheduleTime}</td>
+                                <td>
+                                    <span class="scheduler-status {? .status == 'active'}active{: .status == 'inactive'}inactive{:}pending{/}">
+                                        {? .status == 'active'}활성
+                                        {: .status == 'inactive'}비활성
+                                        {:}대기
+                                        {/}
+                                    </span>
+                                </td>
+                                <td>{? .lastRun}{.lastRun}{:}-{/}</td>
+                                <td>{? .nextRun}{.nextRun}{:}-{/}</td>
+                                <td>{.insertDate}</td>
+                                <td>
+                                    <button type="button" class="btn btn-sm" onclick="editScheduler({.id})">수정</button>
+                                    <button type="button" class="btn btn-sm btn-black" onclick="deleteScheduler({.id})">삭제</button>
+                                </td>
+                            </tr>
+                            {/}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 페이징 -->
+            {? result.paging}
+            <section class="paging">
+                {@ result.paging}
+                <a href="?page={.page}" class="{? .current}active{/}">{.page}</a>
+                {/}
+            </section>
+            {/}
+        </div>
+    </main>
+
+    <script>
+        $(document).ready(function() {
+            // 전체 선택/해제
+            $('#checkAll').change(function() {
+                $('input[name="chk"]').prop('checked', $(this).is(':checked'));
+            });
+
+            // 검색 버튼
+            $('#searchBtn').click(function() {
+                $('#frm').submit();
+            });
+
+            // 등록 버튼
+            $('#insertBtn').click(function() {
+                location.href = '/scheduler/editor';
+            });
+
+            // 삭제 버튼
+            $('#deleteBtn').click(function() {
+                var checked = $('input[name="chk"]:checked');
+                if (checked.length === 0) {
+                    alert('삭제할 항목을 선택해주세요.');
+                    return;
+                }
+
+                if (confirm('선택한 스케줄러를 삭제하시겠습니까?')) {
+                    var ids = [];
+                    checked.each(function() {
+                        ids.push($(this).val());
+                    });
+
+                    $.ajax({
+                        url: '/scheduler/delete',
+                        type: 'POST',
+                        data: {ids: ids},
+                        success: function(response) {
+                            if (response.success) {
+                                alert('삭제되었습니다.');
+                                location.reload();
+                            } else {
+                                alert('삭제 중 오류가 발생했습니다.');
+                            }
+                        }
+                    });
+                }
+            });
+        });
+
+        function editScheduler(id) {
+            location.href = '/scheduler/editor?id=' + id;
+        }
+
+        function deleteScheduler(id) {
+            if (confirm('이 스케줄러를 삭제하시겠습니까?')) {
+                $.ajax({
+                    url: '/scheduler/delete',
+                    type: 'POST',
+                    data: {ids: [id]},
+                    success: function(response) {
+                        if (response.success) {
+                            alert('삭제되었습니다.');
+                            location.reload();
+                        } else {
+                            alert('삭제 중 오류가 발생했습니다.');
+                        }
+                    }
+                });
+            }
+        }
+    </script>
+
+</body>
+</html> 

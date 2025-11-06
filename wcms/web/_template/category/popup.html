@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>카테고리 선택</title>
+    <!-- Font Awesome 아이콘 (로컬 파일) -->
+    <link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+    <style>
+        /* 팝업 전용 스타일 */
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+        }
+        
+        .popup-header {
+            background: #fff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .popup-header h2 {
+            margin: 0;
+            font-size: 18px;
+            color: #111;
+        }
+        
+        .popup-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .search-input {
+            height: 32px;
+            padding: 0 12px;
+            border: 1px solid #d6d9de;
+            border-radius: 6px;
+            min-width: 200px;
+            font-size: 14px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+        
+        /* 컬럼 헤더 */
+        .columns-head {
+            padding: 8px 20px;
+            border-bottom: 1px solid #e5e7eb;
+            background: #f9fafb;
+            color: #6b7280;
+            font-size: 12px;
+        }
+        
+        .columns-head .head-grid {
+            display: grid;
+            grid-template-columns: 1fr 200px;
+            align-items: center;
+        }
+        
+        .columns-head .category-left {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .columns-head .twisty-spacer {
+            width: 14px;
+            display: inline-block;
+        }
+        
+        .columns-head .category-meta {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .columns-head .right-label {
+            justify-self: end;
+        }
+        
+        /* 트리 컨테이너 */
+        .tree-container {
+            padding: 0 20px 20px 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        /* 트리 스타일 */
+        ul.tree, ul.tree ul {
+            list-style: none;
+            padding-left: 20px;
+            margin: 0;
+        }
+
+        #category-tree, #category-tree>ul {
+            padding-left: 0;
+        }
+        
+        ul.tree li {
+            margin: 4px 0;
+        }
+        
+        .category-row {
+            display: grid;
+            grid-template-columns: 1fr 200px;
+            align-items: center;
+            padding: 4px 6px;
+            border-radius: 4px;
+            border-left: 3px solid transparent;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .category-row:hover {
+            background: #e3f2fd;
+            border-left: 3px solid #2196f3;
+            box-shadow: 0 2px 4px rgba(33, 150, 243, 0.1);
+            transform: translateX(2px);
+            transition: all 0.2s ease;
+        }
+        
+        .category-row.selected {
+            background: #dbeafe;
+            border-left: 3px solid #1d4ed8;
+        }
+        
+        /* 더블클릭 시 시각적 피드백 */
+        .category-row.dblclick-active {
+            background: #fef3c7;
+            border-left: 3px solid #f59e0b;
+            transform: scale(1.02);
+            transition: all 0.1s ease;
+        }
+        
+        .category-left {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .category-left .label {
+            font-weight: 500;
+            color: #111;
+        }
+        
+        .category-meta {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            gap: 18px;
+            font-size: 0.85em;
+            color: #666;
+        }
+        
+        .category-actions {
+            display: inline-flex;
+            gap: 8px;
+            justify-self: end;
+        }
+        
+        .select-btn {
+            padding: 4px 8px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .select-btn:hover {
+            background: #059669;
+            transform: scale(1.05);
+        }
+        
+        .select-btn.cancel-btn {
+            background: #ef4444;
+        }
+        
+        .select-btn.cancel-btn:hover {
+            background: #dc2626;
+        }
+        
+        .folder-icon {
+            color: #f0a500;
+        }
+        
+        /* 트위스티 */
+        .twisty {
+            cursor: pointer;
+            width: 14px;
+            text-align: center;
+            display: inline-block;
+            -webkit-user-select: none;
+            user-select: none;
+            color: #9aa3ad;
+            font-size: 14px;
+            line-height: 1;
+        }
+        
+        .twisty.open {
+            color: #111;
+        }
+        
+        .twisty-spacer {
+            width: 14px;
+            display: inline-block;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .muted {
+            color: #9aa3ad;
+        }
+        
+        /* 선택된 카테고리 정보 */
+        .selected-info {
+            background: #fff;
+            border-top: 1px solid #e5e7eb;
+            padding: 15px 20px;
+            position: sticky;
+            bottom: 0;
+        }
+        
+        .selected-info h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #374151;
+        }
+        
+        .selected-category {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 6px;
+        }
+        
+        .selected-category .name {
+            font-weight: 500;
+            color: #0369a1;
+        }
+        
+        .selected-category .path {
+            font-size: 12px;
+            color: #0c4a6e;
+        }
+        
+        .clear-selection {
+            margin-left: auto;
+            padding: 4px 8px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .clear-selection:hover {
+            background: #dc2626;
+        }
+        
+        /* 메시지 스타일 */
+        .message {
+            padding: 10px 15px;
+            margin: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .message.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+        
+        .message.error {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fca5a5;
+        }
+    </style>
+</head>
+<body>
+    <div class="popup-header">
+        <div>
+            <h2>카테고리 선택</h2>
+            <small id="maxSelectionsText" style="color: #6b7280; font-size: 12px;">최대 5개까지 선택 가능합니다.</small>
+        </div>
+        <div class="popup-controls">
+            <input type="search" id="searchInput" class="search-input" placeholder="카테고리 검색" />
+            <button id="toggleAllBtn" class="btn btn-sm" title="모든 폴더 펼치기">
+                <i id="toggleAllIcon" class="fa-solid fa-folder-tree"></i> 펼치기
+            </button>
+            <button id="confirmBtn" class="btn btn-primary btn-sm">선택완료</button>
+            <button id="cancelBtn" class="btn btn-secondary btn-sm">취소</button>
+        </div>
+    </div>
+
+    <!-- 컬럼 헤더 -->
+    <div class="columns-head">
+        <div class="head-grid">
+            <div class="category-left">
+                <span class="twisty-spacer"></span>
+                <i class="fa-solid fa-folder folder-icon"></i>
+                <span>카테고리명</span>
+            </div>
+            <div class="category-meta">
+                <span>ID</span>
+                <span class="right-label">작업</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 트리 컨테이너 -->
+    <div class="tree-container">
+        <ul class="tree" id="category-tree"></ul>
+    </div>
+
+    <!-- 선택된 카테고리 정보 -->
+    <div class="selected-info" id="selectedInfo" style="display: none;">
+        <h4>선택된 카테고리</h4>
+        <div class="selected-category">
+            <i class="fa-solid fa-folder folder-icon"></i>
+            <div>
+                <div class="name" id="selectedCategoryName"></div>
+                <div class="path" id="selectedCategoryPath"></div>
+            </div>
+            <button class="clear-selection" onclick="clearSelection()">전체 해제</button>
+        </div>
+    </div>
+
+    <!-- 메시지 컨테이너 -->
+    <div id="messageContainer"></div>
+
+    <script>
+        /**
+         * 카테고리 선택 팝업 JavaScript
+         * 다중 선택 지원 및 트리 구조 표시 기능
+         */
+        
+        // ==================== 전역 변수 ====================
+        
+        /**
+         * 카테고리 데이터 배열 (서버에서 템플릿 엔진으로 전달받음)
+         * @type {Array<Object>} 카테고리 객체 배열
+         */
+        const categories = [
+            // 템플릿 엔진에서 실제 데이터로 치환됨
+            {@ result.categoryList}
+            {id: "{.id}", depth: {.depth}, parentId: "{.parentId}", name: "{.name}", hkCode: "{.hkCode}", isUse: "{.isUse}"},
+            {/}
+        ];
+
+        /**
+         * 선택된 카테고리 배열 (다중 선택 지원)
+         * @type {Array<Object>} 선택된 카테고리 객체 배열
+         */
+        let selectedCategories = [];
+        
+        /**
+         * 최대 선택 가능한 카테고리 개수
+         * URL 파라미터로 전달받거나 기본값 5 사용
+         * @type {number}
+         */
+        let MAX_SELECTIONS = 5;
+        
+        // URL 파라미터에서 maxSelections 값을 읽어와서 설정
+        (function initMaxSelections() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const maxSelectionsParam = urlParams.get('maxSelections');
+            
+            if (maxSelectionsParam) {
+                const parsedValue = parseInt(maxSelectionsParam, 10);
+                // 유효한 숫자인 경우에만 적용 (1 이상)
+                if (!isNaN(parsedValue) && parsedValue > 0) {
+                    MAX_SELECTIONS = parsedValue;
+                }
+            }
+        })();
+        
+        /**
+         * 초기화 완료 여부 플래그
+         * @type {boolean}
+         */
+        let isInit = false;
+        
+        /**
+         * 부모 창에서 전달받은 설정 객체
+         * @type {Object}
+         */
+        let popupConfig = {};
+
+        // ==================== 초기화 ====================
+        
+        /**
+         * 페이지 로드 시 팝업 초기화
+         */
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePopup();
+        });
+
+        /**
+         * 팝업 초기화 함수
+         * 트리 렌더링, 이벤트 바인딩, 기존 선택된 카테고리 복원
+         * @param {Array} externalSelectedCategories - 외부에서 전달받은 선택된 카테고리 배열 (선택사항)
+         */
+        function initializePopup(externalSelectedCategories = null) {
+            // MAX_SELECTIONS에 따라 헤더 텍스트 업데이트
+            updateMaxSelectionsText();
+            
+            // URL 파라미터에서 선택된 카테고리 파싱 (우선순위 높음)
+            parseUrlParameters();
+            
+            // 선택된 카테고리 데이터 결정
+            let oldSelectedCategories;
+            
+            if (externalSelectedCategories && Array.isArray(externalSelectedCategories)) {
+                // 외부에서 전달받은 배열 사용
+                oldSelectedCategories = externalSelectedCategories;
+            } else if (selectedCategories.length > 0) {
+                // URL 파라미터에서 파싱된 데이터 사용
+                oldSelectedCategories = selectedCategories;
+            } else {
+                // 서버에서 전달받은 기존 선택된 카테고리 데이터 사용
+                oldSelectedCategories = {? !empty(result.selectedCategory)}{result.selectedCategory}{:}[]{/};
+            }
+
+            // 트리 구조 렌더링
+            renderTree(); 
+            
+            // 이벤트 핸들러 바인딩
+            bindEvents();
+
+            // 기존 선택된 카테고리들을 복원
+            oldSelectedCategories.forEach(cat => {
+                selectCategory(cat.id, cat.name);
+                // 선택된 카테고리의 부모 폴더들을 자동으로 펼치기
+                expandParentFolders(cat.id);
+            });
+            
+            // 토글 버튼 상태 초기화
+            setToggleAllBtnState();
+            
+            // 초기화 완료 플래그 설정
+            isInit = true;
+        }
+
+        // ==================== 트리 렌더링 ====================
+        
+        /**
+         * 트리 구조 DOM 생성 (재귀 함수)
+         * @param {string} parentId - 부모 카테고리 ID
+         * @param {number} depth - 현재 깊이 레벨
+         * @param {Set} processedIds - 이미 처리된 ID 추적용 Set
+         * @returns {HTMLElement|null} 생성된 ul 요소 또는 null
+         */
+        function buildTree(parentId, depth, processedIds = new Set()) {
+            // 무한 재귀 방지: 이미 처리된 ID는 건너뛰기
+            if (processedIds.has(parentId)) {
+                console.warn('순환 참조 감지됨:', parentId);
+                return null;
+            }
+            
+            // 최대 depth 제한 (보안상 10단계까지만 허용)
+            if (depth > 10) {
+                console.warn('최대 depth 초과:', depth);
+                return null;
+            }
+            
+            // 해당 부모의 하위 카테고리들 필터링
+            const items = categories.filter(c => c.parentId === parentId);
+            if (!items.length) return null;
+            
+            // 현재 parentId를 처리된 목록에 추가
+            processedIds.add(parentId);
+            
+            const ul = document.createElement('ul');
+            
+            items.forEach(cat => {
+                // 하위 카테고리 존재 여부 확인
+                const hasChild = categories.some(c => c.parentId === cat.id);
+                
+                // li 요소 생성 및 속성 설정
+                const li = document.createElement('li');
+                li.setAttribute('data-id', cat.id);
+                li.setAttribute('data-parent', cat.parentId);
+                li.setAttribute('data-depth', depth);
+
+                // 트위스티 아이콘 생성 (하위 카테고리가 있으면 화살표, 없으면 공간)
+                const twisty = hasChild 
+                    ? '<i class="fa-solid fa-caret-right twisty closed" aria-hidden="true"></i>' 
+                    : '<span class="twisty-spacer"></span>';
+                
+                // 카테고리 행 HTML 생성
+                const rowHtml = 
+                    '<div class="category-row" data-id="' + cat.id + '">' +
+                        '<div class="category-left">' +
+                            twisty +
+                            '<i class="fa-solid fa-folder folder-icon"></i>' +
+                            '<span class="label">' + cat.name + '</span>' +
+                        '</div>' +
+                        '<div class="category-meta">' +
+                            '<span class="muted id-col">' + cat.id + '</span>' +
+                            '<div class="category-actions">' +
+                                '<button class="select-btn" data-category-id="' + cat.id + '" onclick="selectCategory(\'' + cat.id + '\', \'' + cat.name + '\')">선택</button>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>';
+                
+                li.innerHTML = rowHtml;
+                
+                // 하위 카테고리가 있으면 재귀적으로 생성
+                if (hasChild) {
+                    // 새로운 Set을 생성하여 각 분기에 대해 독립적으로 처리
+                    const newProcessedIds = new Set(processedIds);
+                    const childUl = buildTree(cat.id, depth + 1, newProcessedIds);
+                    if (childUl) {
+                        childUl.style.display = 'none'; // 초기 상태는 닫힘
+                        li.appendChild(childUl);
+                    }
+                }
+                
+                ul.appendChild(li);
+            });
+            
+            return ul;
+        }
+
+        /**
+         * 트리 구조 렌더링
+         * 루트부터 시작하여 전체 트리 구조를 DOM에 렌더링
+         */
+        function renderTree() {
+            const treeContainer = document.getElementById('category-tree');
+            treeContainer.innerHTML = '';
+            
+            // 루트부터 트리 구조 생성 (무한 재귀 방지를 위한 Set 전달)
+            const tree = buildTree('0', 0, new Set());
+            
+            if (tree) {
+                treeContainer.appendChild(tree);
+                
+                // 기존 선택된 카테고리들을 시각적으로 표시
+                markSelectedCategories();
+            }
+        }
+
+        /**
+         * 선택된 카테고리들을 시각적으로 표시
+         * DOM에 선택된 상태 클래스 추가 및 메타데이터 업데이트
+         */
+        function markSelectedCategories() {
+            selectedCategories.forEach(selectedCat => {
+                const categoryRow = document.querySelector(`[data-id="${selectedCat.id}"] .category-row`);
+                if (categoryRow) {
+                    categoryRow.classList.add('selected');
+                    
+                    // 실제 카테고리 데이터에서 메타데이터 업데이트
+                    const category = categories.find(c => c.id === selectedCat.id);
+                    if (category) {
+                        selectedCat.depth = category.depth || 0;
+                        selectedCat.path = getCategoryPath(selectedCat.id);
+                    }
+                }
+            });
+            
+            // 모든 버튼 텍스트 업데이트
+            updateAllButtonTexts();
+        }
+
+        /**
+         * 모든 선택 버튼의 텍스트를 업데이트
+         */
+        function updateAllButtonTexts() {
+            document.querySelectorAll('.select-btn').forEach(btn => {
+                const categoryId = btn.getAttribute('data-category-id');
+                const isSelected = selectedCategories.some(cat => cat.id === categoryId);
+                
+                if (isSelected) {
+                    btn.textContent = '취소';
+                    btn.classList.add('cancel-btn');
+                } else {
+                    btn.textContent = '선택';
+                    btn.classList.remove('cancel-btn');
+                }
+            });
+        }
+
+        // ==================== 이벤트 핸들링 ====================
+        
+        /**
+         * 모든 이벤트 핸들러 바인딩
+         * 이벤트 위임을 사용하여 성능 최적화
+         */
+        function bindEvents() {
+            // 통합 클릭 이벤트 핸들러 (이벤트 위임 사용)
+            document.addEventListener('click', handleClick);
+            
+            // 더블클릭 이벤트 핸들러
+            document.addEventListener('dblclick', handleDoubleClick);
+            
+            // 검색 입력 이벤트
+            document.getElementById('searchInput').addEventListener('input', handleSearch);
+            
+            // 버튼 이벤트들
+            document.getElementById('toggleAllBtn').addEventListener('click', handleToggleAll);
+            document.getElementById('confirmBtn').addEventListener('click', handleConfirm);
+            document.getElementById('cancelBtn').addEventListener('click', handleCancel);
+            
+            // 키보드 이벤트 (ESC 키)
+            document.addEventListener('keydown', handleKeyDown);
+        }
+
+        /**
+         * 통합 클릭 이벤트 핸들러 (이벤트 위임)
+         * @param {Event} e - 클릭 이벤트 객체
+         */
+        function handleClick(e) {
+            // 트위스티 아이콘 클릭 처리
+            if (e.target.classList.contains('twisty')) {
+                e.stopPropagation();
+                toggleCategoryFolder(e.target);
+                return;
+            }
+            
+            // 선택 버튼 클릭 시 폴더 토글 방지
+            if (e.target.classList.contains('select-btn') || e.target.closest('.select-btn')) {
+                return;
+            }
+            
+            // 카테고리 행 클릭 처리 (하위 카테고리 토글)
+            const categoryRow = e.target.closest('.category-row');
+            if (categoryRow) {
+                const li = categoryRow.closest('li');
+                if (li) {
+                    const childUl = li.querySelector('ul');
+                    // 하위 카테고리가 있을 때만 토글
+                    if (childUl) {
+                        const twisty = li.querySelector('.category-row .twisty');
+                        if (twisty) {
+                            toggleCategoryFolder(twisty);
+                        }
+                    }
+                }
+            }
+        }
+
+        /**
+         * 더블클릭 이벤트 핸들러
+         * @param {Event} e - 더블클릭 이벤트 객체
+         */
+        function handleDoubleClick(e) {
+            const categoryRow = e.target.closest('.category-row');
+            if (categoryRow) {
+                e.stopPropagation();
+                handleCategoryDoubleClick(categoryRow);
+            }
+        }
+
+        /**
+         * 검색 입력 이벤트 핸들러
+         * @param {Event} e - 입력 이벤트 객체
+         */
+        function handleSearch(e) {
+            const query = e.target.value.trim().toLowerCase();
+            if (!query) {
+                showAllCategories();
+                collapseAll();
+                setToggleAllBtnState();
+                return;
+            }
+            
+            filterCategories(query);
+            setToggleAllBtnState();
+        }
+
+        /**
+         * 전체 토글 버튼 이벤트 핸들러
+         */
+        function handleToggleAll() {
+            if (isAllExpanded()) {
+                collapseAll();
+            } else {
+                expandAll();
+            }
+            setToggleAllBtnState();
+        }
+
+        /**
+         * 확인 버튼 이벤트 핸들러
+         * 선택된 카테고리가 없어도 빈 배열을 넘겨줌
+         */
+        function handleConfirm() {
+            confirmSelection();
+        }
+
+        /**
+         * 취소 버튼 이벤트 핸들러
+         */
+        function handleCancel() {
+            window.close();
+        }
+
+        /**
+         * 키보드 이벤트 핸들러
+         * @param {KeyboardEvent} e - 키보드 이벤트 객체
+         */
+        function handleKeyDown(e) {
+            if (e.key === 'Escape') {
+                window.close();
+            }
+        }
+
+        // ==================== 카테고리 조작 ====================
+        
+        /**
+         * 카테고리 폴더 토글 (열기/닫기)
+         * @param {HTMLElement} twistyElement - 트위스티 아이콘 요소
+         */
+        function toggleCategoryFolder(twistyElement) {
+            const li = twistyElement.closest('li');
+            if (!li) return;
+            
+            const isOpen = twistyElement.classList.contains('open');
+            setFolderState(li, !isOpen);
+            setToggleAllBtnState();
+        }
+
+        /**
+         * 카테고리 더블클릭 처리
+         * @param {HTMLElement} categoryRow - 카테고리 행 요소
+         */
+        function handleCategoryDoubleClick(categoryRow) {
+            const categoryId = categoryRow.getAttribute('data-id');
+            const categoryName = categoryRow.querySelector('.label').textContent;
+            const li = categoryRow.closest('li');
+            const depth = parseInt(li.getAttribute('data-depth')) || 0;
+            
+            // 더블클릭 시각적 피드백 추가
+            categoryRow.classList.add('dblclick-active');
+            
+            // 해당 카테고리 선택
+            selectCategory(categoryId, categoryName);
+            
+            // 시각적 피드백 제거 (200ms 후)
+            setTimeout(() => {
+                categoryRow.classList.remove('dblclick-active');
+            }, 200);
+        }
+
+        // ==================== 검색 및 필터링 ====================
+        
+        /**
+         * 모든 카테고리 표시 (검색 초기화)
+         */
+        function showAllCategories() {
+            document.querySelectorAll('#category-tree li').forEach(li => {
+                li.classList.remove('hidden');
+            });
+        }
+
+        /**
+         * 카테고리 필터링 (검색 기능)
+         * @param {string} query - 검색 쿼리 문자열
+         */
+        function filterCategories(query) {
+            // 모든 항목 숨기기
+            document.querySelectorAll('#category-tree li').forEach(li => {
+                li.classList.add('hidden');
+            });
+            
+            // 일치하는 항목과 부모 항목들 표시
+            document.querySelectorAll('#category-tree li').forEach(li => {
+                const name = li.querySelector('.category-row .label').textContent.toLowerCase();
+                if (name.includes(query)) {
+                    li.classList.remove('hidden');
+                    
+                    // 부모 항목들도 표시
+                    let parent = li.parentElement.closest('li');
+                    while (parent) {
+                        parent.classList.remove('hidden');
+                        parent = parent.parentElement.closest('li');
+                    }
+                    
+                    // 부모 항목들 자동 펼치기
+                    const parentLi = li.parentElement.closest('li');
+                    if (parentLi) {
+                        const childUls = parentLi.querySelectorAll('ul');
+                        childUls.forEach(ul => {
+                            ul.style.display = 'block';
+                        });
+                    }
+                }
+            });
+        }
+
+        // ==================== 카테고리 선택 ====================
+        
+        /**
+         * 카테고리 선택/해제 (다중 선택 지원)
+         * @param {string} categoryId - 카테고리 ID
+         * @param {string} categoryName - 카테고리 이름
+         */
+        function selectCategory(categoryId, categoryName) {
+            // 이미 선택된 카테고리인지 확인
+            const existingIndex = selectedCategories.findIndex(cat => cat.id === categoryId);
+            
+            if (existingIndex !== -1 && isInit) {
+                // 이미 선택된 카테고리면 선택 해제
+                selectedCategories.splice(existingIndex, 1);
+                const categoryRow = document.querySelector('[data-id="' + categoryId + '"] .category-row');
+                if (categoryRow) {
+                    categoryRow.classList.remove('selected');
+                }
+            } else {
+                // 최대 선택 개수 확인
+                if (selectedCategories.length >= MAX_SELECTIONS) {
+                    if (MAX_SELECTIONS === 1) {
+                        alert('1개의 카테고리만 선택할 수 있습니다.');
+                    } else {
+                        alert('최대 ' + MAX_SELECTIONS + '개까지만 선택할 수 있습니다.');
+                    }
+                    return;
+                }
+                
+                // 선택하려는 카테고리의 부모 폴더들이 닫혀있으면 자동으로 열기
+                if (!isInit) {
+                    expandParentFolders(categoryId);
+                }
+                
+                // 새 카테고리 추가
+                const categoryPath = getCategoryPath(categoryId);
+                selectedCategories.push({
+                    id: categoryId,
+                    name: categoryName,
+                    path: categoryPath
+                });
+                
+                const categoryRow = document.querySelector('[data-id="' + categoryId + '"] .category-row');
+                if (categoryRow) {
+                    categoryRow.classList.add('selected');
+                }
+            }
+            
+            // 선택 정보 UI 업데이트
+            updateSelectedInfo();
+            
+            // 버튼 텍스트 업데이트
+            updateAllButtonTexts();
+        }
+
+        // ==================== 유틸리티 함수 ====================
+        
+        /**
+         * 카테고리 경로 가져오기 (부모부터 현재까지)
+         * @param {string} categoryId - 카테고리 ID
+         * @returns {Array<string>} 카테고리 경로 배열
+         */
+        function getCategoryPath(categoryId) {
+            const path = [];
+            let currentId = categoryId;
+            
+            while (currentId && currentId !== '0') {
+                const category = categories.find(c => c.id === currentId);
+                if (category) {
+                    path.unshift(category.name);
+                    currentId = category.parentId;
+                } else {
+                    break;
+                }
+            }
+            
+            return path;
+        }
+
+        /**
+         * 선택된 카테고리 정보 UI 업데이트
+         */
+        function updateSelectedInfo() {
+            const selectedInfo = document.getElementById('selectedInfo');
+            const selectedCategoryName = document.getElementById('selectedCategoryName');
+            const selectedCategoryPath = document.getElementById('selectedCategoryPath');
+            
+            if (selectedCategories.length > 0) {
+                selectedInfo.style.display = 'block';
+                
+                // 선택된 카테고리들을 표시
+                let displayText = '';
+                selectedCategories.forEach((cat, index) => {
+                    if (index > 0) displayText += ', ';
+                    displayText += cat.name;
+                });
+                selectedCategoryName.textContent = displayText;
+                
+                // 선택 개수 표시
+                selectedCategoryPath.textContent = "선택된 카테고리: " + selectedCategories.length + "/" + MAX_SELECTIONS + "개";
+            } else {
+                selectedInfo.style.display = 'none';
+            }
+        }
+
+        /**
+         * 모든 선택 해제
+         */
+        function clearSelection() {
+            selectedCategories = [];
+            
+            document.querySelectorAll('.category-row').forEach(row => {
+                row.classList.remove('selected');
+            });
+            
+            updateSelectedInfo();
+            updateAllButtonTexts();
+        }
+
+        // ==================== 부모 창 통신 ====================
+        
+        /**
+         * 선택 확인 및 부모 창으로 데이터 전달
+         * 선택된 카테고리가 없어도 빈 배열을 전달
+         */
+        function confirmSelection() {
+            if (!window.opener) {
+                showMessage('부모 창을 찾을 수 없습니다.', 'error');
+                return;
+            }
+            
+            try {
+                // 부모창의 도메인 확인
+                let parentDomain = '';
+                try {
+                    parentDomain = window.opener?.location?.hostname || '';
+                } catch (e) {
+                    // CORS 오류 발생 시 기본값 사용
+                    console.warn('부모 창 도메인 접근 실패 (CORS):', e.message);
+                    parentDomain = 'unknown';
+                }
+
+                // 도메인에 따른 데이터 형식 결정
+                if (parentDomain != "datacms.hankyung.com") {
+                    // 물가지수 형식으로 데이터 변환 (빈 배열도 처리)
+                    const data = selectedCategories.map(cat => ({
+                        priceid: cat.id.replace('hkp', ''),    // HKP 접두사 제거
+                        pricename: cat.name // 물가지수명
+                    }));
+                    
+                    // postMessage로 데이터 전달 (빈 배열도 전달)
+                    window.opener.postMessage({
+                        type: 'price',
+                        result: data
+                    }, '*');
+                } else {
+                    // 기존 카테고리 형식 유지 (빈 배열도 전달)
+                    window.opener.postMessage({
+                        type: 'fromCategory',
+                        result: selectedCategories
+                    }, '*');
+                }
+                // 팝업 닫기
+                window.close();
+            } catch (error) {
+                showMessage('부모 창과의 통신 중 오류가 발생했습니다.', 'error');
+                console.error('Error communicating with parent window:', error);
+            }
+        }
+
+        // ==================== 폴더 토글 관리 ====================
+        
+        /**
+         * 전체 펼치기/접기 상태 확인
+         * @returns {boolean} 모든 폴더가 펼쳐져 있는지 여부
+         */
+        function isAllExpanded() {
+            const allLiElements = document.querySelectorAll('#category-tree li');
+            let totalChildren = 0;
+            let expandedChildren = 0;
+            
+            allLiElements.forEach(li => {
+                const childUl = li.querySelector('ul');
+                if (childUl) {
+                    totalChildren++;
+                    if (childUl.style.display !== 'none') {
+                        expandedChildren++;
+                    }
+                }
+            });
+            
+            return totalChildren > 0 && expandedChildren === totalChildren;
+        }
+
+        /**
+         * 토글 버튼 상태 설정 (아이콘 및 텍스트 변경)
+         */
+        function setToggleAllBtnState() {
+            const allOpen = isAllExpanded();
+            const btn = document.getElementById('toggleAllBtn');
+            
+            if (allOpen) {
+                btn.title = '모든 폴더 닫기 (1depth만 보기)';
+                btn.innerHTML = '<i id="toggleAllIcon" class="fa-solid fa-folder-closed"></i> 닫기';
+            } else {
+                btn.title = '모든 폴더 펼치기';
+                btn.innerHTML = '<i id="toggleAllIcon" class="fa-solid fa-folder-tree"></i> 펼치기';
+            }
+        }
+
+        /**
+         * 전체 펼치기 (모든 depth 펼치기)
+         */
+        function expandAll() {
+            toggleAllCategories(true);
+        }
+
+        /**
+         * 전체 접기 (1depth만 보이도록)
+         */
+        function collapseAll() {
+            toggleAllCategories(false);
+        }
+
+        /**
+         * 카테고리 전체 토글 (통합 함수)
+         * @param {boolean} expand - 펼치기(true) 또는 접기(false)
+         */
+        function toggleAllCategories(expand) {
+            const allLiElements = document.querySelectorAll('#category-tree li');
+            
+            allLiElements.forEach(li => {
+                const childUl = li.querySelector('ul');
+                if (childUl) {
+                    // 하위 ul 표시/숨김
+                    childUl.style.display = expand ? 'block' : 'none';
+                    
+                    // 트위스티 아이콘 상태 변경
+                    const twisty = li.querySelector('.category-row .twisty');
+                    const icon = li.querySelector('.category-row .folder-icon');
+                    
+                    if (twisty) {
+                        if (expand) {
+                            twisty.classList.add('open', 'fa-caret-down');
+                            twisty.classList.remove('closed', 'fa-caret-right');
+                        } else {
+                            twisty.classList.remove('open', 'fa-caret-down');
+                            twisty.classList.add('closed', 'fa-caret-right');
+                        }
+                    }
+                    
+                    if (icon) {
+                        if (expand) {
+                            icon.classList.remove('fa-folder');
+                            icon.classList.add('fa-folder-open');
+                        } else {
+                            icon.classList.remove('fa-folder-open');
+                            icon.classList.add('fa-folder');
+                        }
+                    }
+                }
+            });
+        }
+
+        // ==================== UI 및 메시지 ====================
+        
+        /**
+         * MAX_SELECTIONS에 따라 헤더 텍스트 업데이트
+         */
+        function updateMaxSelectionsText() {
+            const maxSelectionsText = document.getElementById('maxSelectionsText');
+            if (maxSelectionsText) {
+                if (MAX_SELECTIONS === 1) {
+                    maxSelectionsText.textContent = '1개의 카테고리를 선택할 수 있습니다.';
+                } else {
+                    maxSelectionsText.textContent = '최대 ' + MAX_SELECTIONS + '개까지 선택 가능합니다.';
+                }
+            }
+        }
+        
+        /**
+         * 메시지 표시 (성공/오류)
+         * @param {string} message - 표시할 메시지
+         * @param {string} type - 메시지 타입 ('info', 'error')
+         */
+        function showMessage(message, type) {
+            const messageContainer = document.getElementById('messageContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + type;
+            messageDiv.textContent = message;
+            
+            messageContainer.appendChild(messageDiv);
+            
+            // 3초 후 자동 제거
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 3000);
+        }
+
+        /**
+         * URL 파라미터에서 선택된 카테고리 데이터 파싱
+         */
+        function parseUrlParameters() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const selectedData = urlParams.get('selected');
+            
+            if (selectedData) {
+                try {
+                    const parsedData = JSON.parse(decodeURIComponent(selectedData));
+                    if (Array.isArray(parsedData)) {
+                        // JSON 데이터를 selectedCategories 형식으로 변환
+                        selectedCategories = parsedData.map(item => ({
+                            id: 'hkp' + item.id,  // priceid에 hkp 접두사 추가
+                            name: item.name
+                        }));
+
+                        updateSelectedInfo();
+                        
+                        // 선택된 카테고리들의 부모 폴더들을 자동으로 펼치기
+                        selectedCategories.forEach(cat => {
+                            expandParentFolders(cat.id);
+                        });
+                    }
+                } catch (error) {
+                    console.error('URL 파라미터 JSON 파싱 오류:', error);
+                    showMessage('선택된 카테고리 데이터를 파싱하는 중 오류가 발생했습니다.', 'error');
+                }
+            }
+        }
+
+        // ==================== 폴더 상태 관리 ====================
+        
+        /**
+         * 특정 카테고리의 부모 폴더들을 펼치는 함수
+         * @param {string} categoryId - 카테고리 ID
+         */
+        function expandParentFolders(categoryId) {
+            // DOM이 완전히 렌더링된 후 실행되도록 지연
+            setTimeout(() => {
+                // 카테고리 경로를 따라 올라가면서 부모 폴더들 펼치기
+                let currentId = categoryId;
+                const path = [];
+                
+                while (currentId && currentId !== '0') {
+                    const category = categories.find(c => c.id === currentId);
+                    if (category) {
+                        path.unshift(category);
+                        currentId = category.parentId;
+                    } else {
+                        break;
+                    }
+                }
+                
+                // 경로의 각 카테고리에 대해 부모 폴더 펼치기 (현재 카테고리 제외)
+                path.forEach(cat => {
+                    // 현재 카테고리 자체는 제외하고 부모들만 펼치기
+                    if (cat.id !== categoryId) {
+                        const li = document.querySelector(`[data-id="${cat.id}"]`);
+                        if (li) {
+                            const childUl = li.querySelector('ul');
+                            if (childUl) {
+                                // 폴더 상태를 열림으로 설정
+                                setFolderState(li, true);
+                            }
+                        }
+                    }
+                });
+            }, 100); // 100ms 지연으로 DOM 렌더링 완료 보장
+        }
+
+        /**
+         * 폴더 상태 설정 (통합 함수)
+         * @param {HTMLElement} liElement - li 요소
+         * @param {boolean} isOpen - 열림/닫힘 상태
+         */
+        function setFolderState(liElement, isOpen) {
+            const childUl = liElement.querySelector('ul');
+            const twisty = liElement.querySelector('.category-row .twisty');
+            const icon = liElement.querySelector('.category-row .folder-icon');
+            
+            if (childUl) {
+                childUl.style.display = isOpen ? 'block' : 'none';
+            }
+            
+            if (twisty) {
+                if (isOpen) {
+                    twisty.classList.add('open', 'fa-caret-down');
+                    twisty.classList.remove('closed', 'fa-caret-right');
+                } else {
+                    twisty.classList.remove('open', 'fa-caret-down');
+                    twisty.classList.add('closed', 'fa-caret-right');
+                }
+            }
+            
+            if (icon) {
+                if (isOpen) {
+                    icon.classList.remove('fa-folder');
+                    icon.classList.add('fa-folder-open');
+                } else {
+                    icon.classList.remove('fa-folder-open');
+                    icon.classList.add('fa-folder');
+                }
+            }
+        }
+
+        // ==================== 전역 함수 및 이벤트 ====================
+        
+        /**
+         * 팝업 설정 반환 (부모 창과의 통신용)
+         * @returns {Object} 팝업 설정 객체
+         */
+        window.getPopupConfig = function() {
+            return popupConfig;
+        };
+
+        /**
+         * 부모 창으로부터 메시지 수신 이벤트 리스너
+         */
+        window.addEventListener('message', function(event) {
+            if (event.data.type === 'fromCategory') {
+                // 선택된 카테고리 배열을 받아서 팝업 재초기화
+                const receivedCategories = event.data.result;
+                if (Array.isArray(receivedCategories)) {
+                    initializePopup(receivedCategories);
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>

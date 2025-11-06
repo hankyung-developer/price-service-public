@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}
+    <style>
+        /* 테이블 셀 여백 조정 */
+        .list-cont table td {
+            padding: calc(var(--spacing)/ 2) 8px !important;
+        }
+        
+        /* 긴 텍스트를 위한 작은 폰트 클래스 */
+        .list-cont table td.small-font {
+            font-size: 13px !important;
+        }
+        
+        .list-cont table td.smaller-font {
+            font-size: 11px !important;
+        }
+        
+        .migration-status {
+            text-align: center;
+            font-size: 12px;
+        }
+        .migration-indicator {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .migration-running {
+            background-color: #f59e0b;
+            color: white;
+        }
+        .migration-completed {
+            background-color: #10b981;
+            color: white;
+        }
+        .migration-failed {
+            background-color: #ef4444;
+            color: white;
+        }
+        .migration-none {
+            background-color: #6b7280;
+            color: white;
+        }
+        .migration-progress {
+            background-color: #3b82f6;
+            color: white;
+        }
+        
+        /* Migration 정지 버튼 스타일 */
+        .btn-stop-migration {
+            margin-top: 5px;
+            padding: 2px 8px;
+            font-size: 10px;
+            background: #dc3545;
+            color: #fff;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-stop-migration:hover {
+            background: #c82333;
+        }
+        
+        /* 페이징 버튼 스타일 */
+        .page-btn {
+            padding: 5px 10px;
+            margin: 0 2px;
+            cursor: pointer;
+            background: #fff;
+            color: #333;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-size: 12px;
+        }
+        
+        .page-btn:hover:not(:disabled) {
+            background: #f0f0f0;
+            border-color: #007bff;
+        }
+        
+        .page-btn.active {
+            background: #007bff;
+            color: white;
+            font-weight: bold;
+            border-color: #007bff;
+        }
+        
+        .page-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        /* 데이터 모달 전체 스타일 */
+        #dataModal article {
+            max-width: 1400px !important;
+        }
+        #dataModal header{
+            margin-bottom: 0;
+        }
+
+        #dataModal header h6 {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0;
+            color: #212529;
+        }
+        
+        /* Meta 정보 영역 스타일 */
+        #dataMetaInfo {
+            padding: 15px 20px;
+            background: linear-gradient(to bottom, #f8f9fa, #ffffff);
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        #dataMetaInfo strong {
+            font-size: 13px;
+            font-weight: 600;
+            color: #495057;
+            margin-right: 8px;
+        }
+        
+        .meta-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            margin: 3px 4px 3px 0;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .market-badge {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #bbdefb;
+        }
+        
+        .market-badge:hover {
+            background: #bbdefb;
+        }
+        
+        .grade-badge {
+            background: #fff3e0;
+            color: #f57c00;
+            border: 1px solid #ffe0b2;
+        }
+        
+        .grade-badge:hover {
+            background: #ffe0b2;
+        }
+        
+        /* 클릭 가능한 배지 스타일 */
+        .meta-badge.clickable {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .meta-badge.clickable:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .meta-badge.selected {
+            font-weight: 700;
+            box-shadow: 0 0 0 2px rgba(0,0,0,0.2);
+        }
+        
+        .market-badge.selected {
+            background: #1976d2;
+            color: white;
+        }
+        
+        .grade-badge.selected {
+            background: #f57c00;
+            color: white;
+        }
+        
+        /* 검색 조건 표시 영역 */
+        #filterDisplay {
+            padding: 10px 15px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        #filterDisplay .filter-label {
+            font-weight: 600;
+            color: #856404;
+        }
+        
+        #filterDisplay .filter-value {
+            display: inline-block;
+            padding: 3px 10px;
+            background: white;
+            border: 1px solid #ffc107;
+            border-radius: 3px;
+            color: #856404;
+            font-size: 12px;
+        }
+        
+        #filterDisplay .btn-clear-filter {
+            margin-left: auto;
+            padding: 4px 12px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        #filterDisplay .btn-clear-filter:hover {
+            background: #c82333;
+        }
+        
+        /* 데이터 테이블 컨테이너 */
+        .data-table-container {
+            max-height: 500px;
+            overflow-y: auto;
+            overflow-x: auto;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        /* 데이터 테이블 스타일 개선 */
+        #dataTable1 {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            background: white;
+        }
+        
+        #dataTable1 th {
+            position: sticky;
+            top: 0;
+            background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+            color: #495057;
+            font-weight: 600;
+            font-size: 12px;
+            white-space: nowrap;
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 2px solid #dee2e6;
+            z-index: 10;
+        }
+        
+        #dataTable1 tbody tr {
+            border-bottom: 1px solid #f1f3f5;
+            transition: background-color 0.15s;
+        }
+        
+        #dataTable1 tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        #dataTable1 td {
+            font-size: 12px;
+            white-space: nowrap;
+            padding: 10px;
+            color: #495057;
+        }
+        
+        /* 로딩 인디케이터 */
+        #dataLoadingIndicator {
+            text-align: center;
+            padding: 40px 20px;
+            font-size: 14px;
+            color: #6c757d;
+        }
+        
+        #dataLoadingIndicator i {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        /* 페이징 스타일 개선 */
+        #dataPagination {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .pagination-info {
+            font-size: 13px;
+            color: #6c757d;
+            margin-right: 15px;
+            font-weight: 500;
+        }
+        
+        /* Footer 스타일 */
+        #dataModal footer {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        #dataModal footer a[role="button"] {
+            padding: 8px 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    {# left}
+    {# header}
+
+    <main class="container">
+        <div role="document">
+			<div role="heading">API 수집</div>
+			<section class="section-search"> 
+                <form role="search" name="searchForm" id="searchForm">
+                    <input type="hidden" id="coId" name="coId" value="{_SESSION.coId}"/>
+
+                    <select name="category" id="category">
+                        <option value="">선택하세요</option>
+                        {@ result.category.item}
+                        <option value="{.category}"{?_GET.category == .category} selected{/}>{.category}</option>
+                        {/}
+                    </select>
+					<div class="search-input">
+                        <input type="text" name="searchText" id="searchText" value="{? _GET.searchText}{_GET.searchText}{/}" placeholder="검색어를 입력하세요">
+                        <button id="searchBtn" class="btn-search" type="button"><i class="fa-light fa-magnifying-glass"></i></button>
+                    </div>
+					<button type="button" class="btn" id="insertBtn">API 등록</button>
+                    <!-- <button type="button" class="btn btn-black" id="deleteBtn">삭제</button> -->
+				</form>
+			</section>
+			<section role="list">
+                <div class="list-cont">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>카테고리</th>
+                                <th>제목</th>
+                                <th>제공사</th>
+                                <th>ID</th>
+                                <th>생성일자</th>
+                                <th>수정일자</th>
+                                <th>최신 데이터 날짜</th>
+                                <th>Migration 상태</th>
+                                <th> </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {@ result.items}
+                            <tr data-collection="{.collection}">
+                                <td>{.categoryName}</td>
+                                <td><strong><a href="/apis/editor?id={.id}{? _GET.page}&page={_GET.page}{/}{? _GET.searchText}&searchText={_GET.searchText}{/}{? _GET.category}&category={_GET.category}{/}" class="title" title="{.title}">{? empty(.title)}<span class="red">제목없음</span>{:}{.title}{/}</a></strong></td>
+                                <td>{.provider}</td>
+                                <td>{.id}</td>
+                                <td>{=substr(.insert.date,0,10)}<br/>({.insert.managerName})</td>
+                                <td>{=substr(.update.date,0,10)}<br/>({.update.managerName})</td>
+                                <td>{=.latestDataDate}</td>
+                                <td class="migration-status" data-api-id="{.id}">
+                                    <span class="migration-indicator">확인중...</span>
+                                </td>
+                                <td>
+                                    <!-- API 확인: 아이콘 버튼 (돋보기) -->
+                                    <button type="button" data-target="dataModal" onClick="toggleModal(event);" class="showLastData icon-btn" name="last" title="API 확인">
+                                        <i class="fa-light fa-magnifying-glass"></i>
+                                    </button>
+                                    <!-- 수집된 데이터 삭제: 아이콘 버튼 (오렌지색 배경) -->
+                                    <button type="button" class="deleteCollectedItem icon-btn" name="deleteCollectedItem" onclick="deleteCollectedItem('{.id}');" title="수집된 데이터 삭제"
+                                        style="background-color:#ff8c00; color:#fff; border:none;">
+                                        <i class="fa-light fa-database" style="color:#fff;"></i>
+                                    </button>
+
+                                    <!-- API 삭제: 아이콘 버튼 (붉은색 배경, 대비되는 아이콘 색상) -->
+                                    <button type="button" class="deleteApi btn-delete icon-btn" name="deleteApi" onclick="apiDelete('{.id}');" title="API 삭제"
+                                        style="background-color:#dc3545; color:#fff; border:none;">
+                                        <i class="fa-light fa-trash" style="color:#fff;"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {/}
+                        </tbody>
+                    </table>
+                </div>
+                {#paging}
+            </section>
+        </div>
+    </main>
+
+<!-- API 데이터 Modal -->
+<dialog id="dataModal">
+    <article style="width:90%;">
+        <header>
+            <a href="#close" aria-label="Close" class="close" data-target="dataModal" onClick="toggleModal(event);"></a>
+            <h6 id="dataModalTitle">API 데이터</h6>
+        </header>
+        
+        <!-- Meta 정보 표시 영역 -->
+        <div id="dataMetaInfo" style="display:none;">
+            <div style="display:flex; gap:30px; flex-wrap:wrap;">
+                <div id="marketInfo" style="flex:1; min-width:250px;">
+                    <strong>market : </strong>
+                    <span id="marketList"></span>
+                </div>
+                <div id="gradeInfo" style="flex:1; min-width:250px;">
+                    <strong>grade : </strong>
+                    <span id="gradeList"></span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 검색 조건 표시 영역 -->
+        <div id="filterDisplay">
+            <span class="filter-label">검색 조건:</span>
+            <span id="filterText"></span>
+            <button class="btn-clear-filter" onclick="clearFilters()">초기화</button>
+        </div>
+        
+        <!-- 데이터 테이블 컨테이너 -->
+        <div class="data-table-container">
+            <div id="dataLoadingIndicator">
+                <i class="fa-light fa-spinner fa-spin"></i><br>
+                데이터를 불러오는 중...
+            </div>
+            <table id="dataTable1" style="display:none;">
+                <thead><tr></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        
+        <footer style="display:flex; justify-content:space-between; align-items:center;margin-top: 0;">
+            <div id="dataPagination">
+                <!-- 페이징 버튼이 여기에 동적으로 추가됩니다 -->
+            </div>
+            <a href="#cancel" role="button" data-target="dataModal" onClick="toggleModal(event);">닫기</a>
+        </footer>
+    </article>
+</dialog>
+
+<script type="text/javascript">
+    $(document).ready(function(){
+        $('#insertBtn').click(function(){
+            location.href='/apis/editor';
+        });
+    
+        $('#deleteBtn').click(function(){
+            var chkCompany = '';
+            $("input[name=apiSelect]:checked").each(function(){
+                chkCompany += $(this).val() + '|';
+            });
+    
+            if(chkCompany == '' ){
+                alert('삭제할 API 정보를 선택해주세요.');
+            }else{
+                alert(chkCompany);
+                apiDelete(chkCompany);
+            }
+        });
+    
+        $('#chkSelectAll').click(function(){
+            $("input[name=apiSelect]").prop('checked', $("input:checkbox[id='chkSelectAll']").is(":checked"));
+        });
+            
+        $('#searchBtn').click(function(){
+            $('#searchForm').attr('action','/apis/list').submit();
+        });
+
+        // td 글자 길이에 따라 폰트 크기 조절
+        adjustTdFontSize();
+
+        // Migration 상태 확인
+        checkMigrationStatus();
+        
+        // 5초마다 Migration 상태 업데이트
+        setInterval(checkMigrationStatus, 5000);
+    });
+    
+    // td 글자 길이에 따라 폰트 크기를 조절하는 함수
+    function adjustTdFontSize() {
+        $('.list-cont table tbody td').each(function() {
+            var $td = $(this);
+            var text = $td.text().trim();
+            var textLength = text.length;
+            
+            // Migration 상태 셀은 제외
+            if ($td.hasClass('migration-status')) {
+                return;
+            }
+            
+            // 버튼이 있는 셀은 제외
+            if ($td.find('button').length > 0) {
+                return;
+            }
+            
+            // 텍스트 길이에 따라 폰트 크기 조절
+            if (textLength > 50) {
+                $td.addClass('smaller-font');
+            } else if (textLength > 30) {
+                $td.addClass('small-font');
+            }
+        });
+    }
+    
+    function apiDelete(apiId){
+        if( confirm('API 정보를 삭제하시겠습니까?') ){
+            $.ajax({
+                url: '/apis/delete/ajax',
+                method : 'POST',
+                data : {'apiId': apiId}
+            }).done(function() {
+                alert('API 정보가 삭제되었습니다.');
+                location.reload();
+            });
+        }
+    }
+
+    // 수집된 데이터 삭제 함수
+    function deleteCollectedItem(apiId) {
+        if (confirm('수집된 '+apiId+' 데이터를 모두 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.')) {
+            $.ajax({
+                url: '/apis/deleteCollectedItem/ajax',
+                method: 'POST',
+                contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                dataType: 'json',
+                data: {
+                    'apiId': apiId
+                },
+                success: function(response) {
+                    if (response.result.success) {
+                        alert('수집된 데이터가 성공적으로 삭제되었습니다.');
+                    } else {
+                        alert('데이터 삭제 중 오류가 발생했습니다: ' + (response.message || '알 수 없는 오류'));
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('데이터 삭제 오류:', error);
+                    alert('데이터 삭제 중 오류가 발생했습니다.');
+                }
+            });
+        }
+    }
+
+    // API 데이터 조회를 위한 전역 변수
+    let currentApiId = null;
+    let currentPage = 1;
+    const itemsPerPage = 25; // API 기본값과 맞춤
+    let currentMarket = null; // 선택된 market 필터
+    let currentGrade = null;  // 선택된 grade 필터
+
+    $(".showLastData").click(function(){
+        const apiId = $(this).closest("tr").find('td').eq(3).text().trim(); // ID 컬럼에서 가져오기
+        const title = $(this).closest("tr").find('.title').text();
+
+        currentApiId = apiId;
+        currentPage = 1;
+        currentMarket = null; // 필터 초기화
+        currentGrade = null;  // 필터 초기화
+
+        $('#dataModalTitle').text(title + ' - API 데이터');
+        
+        // Meta 정보 초기화
+        $('#dataMetaInfo').hide();
+        
+        // 필터 표시 영역 초기화
+        $('#filterDisplay').hide();
+        
+        // 데이터 로드
+        loadApiData(apiId, currentPage);
+    });
+
+    // API 데이터를 로드하는 함수
+    function loadApiData(apiId, page) {
+        // 로딩 표시
+        $('#dataLoadingIndicator').show().html('<i class="fa-light fa-spinner fa-spin"></i><br>데이터를 불러오는 중...');
+        $('#dataTable1').hide();
+        $('#dataPagination').empty();
+        
+        // 페이지 버튼 비활성화
+        $('.page-btn').prop('disabled', true).css('opacity', '0.5');
+
+        // AJAX 요청 데이터 구성
+        var requestData = {
+            'apiId': apiId,
+            'page': page,
+            'limit': itemsPerPage
+        };
+        
+        // market 필터가 있으면 추가
+        if (currentMarket) {
+            requestData.market = currentMarket;
+        }
+        
+        // grade 필터가 있으면 추가
+        if (currentGrade) {
+            requestData.grade = currentGrade;
+        }
+
+        $.ajax({
+            url: 'https://price-api.hankyung.com/api/getApiData',
+            method: 'GET',
+            dataType: 'json',
+            data: requestData,
+        }).done(function(response) {
+            if (response.success && response.data && response.data.data) {
+                renderDataTable(response.data.data);
+                renderPagination(response.data.meta);
+                renderMetaInfo(response.data.meta);
+                
+                // 로딩 숨기고 테이블 표시
+                $('#dataLoadingIndicator').hide();
+                $('#dataTable1').show();
+                
+                // 모달 내부 스크롤을 맨 위로 이동
+                $('.data-table-container').scrollTop(0);
+            } else {
+                $('#dataLoadingIndicator').html('<i class="fa-light fa-circle-exclamation" style="color:#dc3545;"></i><br><span style="color:#dc3545;">데이터를 불러오는데 실패했습니다.</span>');
+            }
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+            console.error('API 데이터 로드 실패:', errorThrown);
+            $('#dataLoadingIndicator').html('<i class="fa-light fa-circle-exclamation" style="color:#dc3545;"></i><br><span style="color:#dc3545;">데이터를 불러오는데 실패했습니다.<br>' + errorThrown + '</span>');
+        }).always(function() {
+            // 페이지 버튼 다시 활성화
+            $('.page-btn').prop('disabled', false).css('opacity', '1');
+        });
+    }
+
+    // Meta 정보 렌더링 함수
+    function renderMetaInfo(meta) {
+        if (!meta) {
+            $('#dataMetaInfo').hide();
+            return;
+        }
+
+        // haveMarket 정보 표시 (클릭 가능하게)
+        if (meta.haveMarket && meta.haveMarket.length > 0) {
+            const marketHtml = meta.haveMarket.map(function(market) {
+                const selectedClass = (currentMarket === market) ? ' selected' : '';
+                return '<span class="meta-badge market-badge clickable' + selectedClass + '" data-market="' + market + '">' + market + '</span>';
+            }).join('');
+            $('#marketList').html(marketHtml);
+            $('#marketInfo').show();
+        } else {
+            $('#marketInfo').hide();
+        }
+
+        // haveGrade 정보 표시 (클릭 가능하게)
+        if (meta.haveGrade && meta.haveGrade.length > 0) {
+            const gradeHtml = meta.haveGrade.map(function(grade) {
+                const selectedClass = (currentGrade === grade) ? ' selected' : '';
+                return '<span class="meta-badge grade-badge clickable' + selectedClass + '" data-grade="' + grade + '">' + grade + '</span>';
+            }).join('');
+            $('#gradeList').html(gradeHtml);
+            $('#gradeInfo').show();
+        } else {
+            $('#gradeInfo').hide();
+        }
+
+        // 하나라도 있으면 전체 영역 표시
+        if ((meta.haveMarket && meta.haveMarket.length > 0) || (meta.haveGrade && meta.haveGrade.length > 0)) {
+            $('#dataMetaInfo').show();
+        } else {
+            $('#dataMetaInfo').hide();
+        }
+        
+        // 검색 조건 표시 업데이트
+        updateFilterDisplay();
+    }
+
+    // 테이블 렌더링 함수
+    function renderDataTable(data) {
+        $("#dataTable1 thead tr").empty();
+        $("#dataTable1 tbody").empty();
+
+        if (!data || data.length === 0) {
+            $("#dataTable1 tbody").append('<tr><td colspan="100%" style="text-align:center;">데이터가 없습니다.</td></tr>');
+            return;
+        }
+
+        // 테이블 헤더 생성 (첫 번째 데이터 객체의 키를 사용)
+        const firstItem = data[0];
+        const headers = Object.keys(firstItem);
+        
+        headers.forEach(function(key) {
+            $("#dataTable1 thead tr").append("<th>" + key + "</th>");
+        });
+
+        // 테이블 바디 생성
+        data.forEach(function(item) {
+            let html = "<tr>";
+            headers.forEach(function(key) {
+                let value = item[key];
+                
+                // 값이 null이나 undefined면 빈 문자열로 표시
+                if (value === null || value === undefined) {
+                    value = '';
+                }
+                
+                // 숫자 형식 개선 (소수점 처리)
+                if (typeof value === 'number') {
+                    value = value.toLocaleString('ko-KR', {
+                        maximumFractionDigits: 2,
+                        minimumFractionDigits: 0
+                    });
+                }
+                
+                html += "<td class='" + key + "'>" + value + "</td>";
+            });
+            html += "</tr>";
+            $("#dataTable1 tbody").append(html);
+        });
+    }
+
+    // 페이징 렌더링 함수
+    function renderPagination(meta) {
+        const $pagination = $('#dataPagination');
+        $pagination.empty();
+
+        if (!meta) return;
+
+        const totalPages = Math.ceil(meta.totalCount / meta.limit);
+        const currentPage = meta.page;
+
+        // 페이지 정보 표시
+        const pageInfo = '<span class="pagination-info">전체 ' + 
+                        meta.totalCount.toLocaleString() + '건 (페이지 ' + currentPage + '/' + totalPages + ')</span>';
+        $pagination.append(pageInfo);
+
+        // 이전 페이지 버튼
+        if (currentPage > 1) {
+            $pagination.append('<button class="page-btn" data-page="1">&laquo;</button>');
+            $pagination.append('<button class="page-btn" data-page="' + (currentPage - 1) + '">&lt;</button>');
+        }
+
+        // 페이지 번호 버튼 (최대 5개 표시)
+        const startPage = Math.max(1, currentPage - 2);
+        const endPage = Math.min(totalPages, currentPage + 2);
+
+        for (let i = startPage; i <= endPage; i++) {
+            const isActive = i === currentPage;
+            const activeClass = isActive ? ' active' : '';
+            $pagination.append('<button class="page-btn' + activeClass + '" data-page="' + i + '">' + i + '</button>');
+        }
+
+        // 다음 페이지 버튼
+        if (currentPage < totalPages) {
+            $pagination.append('<button class="page-btn" data-page="' + (currentPage + 1) + '">&gt;</button>');
+            $pagination.append('<button class="page-btn" data-page="' + totalPages + '">&raquo;</button>');
+        }
+    }
+
+    // 페이지 버튼 클릭 이벤트 (이벤트 위임 방식)
+    // 동적으로 생성된 버튼에도 자동으로 이벤트가 적용됩니다
+    $(document).on('click', '#dataPagination .page-btn', function(e) {
+        e.preventDefault();
+        const page = parseInt($(this).data('page'));
+        
+        if (page && currentApiId) {
+            currentPage = page;
+            loadApiData(currentApiId, page);
+        }
+    });
+
+    // API 복사 기능
+    function apiCopy(apiId) {
+        if (confirm('이 API를 복사하시겠습니까?')) {
+            $.ajax({
+                url: '/apis/copy',
+                method: 'POST',
+                contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                dataType: 'json',
+                data: {
+                    'id': apiId
+                },
+                success: function(response) {
+                    if (response.success) {
+                        alert('API가 성공적으로 복사되었습니다.');
+                        location.reload(); // 페이지 새로고침
+                    } else {
+                        alert('API 복사 중 오류가 발생했습니다: ' + (response.message || '알 수 없는 오류'));
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('API 복사 오류:', error);
+                    alert('API 복사 중 오류가 발생했습니다.');
+                }
+            });
+        }
+    }
+
+    // Migration 정지 기능
+    $(document).on('click', '.btn-stop-migration', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        var apiId = $(this).data('api-id');
+        
+        if (confirm('Migration을 정지하시겠습니까?\n\n실행 중인 프로세스가 종료됩니다.')) {
+            $.ajax({
+                url: '/apis/stopMigration/ajax',
+                method: 'POST',
+                contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                dataType: 'json',
+                data: {
+                    'id': apiId
+                },
+                success: function(response) {
+                    if (response.result.success || (response.result && response.result.success)) {
+                        alert('Migration이 정지되었습니다.');
+                        location.reload(); // 페이지 새로고침
+                    } else {
+                        var errorMsg = response.message || (response.result && response.result.message) || '알 수 없는 오류';
+                        alert('Migration 정지 중 오류가 발생했습니다: ' + errorMsg);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Migration 정지 오류:', error);
+                    alert('Migration 정지 중 오류가 발생했습니다.');
+                }
+            });
+        }
+    });
+
+    // Migration 상태 확인 및 업데이트
+    function checkMigrationStatus() {
+        $('.migration-status').each(function() {
+            var $statusCell = $(this);
+            var apiId = $statusCell.data('api-id');
+            var $indicator = $statusCell.find('.migration-indicator');
+            
+            // 이미 정지된 ID인지 확인
+            if ($statusCell.data('monitoring-stopped')) {
+                return; // 이 ID에 대한 모니터링은 정지됨
+            }
+            
+            // 이미 확인된 미지원 ID인지 확인
+            if ($statusCell.data('migration-not-supported')) {
+                return; // 이 ID는 Migration을 지원하지 않음
+            }
+            
+            $.ajax({
+                url: '/apis/statusMigration/ajax',
+                method: 'GET',
+                data: { id: apiId },
+                dataType: 'json', // JSON 응답을 명시적으로 지정
+                success: function(response) {
+                    // API 응답이 result로 래핑되어 있는 경우 처리
+                    var data = response.result || response;
+                    
+                    if (data && data.success) {
+                        // status가 'none'인 경우 먼저 처리하여 모니터링 정지
+                        if (data.status === 'none') {
+                            $indicator.removeClass('migration-running migration-progress migration-completed migration-failed')
+                                    .addClass('migration-none')
+                                    .text('미지원')
+                                    .attr('title', '이 API는 Migration을 지원하지 않습니다.');
+                            
+                            // 미지원 ID로 표시하고 모니터링 정지
+                            $statusCell.data('migration-not-supported', true);
+                            return; // 더 이상 처리하지 않음
+                        }
+                        
+                        if (data.migrating) {
+                            var migrationData = data.data || {};
+                            var progress = migrationData.progress || 0;
+                            var processedDays = migrationData.processedDays || 0;
+                            var totalDays = migrationData.totalDays || 0;
+                            var currentDate = migrationData.currentDate || '';
+                            
+                            // 기존 버튼과 br 태그 제거 (중복 방지)
+                            $indicator.nextAll('br').first().remove();
+                            $indicator.nextAll('.btn-stop-migration').first().remove();
+                            
+                            $indicator.removeClass('migration-none migration-completed migration-failed')
+                                    .addClass('migration-running')
+                                    .html(progress + '% (' + processedDays + '/' + totalDays + ')')
+                                    .after('<br><button class="btn-stop-migration" data-api-id="' + apiId + '">정지</button>');
+                            
+                            if (currentDate) {
+                                $indicator.attr('title', '현재 처리 중: ' + currentDate);
+                            }
+                        } else {
+                            // Migration이 실행되지 않았거나 완료된 경우
+                            if (data.status === 'completed') {
+                                $indicator.removeClass('migration-running migration-progress migration-failed')
+                                        .addClass('migration-completed')
+                                        .text('완료')
+                                        .attr('title', 'Migration이 완료되었습니다.');
+                                
+                                // 완료된 경우 해당 ID의 모니터링 정지
+                                $statusCell.data('monitoring-stopped', true);
+                                
+                            } else if (data.status === 'failed') {
+                                $indicator.removeClass('migration-running migration-progress migration-completed')
+                                        .addClass('migration-failed')
+                                        .text('실패')
+                                        .attr('title', 'Migration이 실패했습니다.');
+                                
+                                // 실패한 경우에도 해당 ID의 모니터링 정지
+                                $statusCell.data('monitoring-stopped', true);
+                                
+                            } else {
+                                // 아직 시작되지 않은 경우
+                                $indicator.removeClass('migration-running migration-progress migration-completed migration-failed')
+                                        .addClass('migration-none')
+                                        .text('대기중')
+                                        .attr('title', 'Migration이 실행되지 않았습니다.');
+                            }
+                        }
+                    } else {
+                        $indicator.removeClass('migration-running migration-progress migration-completed migration-failed')
+                                .addClass('migration-none')
+                                .text('오류')
+                                .attr('title', (data && data.message) || '상태 확인 실패');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $indicator.removeClass('migration-running migration-progress migration-completed migration-failed')
+                            .addClass('migration-none')
+                            .text('오류')
+                            .attr('title', '상태 확인 실패: ' + error);
+                }
+            });
+        });
+    }
+
+    // Migration 모니터링 재시작 함수
+    function restartMigrationMonitoring(apiId) {
+        var $statusCell = $('.migration-status[data-api-id="' + apiId + '"]');
+        if ($statusCell.length > 0) {
+            $statusCell.data('monitoring-stopped', false);
+            $statusCell.data('migration-not-supported', false);
+            
+            // 즉시 상태 확인
+            checkMigrationStatus();
+        }
+    }
+
+    // 모든 Migration 모니터링 재시작
+    function restartAllMigrationMonitoring() {
+        $('.migration-status').each(function() {
+            var $statusCell = $(this);
+            $statusCell.data('monitoring-stopped', false);
+            $statusCell.data('migration-not-supported', false);
+        });
+        
+        // 즉시 상태 확인
+        checkMigrationStatus();
+    }
+
+    // Market 배지 클릭 이벤트 (이벤트 위임 방식)
+    $(document).on('click', '.market-badge.clickable', function(e) {
+        e.preventDefault();
+        const market = $(this).data('market');
+        
+        // 이미 선택된 항목을 다시 클릭하면 해제
+        if (currentMarket === market) {
+            currentMarket = null;
+        } else {
+            currentMarket = market;
+        }
+        
+        // 페이지를 1로 초기화하고 데이터 다시 로드
+        currentPage = 1;
+        loadApiData(currentApiId, currentPage);
+    });
+
+    // Grade 배지 클릭 이벤트 (이벤트 위임 방식)
+    $(document).on('click', '.grade-badge.clickable', function(e) {
+        e.preventDefault();
+        const grade = $(this).data('grade');
+        
+        // 이미 선택된 항목을 다시 클릭하면 해제
+        if (currentGrade === grade) {
+            currentGrade = null;
+        } else {
+            currentGrade = grade;
+        }
+        
+        // 페이지를 1로 초기화하고 데이터 다시 로드
+        currentPage = 1;
+        loadApiData(currentApiId, currentPage);
+    });
+
+    // 검색 조건 표시 업데이트 함수
+    function updateFilterDisplay() {
+        const filters = [];
+        
+        if (currentMarket) {
+            filters.push('<span class="filter-value">market: ' + currentMarket + '</span>');
+        }
+        
+        if (currentGrade) {
+            filters.push('<span class="filter-value">grade: ' + currentGrade + '</span>');
+        }
+        
+        if (filters.length > 0) {
+            $('#filterText').html(filters.join(' '));
+            $('#filterDisplay').css('display', 'flex');
+        } else {
+            $('#filterDisplay').hide();
+        }
+    }
+
+    // 필터 초기화 함수
+    function clearFilters() {
+        currentMarket = null;
+        currentGrade = null;
+        currentPage = 1;
+        
+        $('#filterDisplay').hide();
+        loadApiData(currentApiId, currentPage);
+    }
+
+    </script>
+</body>
+</html>

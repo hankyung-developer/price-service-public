@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}
+    <link rel="stylesheet" href="/lib/tempusdominus-bootstrap/tempusdominus-bootstrap-4.min.css" />
+    <script type="text/javascript" src="/lib/tempusdominus-bootstrap/tempusdominus-bootstrap-4.min.js"></script>
+    <script src='/lib/locale/ko.js'></script>
+	
+	<!-- <link href="/lib/dropzone/dropzone.css" rel="stylesheet" type="text/css" /> -->
+	<script src="/lib/dropzone/dropzone-min.js"></script>
+    <link href="/css/upload.css" rel="stylesheet" type="text/css" />
+	<script src="/js/upload.js" type="text/javascript"></script>
+    <style>
+        .imgSelectWrapper{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* 이미지 팝업 레이어 스타일 */
+        #imagePopupLayer {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            z-index: 9999;
+            cursor: pointer;
+        }
+        
+        #imagePopupLayer.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .popup-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .popup-content img {
+            max-width: 100%;
+            max-height: 85vh;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        .popup-info {
+            color: white;
+            margin-top: 15px;
+            max-width: 800px;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        .popup-info-item {
+            margin-bottom: 15px;
+        }
+        
+        .popup-info-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .popup-info-label {
+            font-weight: bold;
+            color: #4CAF50;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        .popup-info-content {
+            font-size: 15px;
+            line-height: 1.6;
+            word-break: break-word;
+        }
+        
+        .popup-loading {
+            color: white;
+            font-size: 16px;
+            margin-top: 15px;
+        }
+        
+        .popup-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 40px;
+            color: white;
+            cursor: pointer;
+            z-index: 10000;
+            transition: opacity 0.3s;
+        }
+        
+        .popup-close:hover {
+            opacity: 0.7;
+        }
+        
+        .imgSelect img {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .imgSelect img:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+<body>
+	{#left}
+	{#header}
+    <main class="container">
+        <div role="document">
+            <div role="heading">파일</div>
+            <section class="section-search"> 
+                <form role="search" name="searchForm" id="searchForm">
+                    <div class="flex nowrap">
+                        <div style="margin-right: 0;" class="search-date datetimepicker-input" data-target-input="#startDate" id="datetimepicker1">
+                            <span class="icon-calendar" data-target="#datetimepicker1" data-toggle="datetimepicker"><i class="fa-duotone fa-calendar-day"></i></span>
+                            <input type="text" class="half" data-target="#datetimepicker1" id="startDate" name="startDate" value="{_GET.startDate}" placeholder="시작일" autocomplete="off">
+                        </div>
+                        <div class="search-date datetimepicker-input" data-target-input="#endDate" id="datetimepicker2">
+                            <span class="icon-calendar" data-target="#datetimepicker2" data-toggle="datetimepicker"><i class="fa-duotone fa-calendar-day"></i></span>
+                            <input type="text" class="half" data-target="#datetimepicker2" id="endDate" name="endDate" value="{_GET.endDate}" placeholder="종료일" autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="flex nowrap">
+                        <select name="searchItem" id="searchItem">
+                            <option value="caption" {? _GET.searchItem == 'caption'}selected{/}>캡션</option>
+                            <option value="insert.managerName" {? _GET.searchItem == 'insert.managerName'}selected{/}>업로더</option>
+                            <option value="id" {? _GET.searchItem == 'id'}selected{/}>이미지 ID</option>
+                        </select>
+                    </div>
+                    <div class="search-input">
+                        <input type="text" name="searchText" id="searchText" value="{? _GET.searchText}{_GET.searchText}{/}" placeholder="검색어를 입력하세요">
+                        <button id="searchBtn" class="btn-search" type="button"><i class="fa-light fa-magnifying-glass"></i></button>
+                    </div>
+                    <!-- button type="button" class="btn" data-target="myModal" onclick="toggleModal(event)">이미지등록</button -->
+                </form>
+            </section>
+            <section role="list">
+                <div class="grid grid5">
+                    {@ result.items}
+                    <article class="card">
+                        <div class="imgSelectWrapper" data-id="{.id}" data-image-src="{.path}" data-caption="{.caption}">
+                            <img class="imgSelect" src="{.listPath}" alt="{.caption}" />
+                            <div class="text-center">{.caption}</div>
+                        </div>
+                        <footer style="padding: 0.5rem 0.8rem;">
+                            <div> 
+                                <a href="/file/download?path={.path}"><i class="fa-light fa-download"></i></a>
+                                <a href="javascript:imageDelete('{.id}','{.path}')"><i class="fa-light fa-trash-can"></i></a>
+                            </div>
+                            <div class="text-right">
+                                <small><div>{.insert.managerName}</div></small>
+                                <small><div>{.insert.date}</div></small>
+                            </div>
+                        </footer>
+                    </article>
+                    {/}
+                </div>
+                {# paging}
+            </section>
+        </div>
+    </main>
+
+
+<!-- Modal -->
+<dialog id="myModal">
+    <article class="card">
+        <header>
+            <a href="#close" aria-label="Close" class="close" data-target="myModal" onclick="toggleModal(event)"></a>
+            <h6>이미지등록</h6>
+        </header>
+        <form name='inputForm' id='inputForm'>
+            <label for="dropzone">파일
+                <div id="dropzone" class="spacing fileZone" style="width:100%;height:300px;aspect-ratio: 30 / 9;overflow-y: auto;overflow-x: hidden;display: flex;flex-direction: row;flex-wrap: wrap;" class="flex-container">
+                    <small class="boxMessage">파일을 끌어오거나, 클릭하시면 첨부가 가능합니다.</small>
+                </div>
+            </label>
+            <label for="caption">캡션
+                <textarea name="caption" id="caption" rows="7"></textarea>
+            </label>
+            <label for="description">메모
+                <textarea name="description" id="description"></textarea>
+            </label>
+        </form>
+        <footer class="flex justify-end">
+            <button type="button" class="btn btn-md" id="saveBtn">저장</button>
+            <button type="button" class="btn btn-md" id="cancelBtn" data-target="myModal" onclick="toggleModal(event)">취소</button>
+        </footer>
+    </article>
+</dialog>
+<!-- Modal -->
+
+<div class="menuLayer bg-white bd bd-1" style="display:none">
+	<div class="d-flex flex-column pd-10">
+        <a href="javascript:layerEdit()" class="layerBtn"><i class="fas fa-edit"></i> 수정</a>
+        <a href="javascript:layerSave()" class="layerBtn"><i class="fas fa-save"></i> 저장</a>
+        <a href="javascript:layerDelete()" class="layerBtn"><i class="fas fa-trash"></i> 삭제</a>
+    </div>
+</div>
+
+<!-- 이미지 팝업 레이어 -->
+<div id="imagePopupLayer">
+    <span class="popup-close" onclick="closeImagePopup()">&times;</span>
+    <div class="popup-content" onclick="event.stopPropagation()">
+        <img id="popupImage" src="" alt="이미지" />
+        <div id="popupInfoContainer">
+            <!-- AJAX 로딩 중 표시 -->
+            <div class="popup-loading" id="popupLoading" style="display:none;">정보를 불러오는 중...</div>
+            <!-- 이미지 정보 표시 -->
+            <div class="popup-info" id="popupInfo" style="display:none;">
+                <div class="popup-info-item" id="captionContainer" style="display:none;">
+                    <div class="popup-info-label">캡션</div>
+                    <div class="popup-info-content" id="popupCaption"></div>
+                </div>
+                <div class="popup-info-item" id="descriptionContainer" style="display:none;">
+                    <div class="popup-info-label">프롬프트</div>
+                    <div class="popup-info-content" id="popupDescription"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<iframe id="downloadFrm" style="display:none"></iframe>
+
+<script type="text/javascript">
+let imgId = '';
+let imgSrc = '';
+let oimgSrc = '';
+let imgPath = '';
+
+// 파일 업로드
+let init = {
+        uploadId: '#dropzone',
+        uploadUrl: '/file/upload/ajax',
+        maxFiles: 20,
+        files: [],
+    };
+let dropzone = new fileUpload2(init);
+
+$(document).ready(()=>{
+    $('#searchBtn').click(()=>{
+        searchList();
+    });
+
+    $("#searchText").keyup(function(e){
+        if(e.keyCode == 13){
+            searchList();
+        }
+    });
+
+    $('#type').on('change',function(){
+        searchList();
+    });
+
+    $('#datetimepicker1,#datetimepicker2').datetimepicker({
+        locale:'ko',
+        format:'L',
+        allowInputToggle:true,
+        showTodayButton:true,
+        showClear:true
+    });
+
+    // 검색 리스트 함수
+    let searchList = ()=>{
+        $('#searchForm').submit();
+    }
+
+    // modal 이미지 저장
+    $('#myModal').on('click','#saveBtn',()=>{
+        if (dropzone.getFiles().length == 0) {
+            alert('파일이 없습니다.');
+            return false;
+        }
+        $.ajax({
+            url: '/image/bulkupdate/ajax',
+            method : 'POST',
+            data : $('#inputForm').serialize()
+        }).done((data)=> {
+            alert('저장되었습니다.');
+            reload();
+        });
+    });
+
+    // modal 닫기, 취소 버튼 click 시 입력내용 초기화 처리
+    $('#myModal').on('click','#cancelBtn, a[href="#close"]',function(){
+        dropzone.empty();
+        $('#myModal #caption').val('');
+        $('#myModal #description').val('');
+    });
+
+    $(document).on("contextmenu dragstart selectstart",(e)=>{
+        return false;
+    });
+
+    $(document).on('mousedown', 'body', (e)=>{
+        if($(e.target).hasClass('imgSelect') || $(e.target).closest('.imgSelectWrapper').length > 0){
+            const $wrapper = $(e.target).closest('.imgSelectWrapper');
+            imgId = $wrapper.attr('data-id');
+            imgSrc = $wrapper.attr('data-image-src');
+            imgPath = $wrapper.attr('data-image-src');
+        }else if($(e.target).hasClass('layerBtn')){
+            // 레이어 버튼 클릭
+        }else{
+            $('.menuLayer').hide();
+        }
+    });
+
+    /* 클릭한 위치 근처에 레이어가 나타난다. */
+    $(document).on('mousedown', '.imgSelect', (e)=>{
+        if(e.which == 3){
+            //alert('마우스 우측 이벤트')
+            var sWidth = window.innerWidth;
+            var sHeight = window.innerHeight;
+
+            var oWidth = $('.menuLayer').width();
+            var oHeight = $('.menuLayer').height();
+
+            // 레이어가 나타날 위치를 셋팅한다.
+            var divLeft = e.clientX + 10;
+            var divTop = e.clientY + 5;
+
+            // 레이어가 화면 크기를 벗어나면 위치를 바꾸어 배치한다.
+            if( divLeft + oWidth > sWidth ) divLeft -= oWidth;
+            if( divTop + oHeight > sHeight ) divTop -= oHeight;
+
+            // 레이어 위치를 바꿔서 상단기준점(0,0) 밖으로 벗어난다면 상단기준점(0,0)에 배치한다.
+            if( divLeft < 0 ) divLeft = 0;
+            if( divTop < 0 ) divTop = 0;
+
+            $('.menuLayer').css({
+                "top": divTop,
+                "left": divLeft,
+                "position": "absolute"
+            }).show();
+        }
+    });
+    
+    // 이미지 클릭 시 팝업 열기 (좌클릭만)
+    $(document).on('click', '.imgSelect', (e)=>{
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const $parent = $(e.target).closest('.imgSelectWrapper');
+        const imageId = $parent.attr('data-id');
+        const imageSrc = $parent.attr('data-image-src');
+        
+        if (imageId) {
+            openImagePopup(imageId, imageSrc);
+        }
+    });
+    
+    // ESC 키로 팝업 닫기
+    $(document).on('keydown', (e)=>{
+        if(e.key === 'Escape' && $('#imagePopupLayer').hasClass('active')){
+            closeImagePopup();
+        }
+    });
+    
+    // 배경 클릭 시 팝업 닫기
+    $('#imagePopupLayer').on('click', function(e){
+        if(e.target.id === 'imagePopupLayer'){
+            closeImagePopup();
+        }
+    });
+});
+
+// 이미지 팝업 열기 함수
+function openImagePopup(imageId, imageSrc){
+    // 팝업 표시
+    $('#imagePopupLayer').addClass('active');
+    $('body').css('overflow', 'hidden'); // 스크롤 방지
+    
+    // 이미지 미리보기 먼저 표시
+    $('#popupImage').attr('src', imageSrc);
+    
+    // 로딩 표시
+    $('#popupLoading').show();
+    $('#popupInfo').hide();
+    
+    // imageId가 없으면 에러 표시
+    if (!imageId) {
+        $('#popupLoading').text('이미지 ID를 찾을 수 없습니다.').show();
+        return;
+    }
+    
+    // AJAX로 상세 정보 가져오기
+    $.ajax({
+        url: '/image/editor/ajax',
+        method: 'GET',
+        data: { id: imageId },
+        dataType: 'json'
+    })
+    .done((response) => {
+        // 로딩 숨기기
+        $('#popupLoading').hide();
+        
+        // 응답 구조 확인: response.result.image 또는 response.image
+        const imageData = (response && response.result && response.result.image) 
+            ? response.result.image 
+            : (response && response.image) 
+            ? response.image 
+            : null;
+        
+        if (imageData) {
+            // 캡션 표시
+            if (imageData.caption) {
+                $('#popupCaption').html(imageData.caption);
+                $('#captionContainer').show();
+            } else {
+                $('#captionContainer').hide();
+            }
+            
+            // 프롬프트(description) 표시
+            if (imageData.description) {
+                $('#popupDescription').html(imageData.description);
+                $('#descriptionContainer').show();
+            } else {
+                $('#descriptionContainer').hide();
+            }
+            
+            // 정보가 하나라도 있으면 팝업 정보 영역 표시
+            if (imageData.caption || imageData.description) {
+                $('#popupInfo').show();
+            }
+        } else {
+            $('#popupLoading').text('이미지 정보를 찾을 수 없습니다.').show();
+        }
+    })
+    .fail((xhr, status, error) => {
+        $('#popupLoading').text('정보 로딩에 실패했습니다.').show();
+    });
+}
+
+// 이미지 팝업 닫기 함수
+function closeImagePopup(){
+    $('#imagePopupLayer').removeClass('active');
+    $('body').css('overflow', ''); // 스크롤 복원
+    
+    // 팝업 내용 초기화
+    $('#popupImage').attr('src', '');
+    $('#popupCaption').html('');
+    $('#popupDescription').html('');
+    $('#popupLoading').hide();
+    $('#popupInfo').hide();
+    $('#captionContainer').hide();
+    $('#descriptionContainer').hide();
+}
+
+function goEdit(id){
+    window.open("/image/editor?id="+id, "imageEdit", "width=1257,height=859");
+}
+
+function imageDelete(id,path){
+    if(confirm('해당 파일을 삭제하시겠습니까')){
+        $.ajax({
+            url: '/image/delete/ajax',
+            method : 'POST',
+            data : {'id':id,'path':path}
+        }).done((data)=> {
+            alert('삭제가 완료되었습니다.');
+            location.reload();
+        });
+    }
+}
+
+// layer내 버튼 이벤트
+function layerEdit(){
+    goEdit(imgId);
+}
+
+function layerSave(){
+    let url = "/file/download?path="+imgPath;
+    $('#downloadFrm').attr('src',url).onload();
+}
+
+function layerDelete(){
+    imageDelete(imgId,imgSrc,oimgSrc);
+}
+
+function reload(){
+    window.location = '/image/list'
+}
+
+</script>
+</body>
+</html>

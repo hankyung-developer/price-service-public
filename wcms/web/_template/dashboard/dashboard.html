@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}
+	<script type="text/javascript" src="/lib/chart.js/chart.min.js"></script>
+    <style>
+        header svg{max-width: 1rem;max-height: 1rem;}
+        .grid.grid-repeat-5 {grid-template-columns: repeat(5, 1fr);}
+    </style>
+</head>
+<body>
+    {# header}
+    {# left}
+
+    <main class="container">
+        <div role="document">
+            <div class="grid grid-repeat-5">
+                <article class="card text-center">
+                    <header>활성 사용자(실시간 5분)</header>
+                    <h6 style="margin-bottom: 0;">{? !empty(result.realtime)}{result.realtime.visits}{:}0{/}명(UV) <br/> {? result.realtime}{result.realtime.actions}{:}0{/}(PV)</h6>
+                </article>
+
+                <article class="card text-center">
+                    <header>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 34 31" xml:space="preserve">
+                            <path style="fill:#3aac49" d="M22.4 0v15.6L11.6 0H0v31h11.6V15.4L22.4 31H34V0z"></path>
+                        </svg> 
+                        네이버 사용자(금일 누계)
+                    </header>
+                    <h6 style="margin-bottom: 0;">
+                        {? !empty(result.source.naver.users)}{=number_format(result.source.naver.users)}{:}0{/}명(UV) <br/> 
+                        {? !empty(result.source.naver.pageviews)}{=number_format(result.source.naver.pageviews)}{:}0{/}PV
+                    </h6>
+                </article>
+
+                <article class="card text-center">
+                    <header>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 33 33">
+                            <path d="M33 16.9c0-1.2-.1-2.3-.3-3.4H16.8v6.4h9.1c-.4 2.1-1.6 3.8-3.4 5V29H28c3.2-2.9 5-7.1 5-12.1z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#3e82f1"></path>
+                            <path d="M16.8 33c4.5 0 8.4-1.5 11.1-4l-5.4-4.1c-1.5 1-3.4 1.6-5.7 1.6-4.4 0-8.1-2.9-9.4-6.8H1.8V24c2.8 5.3 8.5 9 15 9z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#32a753"></path>
+                            <path d="M7.4 19.6c-.3-1-.5-2-.5-3.1s.2-2.1.5-3.1V9.1H1.8C.7 11.3 0 13.8 0 16.5s.7 5.2 1.8 7.4l5.6-4.3z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#f9bb00"></path>
+                            <path d="M16.8 6.6c2.5 0 4.7.8 6.4 2.5L28 4.4C25.2 1.6 21.4 0 16.8 0c-6.6 0-12.3 3.7-15 9.1l5.6 4.3c1.3-3.9 5.1-6.8 9.4-6.8z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#e74133"></path>
+                        </svg>
+                        구글 사용자(금일 누계)
+                    </header>
+                    <h6 style="margin-bottom: 0;">
+                        {? !empty(result.source.google.users)}{=number_format(result.source.google.users)}{:}0{/}명(UV) <br/>
+                        {? !empty(result.source.google.pageviews)}{=number_format(result.source.google.pageviews)}{:}0{/}PV
+                    </h6>
+                </article>
+
+                <article class="card text-center">
+                    <header>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 33">
+                            <path d="M45.6 0v11.3c0 1.9-1.5 3.5-3.4 3.5s-3.4-1.5-3.4-3.5V0h-7.1v11.2c0 5.8 4.7 10.5 10.5 10.5S52.7 17 52.7 11.2V0h-7.1z" style="fill:#fdbb00"></path>
+                            <path d="M10.7 4.8H0v22.8h10.7c6.3 0 11.4-5.1 11.4-11.4C22 9.9 16.9 4.8 10.7 4.8zm.2 15.5H7.1v-8.2h3.8c2.3 0 4.1 1.8 4.1 4.1s-1.9 4.1-4.1 4.1z" style="fill:#608ffb"></path>
+                            <path d="M28.2 10.9c-6.1 0-11 5-11 11.1s4.9 11.1 11 11.1c2.5 0 4.8-.8 6.7-2.3 1.5 1.9 4.3 1.9 4.3 1.9V21.9c0-6.1-4.9-11-11-11zm0 15.4c-2.4 0-4.3-1.9-4.3-4.3s1.9-4.3 4.3-4.3 4.3 1.9 4.3 4.3-1.9 4.3-4.3 4.3z" style="fill:#acc800"></path>
+                            <path d="M70.4 5.1c-2.4 0-4.5.9-6.2 2.3C62.5 6 60.3 5.1 58 5.1c-5.3 0-9.6 4.3-9.6 9.7v12.4h6.9V14.8c0-1.5 1.2-2.8 2.8-2.8 1.5 0 2.7 1.2 2.7 2.7v12.5h6.9V14.7v.1c0-1.5 1.2-2.8 2.8-2.8 1.5 0 2.8 1.2 2.8 2.8v12.4H80V14.8c0-5.3-4.3-9.7-9.6-9.7z" style="fill:#f1685e"></path>
+                        </svg>
+                        다음 사용자(금일 누계)
+                    </header>
+                    <h6 style="margin-bottom: 0;">
+                        {? !empty(result.source.daum.users)}{=number_format(result.source.daum.users)}{:}0{/}명(UV) <br/>
+                        {? !empty(result.source.daum.pageviews)}{=number_format(result.source.daum.pageviews)}{:}0{/}PV
+                    </h6>
+                </article>
+
+                <article class="card text-center">
+                    <header>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 17 33">
+                            <path d="M11 33V17.9h5l.7-5.9H11V8.3c0-1.7.5-2.9 2.9-2.9H17V.2c-.5 0-2.4-.2-4.5-.2C8.1 0 5 2.7 5 7.8v4.3H0V18h5v15h6z" style="fill:#445d97"></path>
+                        </svg>
+                        페이스북 사용자(금일 누계)
+                    </header>
+                    <h6 style="margin-bottom: 0;">
+                        {? !empty(result.source.facebook.users)}{=number_format(result.source.facebook.users)}{:}0{/}명(UV) <br/>
+                        {? !empty(result.source.facebook.pageviews)}{=number_format(result.source.facebook.pageviews)}{:}0{/}PV
+                    </h6>
+                </article>
+
+                <article class="card text-center">
+                    <header>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 41 33">
+                            <path d="M41 3.9c-1.5.7-3.1 1.1-4.8 1.3 1.7-1 3.1-2.7 3.7-4.6-1.6 1-3.4 1.6-5.3 2C33 1 30.8 0 28.4 0 23.7 0 20 3.7 20 8.3c0 .7.1 1.3.2 1.9-7-.3-13.2-3.6-17.3-8.7-.8 1.3-1.2 2.7-1.2 4.2 0 2.9 1.5 5.4 3.7 6.9-1.4 0-2.7-.4-3.8-1v.1c0 4 2.9 7.4 6.7 8.2-.7.2-1.5.3-2.2.3-.6 0-1.1-.1-1.6-.1 1.1 3.3 4.2 5.7 7.9 5.8C9.6 28 5.9 29.4 2 29.4c-.7 0-1.3 0-2-.1C3.7 31.6 8.1 33 12.9 33c15.5 0 23.9-12.7 23.9-23.7V8.2C38.4 7 39.9 5.6 41 3.9" style="fill:#27a8e0"></path>
+                        </svg>
+                        트위터 사용자(금일 누계)
+                    </header>
+                    <h6 style="margin-bottom: 0;">
+                        {? !empty(result.source.twitter.users)}{=number_format(result.source.twitter.users)}{:}0{/}명(UV) <br/>
+                        {? !empty(result.source.twitter.pageviews)}{=number_format(result.source.twitter.pageviews)}{:}0{/}PV
+                    </h6>
+                </article>
+
+                <!-- 추가 유입경로 -->
+                {@ result.source}
+                    {? !in_array(.id, array('naver','google','daum','twitter','facebook'))}
+                <article class="card text-center">
+                    <header>
+                        {? .id == 'chatgpt'}
+                        <img alt="{.source}" style="height: 1rem;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAAAAABXZoBIAAAA90lEQVR4Ab3MEazDUACF4ePJYDYbDerz1GaVybi0uhYuPSyN6tVCvVK9VC2OLtSv3OR/y17S3LTZwx39cn7xz76AtrWfcFL2c5WdhnmLTg4wuuS6+DVmI1gVHmi0wlqE63GCfobyEeOsMsGm8DyfVeFOMSYde2xOqR5KtYpwOuJfeFBTqwOXxs/W4A/YJIDfJRMUhgWHHC8/5gBpqwLkFwwKdMrvb3wiuNoFaVIIRgN02iA7deCyS3JP3qgQoeZsP/niNP5lswcR7h2j1MKsF8oQY30DAKOeIEeMkOYOOlVAVbNCakmqgerABgHmmyTDBheHz8gX8BeWVKEwYsDergAAAABJRU5ErkJggg==">
+                        {: .id == 'perplexity'}
+                        <img alt="{.source}" style="height: 1rem;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y+mAAAASFBMVEUAAAAAAAAAAAAAAAAAAAAODg4lJSUxMTF5eXeLi4o5OTnz8/C1tbP///7k5OGwsK5oaGfAwL7OzsydnZxbW1pFRUTY2NZLS0pmsWyyAAAABXRSTlMzx//IxgDMHHYAAAEOSURBVHgBddLhEoMgCADgxhaGmCiqvf+bblrdpnfjD3mfpFDL8oA/8ZxtiNdy5vVMiMPyQrP1RNTTZga0TG23c62M2I64e0EAEQAUv0/IIaptaGMMPOMKSbNI1gTrL66ImQsiVe8rIRbOiOuFNrnITuRz2O4/yXF0yVx4VEctUsPUH109btTcJyBO1UnvMesXQ3t5dFbEur4zjFhUTGvFOB9mDD7BOQRInAbMKxPcCLTjcObBCPdsAfn4VpaqsWP2PneMWsuFuFFqGJRZQ8NEG/7OFmGrFCPVDXAavGEkT+1CnzSj5ejDedvg41y513y3kuv8sfX4tnLoiFh+f7CCA15hzLBcXvA3Hsvy/G9viXYUStfpMwoAAAAASUVORK5CYII=">
+                        {: .id == 'threads'}
+                        <img alt="{.source}" style="height: 1rem;" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAAAAABXZoBIAAAA+ElEQVR4AbXRLYyDMBwF8OddDeK8QNTb8wk5iw8OjURh6klwQ9UiEWfRNXhUDRJFQlLzthWx0s3uZ1/T/xe+T5a3W5Phk3ql54YfRJKZNF1Tt+PBPcfVzPkXJ03+IdRxCgpwRUDsx7NQMYxKAhjZBGHFHkhn308FpLRBOD2rVDRl0dNJQJVBuDg8+BEVFa72DT5VetA0uBBc4PvwXBuF1o+zNkWhHGnev12OFEDOybBD3JDdE/93iWNDPErPua7+aQUM5WUJ2j95sBkwXcLE+fXlbVeeLQgE2nDxmmN8MiNxGrhF5xbmdexNIqYsPdcLfCDrVjcZvu4O2qyiNq2lHIsAAAAASUVORK5CYII=">
+                        {:}
+                        <img src="{.logo}" alt="{.source}" style="height: 1rem;">
+                        {/}
+                        {.source} 사용자(금일 누계)
+                    </header>
+                    <h6 style="margin-bottom: 0;">
+                        {? !empty(.users)}{=number_format(.users)}{:}0{/}명(UV) <br/>
+                        {? !empty(.pageviews)}{=number_format(.pageviews)}{:}0{/}PV
+                    </h6>
+                </article>
+                    {/}
+                {/}
+            </div>
+
+            <section>
+                <div role="heading">
+                    페이지뷰 
+                </div>
+                <div class="Chartjs">
+                    <figure class="Chartjs-figure" id="chart-hour" style="height:250px;"></figure>
+                </div>
+                <div class="list-cont">
+                    <table width="100%" class="th-bg border">
+                        <thead>
+                            <tr>
+                                <th>시간</th>
+                                <th>페이지뷰</th>
+                                <th>한달평균</th>
+                                <th>대비%</th>
+                                <th>하루전</th>
+                                <th>하루전비교</th>
+                                <th>일주일전</th>
+                                <th>일주일전비교</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-hour">
+                            {@ result.datetime_dash}
+                            <tr>
+                                <th>{.hour}</th>
+                                <td class="num-format">{.today}</td>
+                                <td class="num-format">{.monthavr}</td>
+                                <td>{.rate1}</td>
+                                <td class="num-format">{.yesterday}</td>
+                                <td>{.rate2}</td>
+                                <td class="num-format">{.servenago}</td>
+                                <td>{.rate3}</td>
+                            </tr>
+                            {/}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+	
+    <!-- ########## START : INLINE SCRIPT ########## -->
+    <script type="text/javascript">
+        window.onload = function(){
+            var labels = new Array();
+            var d1 = new Array();
+            var d2 = new Array();
+        
+            {@ result.datetime_dash}
+            {? .hour != "합계"}
+            labels.push('{.hour}');
+            d1.push('{=str_replace(',','', .today)}');
+            d2.push('{=str_replace(',','', .monthavr)}');
+            {/}
+            {/}
+        
+            var data = {
+                labels : labels,
+                datasets : [
+                    {
+                        label: "최근 한달간 평균",
+                        backgroundColor:"rgba(229,133,0)",
+                        borderColor:"rgba(229,133,0)",
+                        data: d2,
+                        fill:false,
+                        type:'line'
+                    },
+                    {
+                        label: "시간별 페이지뷰",
+                        backgroundColor:"rgba(23,155,0)",
+                        borderColor:"rgba(23,155,0)",
+                        data: d1
+                    }
+                ]
+            };
+            new Chart(makeCanvas('chart-hour'),{type: 'bar',data: data});
+        
+            //window.setTimeout('window.location.reload()',60000);
+        }
+    </script>
+    <!-- ########## END : INLINE SCRIPT ########## -->
+
+</body>
+</html>

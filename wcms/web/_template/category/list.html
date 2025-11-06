@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}    
+    <!-- ===== STYLES ===== -->
+    <style>
+        /* ===== 기본 레이아웃 ===== */
+        h2 { margin: 0; }
+        main { padding: 20px; }
+        
+        /* ===== 헤더 영역 ===== */
+        main .header { 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            gap: 12px; 
+            margin-bottom: 8px; 
+        }
+        
+        main .controls { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+        }
+        
+        main .controls input[type="search"] {
+            height: 32px; 
+            padding: 0 10px; 
+            border: 1px solid #d6d9de; 
+            border-radius: 8px; 
+            min-width: 240px;
+        }
+        
+        main .icon-btn { 
+            height: 32px; 
+            width: 36px; 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center; 
+            border: 1px solid #d6d9de; 
+            border-radius: 8px; 
+            background: #fff; 
+            cursor: pointer; 
+        }
+        
+        main .icon-btn:active { 
+            transform: translateY(1px); 
+        }
+        
+        /* ===== 컬럼 헤더 (윈도우 탐색기 스타일) ===== */
+        main .columns-head { 
+            padding: 6px 6px; 
+            border-top: 1px solid #e5e7eb; 
+            border-bottom: 1px solid #e5e7eb; 
+            color: #6b7280; 
+            font-size: 12px; 
+            margin-bottom: 4px; 
+        }
+        
+        main .columns-head .head-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 380px; 
+            align-items: center; 
+        }
+        
+        main .columns-head .category-left { 
+            display: flex; 
+            align-items: center; 
+            gap: 6px; 
+        }
+        
+        main .columns-head .twisty-spacer { 
+            width: 14px; 
+            display: inline-block; 
+        }
+        
+        main .columns-head .folder-icon { 
+            opacity: 0; /* 정렬용 공간만 차지 */ 
+        }
+        
+        main .columns-head .category-meta { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr auto; 
+            align-items: center; 
+            gap: 18px; 
+            font-size: 0.85em; 
+            color: #666; 
+        }
+        
+        main .columns-head .category-meta .right-label { 
+            justify-self: end; 
+            margin-left: 0; 
+        }
+        
+        /* ===== 트리 구조 ===== */
+        main ul.tree { 
+            list-style: none; 
+            padding-left: 0; 
+            margin: 0; 
+        }
+        
+        main ul.tree ul { 
+            list-style: none; 
+            padding-left: 20px; 
+            margin: 0; 
+        }
+        
+        main ul.tree li { 
+            margin: 4px 0; 
+        }
+        
+        /* depth에 따른 추가 들여쓰기 */
+        main ul.tree li[data-depth="1"] .category-row { 
+            padding-left: 0px; 
+        }
+        main ul.tree li[data-depth="2"] .category-row { 
+            padding-left: 20px; 
+        }
+        main ul.tree li[data-depth="3"] .category-row { 
+            padding-left: 40px; 
+        }
+        main ul.tree li[data-depth="4"] .category-row { 
+            padding-left: 60px; 
+        }
+        main ul.tree li[data-depth="5"] .category-row { 
+            padding-left: 80px; 
+        }
+        
+        /* ===== 카테고리 행 ===== */
+        main .category-row { 
+            display: grid; 
+            grid-template-columns: 1fr 380px; 
+            align-items: center; 
+            padding: 4px 6px; 
+            border-radius: 4px; 
+            border-left: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+        
+        main .category-row:hover { 
+            background: #e3f2fd; 
+            border-left: 3px solid #2196f3;
+            box-shadow: 0 2px 4px rgba(33, 150, 243, 0.1);
+            transform: translateX(2px);
+            transition: all 0.2s ease;
+        }
+        
+        main .category-left { 
+            display: flex; 
+            align-items: center; 
+            gap: 6px; 
+        }
+        
+        main .category-left .label { 
+            font-weight: 500; 
+        }
+        
+        main .category-meta { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr auto; 
+            align-items: center; 
+            gap: 18px; 
+            font-size: 0.85em; 
+            color: #666; 
+        }
+        
+        main .category-actions { 
+            display: inline-flex; 
+            gap: 15px; 
+            justify-self: end; 
+        }
+        
+        main .category-actions i { 
+            cursor: pointer; 
+            transition: all 0.2s ease; 
+        }
+        
+        main .category-actions i:hover { 
+            transform: scale(1.1); 
+            opacity: 0.8; 
+        }
+        
+        main .folder-icon { 
+            color: #f0a500; 
+        }
+        
+        /* ===== 드래그 앤 드롭 ===== */
+        main .sort-placeholder { 
+            background: #f0f8ff; 
+            border: 1px dashed #00f; 
+            height: 32px; 
+        }
+        
+        main .highlight { 
+            background-color: #fff8dc !important; 
+        }
+        
+        main .dimmed { 
+            opacity: 0.3; 
+        }
+        
+        main .drag-handle { 
+            cursor: ns-resize !important; 
+            color: #888; 
+        }
+        
+        /* ===== 트위스티 (펼치기/접기) ===== */
+        main .twisty { 
+            cursor: pointer; 
+            width: 14px; 
+            text-align: center; 
+            display: inline-block; 
+            user-select: none; 
+            color: #9aa3ad; 
+            font-size: 14px; 
+            line-height: 1; 
+        }
+        
+        main .twisty.open { 
+            color: #111; 
+        }
+        
+        main .twisty-spacer { 
+            width: 14px; 
+            display: inline-block; 
+        }
+        
+        /* ===== 유틸리티 클래스 ===== */
+        main .hidden { 
+            display: none !important; 
+        }
+        
+        main .muted { 
+            color: #9aa3ad; 
+        }
+        
+        /* ===== 모달 스타일 ===== */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: none;
+        }
+        
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 0;
+            border: 1px solid #888;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 60vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .modal-header {
+            padding: 15px 20px 8px 20px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            color: #111;
+        }
+        
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+        
+        .close:hover {
+            color: #000;
+        }
+        
+        .modal-body {
+            padding: 15px;
+        }
+        
+        /* ===== 폼 스타일 ===== */
+        .form-group {
+            margin-bottom: 6px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        .form-group input:not([type=checkbox],[type=radio]), 
+        .form-group select, 
+        .form-group textarea { 
+            margin-bottom: 5px; 
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+            line-height: 1.2;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        /* ===== 버튼 스타일 ===== */
+        .btn-primary,
+        .btn-secondary {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+        
+        .btn-secondary {
+            background-color: #6b7280;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #4b5563;
+        }
+        
+        #addCategoryBtn {
+            margin-left: 8px;
+        }
+        
+        /* ===== 스위치 스타일 ===== */
+        .switch-container {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        
+        .switch-input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+            position: absolute;
+        }
+        
+        .switch-label {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #e5e7eb;
+            transition: .4s;
+            border-radius: 24px;
+            border: 1px solid #d1d5db;
+            width: 46px;
+            margin-bottom: 3px;
+        }
+        
+        .switch-label:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 2px;
+            background-color: #f9fafb;
+            border-radius: 50%;
+            transition: .4s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            border: 1px solid #d1d5db;
+        }
+        
+        .switch-input:checked + .switch-label {
+            background-color: #3b82f6;
+            border-color: #3b82f6;
+        }
+        
+        .switch-input:checked + .switch-label:before {
+            transform: translateX(26px);
+            background-color: white;
+            border: none;
+        }
+        
+        .switch-input:focus + .switch-label {
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+        }
+        
+        .switch-input:hover + .switch-label {
+            background-color: #b3b3b3;
+        }
+        
+        .switch-input:checked:hover + .switch-label {
+            background-color: #2563eb;
+        }
+        
+        /* ===== 메시지 알림 스타일 ===== */
+        .custom-alert {
+            position: relative;
+            margin-bottom: 10px;
+            padding: 0;
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15), 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            min-width: 320px;
+            max-width: 480px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .custom-alert.fade-in {
+            animation: slideInRight 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%) scale(0.95);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0) scale(1);
+                opacity: 1;
+            }
+        }
+        
+        .custom-alert:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2), 0 8px 25px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        .custom-alert .alert-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            position: relative;
+        }
+        
+        .custom-alert .alert-message {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.4;
+            color: #1f2937;
+            margin-right: 15px;
+        }
+        
+        .custom-alert .alert-close {
+            background: none;
+            border: none;
+            color: #9ca3af;
+            font-size: 20px;
+            font-weight: 300;
+            cursor: pointer;
+            padding: 0;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .custom-alert .alert-close:hover {
+            color: #6b7280;
+            transform: scale(1.15) rotate(90deg);
+        }
+        
+        /* 성공/에러 메시지 스타일 */
+        .custom-alert-success {
+            background: linear-gradient(135deg, #34d399 0%, #10b981 50%, #059669 100%);
+            border-left: 4px solid #10b981;
+        }
+        
+        .custom-alert-success .alert-message {
+            color: #ffffff;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        
+        .custom-alert-error {
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 50%, #dc2626 100%);
+            border-left: 4px solid #ef4444;
+        }
+        
+        .custom-alert-error .alert-message {
+            color: #ffffff;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 메시지 컨테이너 */
+        #message-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+        
+        #message-container .custom-alert {
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body>
+    {# left}
+    {# header}
+    
+    <!-- ===== 메인 컨테이너 ===== -->
+    <main class="container">
+        <div role="document">
+            <!-- 헤더 영역 -->
+            <div class="header">
+                <h2>카테고리 관리</h2>
+                <div class="controls">
+                    <input type="search" id="searchInput" placeholder="폴더명 검색" />
+                    <button id="toggleAllBtn" class="icon-btn" title="모든 폴더 펼치기">
+                        <i id="toggleAllIcon" class="fa-solid fa-folder-tree"></i>
+                    </button>
+                    <button id="addCategoryBtn" class="btn-primary" type="button">
+                        <i class="fa-solid fa-folder-plus"></i> 카테고리 추가
+                    </button>
+                    <button id="openPopupBtn" class="btn-primary" type="button">
+                        <i class="fa-solid fa-window-restore"></i> 팝업확인
+                    </button>
+                </div>
+            </div>
+    
+            <!-- 컬럼 헤더 -->
+            <div class="columns-head">
+                <div class="head-grid">
+                    <div class="category-left">
+                        <span class="twisty-spacer"></span>
+                        <i class="fa-solid fa-folder folder-icon"></i>
+                        <span>이름</span>
+                    </div>
+                    <div class="category-meta">
+                        <span>ID</span>
+                        <span class="right-label">작업</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 트리 컨테이너 -->
+            <div class="tree-container">      
+                <ul class="tree" id="category-tree"></ul>
+            </div>
+        </div>
+    </main>
+
+    <!-- ===== 카테고리 추가/수정 모달 ===== -->
+    <div id="categoryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">카테고리 추가</h3>
+                <span class="close">&times;</span>
+            </div>            
+            <div class="modal-body">
+                <form id="categoryForm">
+                    <input type="hidden" id="modalId" name="id" value="">
+                    <input type="hidden" id="modalCoId" name="coId" value="{_SESSION.coId}">
+                    <input type="hidden" id="modalParentId" name="parentId" value="">
+
+                    <div class="form-group">
+                        <label for="modalName">카테고리 이름 *</label>
+                        <input type="text" id="modalName" name="name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="modalDescription">설명</label>
+                        <input type="text" id="modalDescription" name="description">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="modalIsUse" class="switch-label-container">
+                                <span>사용 여부</span>
+                                <div class="switch-container">
+                                    <input type="checkbox" id="modalIsUse" name="isUse" class="switch-input" value="1">
+                                    <label for="modalIsUse" class="switch-label"></label>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                                            
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">저장</button>
+                        <button type="button" class="btn-secondary" onclick="closeCategoryModal()">취소</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== JAVASCRIPT ===== -->
+    <script type="text/javascript">
+        // ===== 전역 변수 =====
+        const categories = [
+            {@ result.categoryList}
+            {id: "{.id}", parentId: "{.parentId}", name: "{.name}", hkCode: "{.hkCode}", isUse: "{.isUse}", depth: "{.depth}"},
+            {/}
+        ];
+        
+        let currentAction = ''; // 'add' 또는 'edit'
+        let currentCategoryId = null;
+        let currentParentId = null;
+
+        // ===== 초기화 =====
+        $(document).ready(function() {
+            renderTree();
+            bindModalEvents();
+            bindPopupEvents();
+        });
+
+        // ===== 팝업 이벤트 바인딩 =====
+        function bindPopupEvents() {
+            const popupBtn = document.getElementById('openPopupBtn');
+            if (popupBtn) {
+                popupBtn.addEventListener('click', function(e) {
+                    openCategoryPopup(e);
+                });
+            }
+        }
+
+        // 팝업 열기
+        function openCategoryPopup(e) {
+            const popupWidth = 700;
+            const popupHeight = 500;
+            const clickX = e.screenX;
+            const clickY = e.screenY;
+            const screenW = window.screen.availWidth;
+            const screenH = window.screen.availHeight;
+
+            let left = Math.max(0, Math.min(clickX, screenW - popupWidth));
+            let top = Math.max(0, Math.min(clickY, screenH - popupHeight));
+
+            window.open(
+                '/category/popup',
+                'categoryPopup',
+                'width=' + popupWidth + ',height=' + popupHeight + 
+                ',left=' + left + ',top=' + top + 
+                ',scrollbars=yes,resizable=yes'
+            );
+        }
+
+        // ===== 트리 렌더링 =====
+        function buildTree(parentId, depth, processedIds = new Set()) {
+            // 무한 재귀 방지: 이미 처리된 ID는 건너뛰기
+            if (processedIds.has(parentId)) {
+                console.warn('순환 참조 감지됨:', parentId);
+                return '';
+            }
+            
+            // 최대 depth 제한 (보안상 10단계까지만 허용)
+            if (depth > 10) {
+                console.warn('최대 depth 초과:', depth);
+                return '';
+            }
+            
+            const items = categories.filter(c => c.parentId === parentId);
+            if (!items.length) return '';
+            
+            // 현재 parentId를 처리된 목록에 추가
+            processedIds.add(parentId);
+            
+            const $ul = $('<ul></ul>');
+            items.forEach(cat => {
+                const hasChild = categories.some(c => c.parentId === cat.id);
+                // 실제 카테고리 데이터의 depth 정보 사용
+                const actualDepth = cat.depth ? parseInt(cat.depth) : depth;
+                const $li = $('<li></li>').attr({ 
+                    'data-id': cat.id, 
+                    'data-parent': cat.parentId, 
+                    'data-depth': actualDepth 
+                });
+
+                const twisty = hasChild ? 
+                    '<i class="fa-solid fa-caret-right twisty closed" aria-hidden="true"></i>' : 
+                    '<span class="twisty-spacer"></span>';
+                
+                const $row = createCategoryRow(cat, twisty);
+                $li.append($row);
+                
+                if (hasChild) {
+                    // 새로운 Set을 생성하여 각 분기에 대해 독립적으로 처리
+                    const newProcessedIds = new Set(processedIds);
+                    const $child = $(buildTree(cat.id, actualDepth + 1, newProcessedIds));
+                    $child.hide();
+                    $li.append($child);
+                }
+                $ul.append($li);
+            });
+            return $ul;
+        }
+
+        // 카테고리 행 생성
+        function createCategoryRow(cat, twisty) {
+            return $('<div class="category-row">' +
+                '<div class="category-left">' +
+                    twisty +
+                    '<i class="fa-solid fa-folder folder-icon"></i>' +
+                    '<span class="label">' + cat.name + '</span>' +
+                '</div>' +
+                '<div class="category-meta">' +
+                    '<span class="muted id-col">' + cat.id + '</span>' +
+                    '<div class="category-actions">' +
+                        '<i class="fa-solid fa-folder-plus" title="하위 카테고리 추가"></i>' +
+                        '<i class="fa-solid fa-gear" title="카테고리 수정"></i>' +
+                        (cat.isUse ? 
+                            '<i class="fa-solid fa-toggle-on status-toggle used" title="사용 중" style="color:green;"></i>' :
+                            '<i class="fa-solid fa-toggle-off status-toggle unused" title="미사용" style="color:gray;"></i>'
+                        ) +
+                        '<i class="fa-solid fa-grip-vertical drag-handle" title="드래그로 순서 변경"></i>' +
+                        '<i class="fa-regular fa-trash-can delete-btn" title="삭제"></i>' +
+                    '</div>' +
+                '</div>' +
+            '</div>');
+        }
+
+        function renderTree() {
+            $('#category-tree').empty();
+            
+            try {
+                // 비재귀적 트리 빌딩으로 변경
+                buildTreeIterative();
+                bindEvents();
+                enableDrag();
+                collapseAll();
+                setToggleAllBtnState();
+            } catch (error) {
+                console.error('트리 렌더링 오류:', error);
+                showMessage('카테고리 트리를 렌더링하는 중 오류가 발생했습니다.', 'error');
+            }
+        }
+
+        // 비재귀적 트리 빌딩 함수
+        function buildTreeIterative() {
+            const processedIds = new Set();
+            const categoryMap = new Map();
+            
+            // 카테고리를 Map으로 구성 (빠른 조회를 위해)
+            categories.forEach(cat => {
+                if (!categoryMap.has(cat.parentId)) {
+                    categoryMap.set(cat.parentId, []);
+                }
+                categoryMap.get(cat.parentId).push(cat);
+            });
+            
+            // 루트부터 시작하여 레벨별로 처리
+            const queue = [{ id: '0', depth: 0, parentElement: $('#category-tree') }];
+            const maxIterations = 10000; // 무한 루프 방지
+            let iterationCount = 0;
+            
+            while (queue.length > 0 && iterationCount < maxIterations) {
+                iterationCount++;
+                const current = queue.shift();
+                
+                // 이미 처리된 ID는 건너뛰기
+                if (processedIds.has(current.id)) {
+                    console.warn('순환 참조 감지됨:', current.id);
+                    continue;
+                }
+                
+                // 최대 depth 제한
+                if (current.depth > 10) {
+                    console.warn('최대 depth 초과:', current.depth, 'id:', current.id);
+                    continue;
+                }
+                
+                processedIds.add(current.id);
+                
+                const children = categoryMap.get(current.id) || [];
+                if (children.length === 0) continue;
+                
+                const $ul = $('<ul></ul>');
+                
+                children.forEach(cat => {
+                    const hasChild = categoryMap.has(cat.id) && categoryMap.get(cat.id).length > 0;
+                    const actualDepth = cat.depth ? parseInt(cat.depth) : current.depth;
+                    
+                    const $li = $('<li></li>').attr({ 
+                        'data-id': cat.id, 
+                        'data-parent': cat.parentId, 
+                        'data-depth': actualDepth 
+                    });
+
+                    const twisty = hasChild ? 
+                        '<i class="fa-solid fa-caret-right twisty closed" aria-hidden="true"></i>' : 
+                        '<span class="twisty-spacer"></span>';
+                    
+                    const $row = createCategoryRow(cat, twisty);
+                    $li.append($row);
+                    
+                    if (hasChild) {
+                        // 자식 노드를 큐에 추가
+                        queue.push({ 
+                            id: cat.id, 
+                            depth: actualDepth + 1, 
+                            parentElement: $li 
+                        });
+                    }
+                    
+                    $ul.append($li);
+                });
+                
+                current.parentElement.append($ul);
+            }
+            
+            if (iterationCount >= maxIterations) {
+                console.error('최대 반복 횟수 초과. 무한 루프 가능성 있음');
+                showMessage('카테고리 데이터에 순환 참조가 있어 트리를 완전히 렌더링할 수 없습니다.', 'error');
+            }
+        }
+
+        // ===== 이벤트 바인딩 =====
+        function bindEvents() {
+            bindTwistyEvents();
+            bindToggleAllEvents();
+            bindSearchEvents();
+            bindActionEvents();
+            handleSwitchChange();
+        }
+
+        // 트위스티 이벤트
+        function bindTwistyEvents() {
+            $('.twisty').off('click').on('click', function () {
+                const $li = $(this).closest('li');
+                const $icon = $li.find('> .category-row .folder-icon');
+                const isOpen = $(this).hasClass('open');
+                
+                if (isOpen) {
+                    $(this).removeClass('open').addClass('closed')
+                           .removeClass('fa-caret-down').addClass('fa-caret-right');
+                    $icon.removeClass('fa-folder-open').addClass('fa-folder');
+                    $li.children('ul').hide();
+                } else {
+                    $(this).removeClass('closed').addClass('open')
+                           .removeClass('fa-caret-right').addClass('fa-caret-down');
+                    $icon.removeClass('fa-folder').addClass('fa-folder-open');
+                    $li.children('ul').show();
+                }
+                setToggleAllBtnState();
+            });
+        }
+
+        // 전체 토글 이벤트
+        function bindToggleAllEvents() {
+            $('#toggleAllBtn').off('click').on('click', function(){
+                if(isAllExpanded()){
+                    collapseAll();
+                } else {
+                    expandAll();
+                }
+                setToggleAllBtnState();
+            });
+        }
+
+        // 검색 이벤트
+        function bindSearchEvents() {
+            $('#searchInput').off('input').on('input', function(){
+                const query = $(this).val().trim().toLowerCase();
+                if(!query){
+                    $('#category-tree li').removeClass('hidden');
+                    collapseAll();
+                    setToggleAllBtnState();
+                    return;
+                }
+                
+                $('#category-tree li').addClass('hidden');
+                $('#category-tree li').each(function(){
+                    const $li = $(this);
+                    const name = $li.find('> .category-row .label').text().toLowerCase();
+                    if(name.includes(query)){
+                        $li.removeClass('hidden');
+                        $li.parents('li').removeClass('hidden');
+                        expandParents($li);
+                    }
+                });
+                setToggleAllBtnState();
+            });
+        }
+
+        // 부모 노드 펼치기
+        function expandParents($li) {
+            $li.parents('li').each(function(){
+                const $parent = $(this);
+                const $twisty = $parent.find('> .category-row .twisty');
+                const $icon = $parent.find('> .category-row .folder-icon');
+                $parent.children('ul').show();
+                $twisty.addClass('open').removeClass('closed')
+                       .removeClass('fa-caret-right').addClass('fa-caret-down');
+                $icon.removeClass('fa-folder').addClass('fa-folder-open');
+            });
+        }
+
+        // 액션 버튼 이벤트
+        function bindActionEvents() {
+            $('.fa-folder-plus').off('click').on('click', function(e){ 
+                e.stopPropagation(); 
+                openAddSubCategoryModal($(this).closest('li').data('id'));
+            });
+            
+            $('.fa-gear').off('click').on('click', function(e){ 
+                e.stopPropagation(); 
+                openEditCategoryModal($(this).closest('li').data('id'));
+            });
+            
+            $('.delete-btn').off('click').on('click', function(e){ 
+                e.stopPropagation(); 
+                deleteCategory($(this).closest('li').data('id'));
+            });
+        }
+
+        // ===== 전체 펼치기/접기 =====
+        function expandAll(){
+            $('#category-tree li').each(function(){
+                const $li = $(this);
+                const $twisty = $li.find('> .category-row .twisty');
+                const $icon = $li.find('> .category-row .folder-icon');
+                if($li.children('ul').length){
+                    $li.children('ul').show();
+                    $twisty.addClass('open').removeClass('closed')
+                           .removeClass('fa-caret-right').addClass('fa-caret-down');
+                    $icon.removeClass('fa-folder').addClass('fa-folder-open');
+                }
+            });
+        }
+        
+        function collapseAll(){
+            $('#category-tree li').each(function(){
+                const $li = $(this);
+                const $twisty = $li.find('> .category-row .twisty');
+                const $icon = $li.find('> .category-row .folder-icon');
+                $li.children('ul').hide();
+                $twisty.removeClass('open').addClass('closed')
+                       .removeClass('fa-caret-down').addClass('fa-caret-right');
+                $icon.removeClass('fa-folder-open').addClass('fa-folder');
+            });
+        }
+
+        // ===== 상태 관리 =====
+        function isAllExpanded(){
+            const nodes = $('#category-tree li').filter(function(){ 
+                return $(this).children('ul').length; 
+            });
+            if(nodes.length === 0) return false;
+            return nodes.toArray().every(li => $(li).children('ul').is(':visible'));
+        }
+        
+        function setToggleAllBtnState(){
+            const allOpen = isAllExpanded();
+            const $btn = $('#toggleAllBtn');
+            const $icon = $('#toggleAllIcon');
+            if(allOpen){
+                $btn.attr('title', '모든 폴더 닫기');
+                $icon.attr('class', 'fa-solid fa-folder-closed');
+            } else {
+                $btn.attr('title', '모든 폴더 펼치기');
+                $icon.attr('class', 'fa-solid fa-folder-tree');
+            }
+        }
+
+        // ===== 드래그 앤 드롭 =====
+        function enableDrag() {
+            $('#category-tree ul').each(function(){
+                const $ul = $(this);
+                $ul.sortable({
+                    items: '> li',
+                    handle: '.drag-handle',
+                    placeholder: 'sort-placeholder',
+                    start: function(e, ui){
+                        const $scopeUl = ui.item.parent();
+                        $('#category-tree li > .category-row').addClass('dimmed');
+                        $scopeUl.children('li').children('.category-row')
+                                .removeClass('dimmed').addClass('highlight');
+                    },
+                    stop: function(){
+                        $('.category-row').removeClass('highlight dimmed');
+                    },
+                    update: function(){
+                        const parentId = $ul.closest('li').attr('data-id') || '0';
+                        const ids = $ul.children('li').map(function(){
+                            return $(this).data('id');
+                        }).get();
+                        updateCategorySort(parentId, ids);
+                    }
+                });
+            });
+        }
+
+        // 카테고리 순서 변경
+        function updateCategorySort(parentId, categoryIds) {
+            const sortData = categoryIds.map((id, index) => ({
+                id: id,
+                sort: index + 1
+            }));
+
+            $.ajax({
+                url: '/category/changeSort/ajax',
+                method: 'POST',
+                data: {
+                    parentId: parentId,
+                    sort: sortData
+                },
+                dataType: 'json'
+            }).done(function(response) {
+                if (response.result.status === 'success') {
+                    showMessage('카테고리 순서 변경에 성공했습니다: ' + response.result.msg, 'success');
+                } else {
+                    showMessage('카테고리 순서 변경에 실패했습니다: ' + response.result.msg, 'error');
+                }
+            }).fail(function() {
+                showMessage('카테고리 순서 변경 중 오류가 발생했습니다.', 'error');
+            });
+        }
+
+        // ===== 모달 관리 =====
+        function bindModalEvents() {
+            $('#addCategoryBtn').on('click', openAddCategoryModal);
+            $('.close').on('click', closeCategoryModal);
+            
+            $(window).on('click', function(event) {
+                if (event.target == document.getElementById('categoryModal')) {
+                    closeCategoryModal();
+                }
+            });
+            
+            $('#categoryForm').on('submit', function(e) {
+                e.preventDefault();
+                saveCategory();
+            });
+        }
+
+        // 모달 열기/닫기
+        function openCategoryModal() {
+            $('#categoryModal').show();
+            $('body').css('overflow', 'hidden');
+            $('#categoryModal #modalName').focus();
+        }
+
+        function closeCategoryModal() {
+            $('#categoryModal').hide();
+            $('body').css('overflow', '');
+            resetModalForm();
+        }
+
+        // 최상위 카테고리 추가 모달
+        function openAddCategoryModal() {
+            currentAction = 'add';
+            currentCategoryId = null;
+            currentParentId = null;
+            
+            resetModalForm();
+            $('#modalTitle').text('카테고리 추가');
+            $('#modalParentId').val('0');
+            $('#modalIsUse').prop('checked', true);
+            
+            openCategoryModal();
+        }
+
+        // 하위 카테고리 추가 모달
+        function openAddSubCategoryModal(parentId) {
+            currentAction = 'add';
+            currentParentId = parentId;
+            
+            resetModalForm();
+            $('#modalTitle').text('하위카테고리 추가');
+            $('#modalParentId').val(parentId);
+            $('#modalIsUse').prop('checked', true);
+            
+            openCategoryModal();
+            $('#categoryModal #modalName').focus();
+        }
+
+        // 카테고리 수정 모달
+        function openEditCategoryModal(categoryId) {
+            currentAction = 'edit';
+            currentCategoryId = categoryId;
+            
+            resetModalForm();
+            $('#modalTitle').text('카테고리 수정');
+            
+            const category = findCategoryById(categoryId);
+            if (category) {
+                populateModalForm(category);
+            }
+            
+            openCategoryModal();
+            $('#categoryModal #modalName').focus();
+        }
+
+        // 모달 폼 초기화
+        function resetModalForm() {
+            $('#categoryForm')[0].reset();
+            $('#modalId').val('');
+            $('#modalParentId').val('0');
+            $('#modalDescription').val('');
+            $('#modalIsUse').prop('checked', true);
+        }
+
+        // 모달 폼에 데이터 채우기
+        function populateModalForm(category) {
+            $('#modalId').val(category.id);
+            $('#modalName').val(category.name);
+            $('#modalParentId').val(category.parentId);
+            $('#modalCoId').val(category.coId || '{_SESSION.coId}');
+            $('#modalDescription').val(category.description || '');
+            $('#modalIsUse').prop('checked', category.isUse === '1' || category.isUse === 1);
+        }
+
+        // ===== 유틸리티 함수 =====
+        function findCategoryById(id, data = categories) {
+            for (const item of data) {
+                if (item.id === id) return item;
+                if (item.children && item.children.length > 0) {
+                    const found = findCategoryById(id, item.children);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+        // ===== 카테고리 CRUD =====
+        function deleteCategory(categoryId) {
+            if(confirm('선택하신 카테고리를 삭제하시겠습니까?')){
+                $.ajax({
+                    url: '/category/deleteProc/ajax',
+                    method: 'POST',
+                    data: { id: categoryId },
+                    dataType: 'json'
+                }).done(function(response) {
+                    if (response.result.status === 'success') {
+                        showMessage('카테고리가 삭제되었습니다.', 'success');
+                        $('#category-tree li[data-id="' + categoryId + '"]').remove();
+                    } else {
+                        showMessage(response.result.msg || '카테고리 삭제에 실패했습니다.', 'error');
+                    }
+                }).fail(function() {
+                    showMessage(response.result.msg , 'error');
+                });
+            }
+        }
+
+        function saveCategory() {
+            let form = $('#categoryForm')[0];
+            let formData = new FormData(form);
+
+            // 체크박스 처리
+            $('#categoryForm input[type="checkbox"]').each(function() {
+                const $checkbox = $(this);
+                if (!$checkbox.is(':checked')) {
+                    formData.set($checkbox.attr('name'), '0');
+                }
+            });
+
+            currentParentId = $('#modalParentId').val();
+            let maxCount = $('#category-tree li[data-parent="' + currentParentId + '"]').length;
+            formData.set('maxCount', maxCount);
+
+            $.ajax({
+                url: '/category/saveProc/ajax',
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                dataType: 'json'
+            }).done(function(response) {
+                if (response.result.status === 'success') {
+                    showMessage('카테고리가 저장되었습니다.', 'success');
+                    if (currentAction === 'add') {
+                        addCategoryToUI(response.result.data, currentParentId);
+                    } else if (currentAction === 'edit') {
+                        updateCategoryInUI(response.result.data);
+                    }
+                } else {
+                    showMessage(response.result.msg || '카테고리 저장에 실패했습니다.', 'error');
+                }
+            }).fail(function() {
+                showMessage('카테고리 저장 중 오류가 발생했습니다.', 'error');
+            }).always(function() {
+                closeCategoryModal();
+            });
+        }
+
+        // ===== UI 업데이트 =====
+        function addCategoryToUI(categoryData, parentId) {
+            // 실제 카테고리 데이터의 depth 정보 사용
+            const actualDepth = categoryData.depth ? parseInt(categoryData.depth) : 1;
+            
+            if (parentId === '0' || parentId === '') {
+                const $newLi = createCategoryLi(categoryData, actualDepth);
+                $newLi.appendTo('#category-tree>ul');
+            } else {
+                const $parentLi = $('#category-tree li[data-id="' + parentId + '"]');
+                if ($parentLi.length) {
+                    let $ul = $parentLi.children('ul');
+                    if ($ul.length === 0) {
+                        $ul = $('<ul></ul>');
+                        $parentLi.append($ul);
+                        
+                        const $parentRow = $parentLi.find('> .category-row .category-left');
+                        if ($parentRow.find('.twisty').length === 0) {
+                            $parentRow.prepend('<i class="fa-solid fa-caret-right twisty closed" aria-hidden="true"></i>');
+                        }
+                    }
+                    
+                    const $newLi = createCategoryLi(categoryData, actualDepth);
+                    $newLi.appendTo($ul);
+                }
+            }
+            
+            bindEvents();
+            enableDrag();
+        }
+
+        function updateCategoryInUI(categoryData) {
+            const $li = $('#category-tree li[data-id="' + categoryData.id + '"]');
+            if ($li.length) {
+                $li.find('> .category-row .label').text(categoryData.name);
+                $li.find('> .category-row .id-col').text(categoryData.id);
+                $li.find('> .category-row .hk-col').text(categoryData.hkCode || '');
+                
+                const $statusToggle = $li.find('> .category-row .status-toggle');
+                if (categoryData.isUse === '1' || categoryData.isUse === 1) {
+                    $statusToggle.removeClass('fa-toggle-off unused')
+                               .addClass('fa-toggle-on used')
+                               .css('color', 'green');
+                } else {
+                    $statusToggle.removeClass('fa-toggle-on used')
+                               .addClass('fa-toggle-off unused')
+                               .css('color', 'gray');
+                }
+            }
+        }
+
+        function createCategoryLi(categoryData, depth) {
+            const $li = $('<li></li>').attr({ 
+                'data-id': categoryData.id, 
+                'data-parent': categoryData.parentId, 
+                'data-depth': depth 
+            });
+
+            const $row = createCategoryRow(categoryData, '<span class="twisty-spacer"></span>');
+            $li.append($row);
+            return $li;
+        }
+
+        // ===== 스위치 처리 =====
+        function handleSwitchChange() {
+            $('#modalIsUse').on('change', function() {
+                const isChecked = $(this).is(':checked');
+                $('input[name="isUse"]').val(isChecked ? '1' : '0');
+            });
+        }
+
+        // ===== 메시지 표시 =====
+        function showMessage(message, type) {
+            const alertClass = type === 'success' ? 'custom-alert-success' : 'custom-alert-error';
+            const alertHtml = 
+                '<div class="custom-alert ' + alertClass + ' fade-in" role="alert">' +
+                    '<div class="alert-content">' +
+                        '<div class="alert-message">' + message + '</div>' +
+                        '<button type="button" class="alert-close" aria-label="Close">' +
+                            '<span aria-hidden="true">&times;</span>' +
+                        '</button>' +
+                    '</div>' +
+                '</div>';
+            
+            let $messageContainer = $('#message-container');
+            if ($messageContainer.length === 0) {
+                $('body').append('<div id="message-container"></div>');
+                $messageContainer = $('#message-container');
+            }
+            
+            $messageContainer.append(alertHtml);
+            
+            setTimeout(function() {
+                $('.custom-alert').fadeOut(500, function() {
+                    $(this).remove();
+                });
+            }, 2000);
+
+            $('.custom-alert .alert-close').on('click', function() {
+                $(this).closest('.custom-alert').fadeOut(300, function() {
+                    $(this).remove();
+                });
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}
+</head>
+<body>
+    {# left}
+    {# header}
+    <main class="container">
+        <div role="document">
+			<div role="heading">회사정보</div>
+			<section class="section-search">
+                <form role="search" name="searchForm" id="searchForm">
+                    <input type="hidden" name="coId" id="coId" value="{_SESSION.coId}"/>
+                    <div class="search-input">
+                        <input type="text" name="searchText" id="searchText" value="{? _GET.searchText}{_GET.searchText}{/}" placeholder="검색어를 입력하세요">
+                        <button id="searchBtn" class="btn-search" type="button"><i class="fa-light fa-magnifying-glass"></i></button>
+                    </div>
+					<button type="button" class="btn" id="insertBtn">추가</button>
+                    {? _SESSION.isSuper}<button type="button" class="btn btn-black" id="deleteBtn">삭제</button>{/}
+                </form>
+            </section>
+			<section role="list">
+                <div class="list-cont">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th><label class="ckbox"><input id="chkSelectAll" type="checkbox"><span></span></label></th>
+                                <th>회사명</th>
+                                <th>도메인</th>
+                                <th>회사코드</th>
+                                <th>대표자성명</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {@ result.items}
+                            <tr>
+                                <th>
+                                    <input type="checkbox" name="companySelect" id="companySelect" class="subscriber" value="{.coId}">
+                                </th>
+                                <td><strong><a href="javascript:companyEdit('{.coId}');">{.name}</a></strong></td>
+                                <td>{.domain.pc}<br/>{.domain.mobile}</td>
+                                <td>{.coId}</td>
+                                <td>{.representativeName}</td>
+                                <td class="text-center">
+                                    <button type="button" class="btn" onclick="javascript:companyEdit('{.coId}');">편집</button>
+                                    <button type="button" class="btn btn-blue" onclick="javascript:companyMember('{.coId}');">기자 정보</button>
+                                </td>
+                            </tr>
+                            {/}
+                        </tbody>
+                    </table>
+                </div>
+                {# paging}
+            </section>
+        </div>
+    </main>
+    
+    <script type="text/javascript">
+        $(document).ready(function(){
+            $('#insertBtn').click(function(){
+                location.href='/company/editor';
+            });
+        
+            $('#delBtn').click(function(){
+                var chkCompany = '';
+                $("input[name=companySelect]:checked").each(function() {
+                    alert($(this).val());
+                    chkCompany += $(this).val() + '|';
+                });
+        
+                if(chkCompany == '' ){
+                    alert('삭제할 회사를 선택해주세요.');
+                }else{
+                    companyDelete(chkCompany);
+                }
+            });
+        
+            $('#chkSelectAll').click(function(){
+                $("input:checkbox[id='companySelect']").prop('checked', $("input:checkbox[id='chkSelectAll']").is(":checked"));
+            });
+                
+            $('#searchBtn').click(()=>{
+                $('#searchForm').attr('action','/company/list').submit();
+            });
+        });
+        
+        function companyEdit(coId){
+            location.href = "/company/editor?coId="+coId;
+        }
+        
+        function companyMember(coId){
+            location.href = "/manager/list?coId="+coId;
+        }
+        
+        function companyDelete(coId){
+            alert(coId);
+            if( confirm('선택한 회사를 삭제하시겠습니까?') ){
+                $.ajax({
+                    url: '/company/delete/ajax',
+                    method : 'POST',
+                    data : {'companyId': coId}
+                }).done(()=> {
+                    alert('회사 정보가 삭제되었습니다.');
+                    location.href='/company/list';
+                });
+            }
+        }
+    </script>
+</body>
+</html>

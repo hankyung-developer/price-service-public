@@ -1,0 +1,29 @@
+<!-- 기사별 통계 모달 -->
+<dialog id="articleReferrerModal">
+    <article class="card">
+        <header>
+            <a href="#close" aria-label="Close" class="close" data-target="articleReferrerModal" onclick="toggleModal(event)"></a>
+            <h6 id="articleReferrerModalLabel">기사별 Referr 정보</h6>
+            <div class="title"></div>
+        </header>
+        <div>
+            <div>유입경로별통계</div>
+            <div class="Chartjs pd-b-15"><figure class="Chartjs-figure" id="chart-1-container" style="min-height:200px;"></figure></div>  
+        </div>
+        <div>
+            <div>브라우저별</div>
+            <div class="Chartjs pd-b-15"><figure class="Chartjs-figure" id="chart-3-container" style="min-height:200px;"></figure></div>  
+        </div>
+        <div class="grid">
+            <div>
+                <div>운영체제</div>
+                <div class="Chartjs pd-b-15"><figure class="Chartjs-figure" id="chart-4-container" style="min-height: 200px;"></figure></div>  
+            </div>
+            <div>
+                <div>기기별</div>
+                <div class="Chartjs pd-b-15"><figure class="Chartjs-figure" id="chart-2-container" style="min-height: 200px;"></figure></div>  
+            </div>
+        </div>
+    </article>
+</dialog>
+<!-- 기사별 통계 모달 -->

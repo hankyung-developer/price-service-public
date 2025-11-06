@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script type="text/javascript" src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://code.jquery.com/ui/1.11.0/jquery-ui.js"></script>
+<script src="/lib/jquery-ui-touch-punch/jquery.ui.touch-punch.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-modal/0.9.1/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-modal/0.9.1/jquery.modal.min.css" />
+
+<script src="/lib/dropzone/dropzone-min.js"></script>
+<link href="/lib/dropzone/dropzone.css" rel="stylesheet" type="text/css" />
+
+<link rel="stylesheet" href="/lib/jquery.minicolors/jquery.minicolors.css">
+<script type="text/javascript" src="/lib/jquery.minicolors/jquery.minicolors.min.js"></script>
+
+<script src="/lib/fabric/fabric.min.js"></script>
+
+<script src="/js/image_config.js"></script>
+<script src="/js/image.js"></script>
+<script src="/js/image_filter.js"></script>
+<script src="/js/image_draw.js"></script>
+<script src="/js/image_font.js"></script>
+<script src="/js/image_history.js"></script>
+
+<script src="https://kit.fontawesome.com/abb3e4fcec.js" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="/css/image.css">
+<link rel="stylesheet" href="/css/common.css">
+<link rel="stylesheet" href="/css/modal.css">
+
+</head>
+<body>
+<form name="imgFrm" id="imgFrm" action="" method="post" onsubmit="return false;" >
+<input type="hidden" id="id" name="id" value="{result.image.id}"/>
+<input type="hidden" name="imgData" id="imgData"/>
+
+<img src="{result.image.path}" style="display:none;" id="originImg"/>
+<img class="transformImg" style="display:none;"/>
+
+<div class="imageWrap">
+	<div class="menuWrap">
+		<ul class="imageMenu">
+			<li class="m1">
+				<div class="menuIcon"><img src="/img/imagemenu_size.png" alt="사이즈"></div>
+				<span class="menuText">사이즈</span>
+			</li>
+			<li class="m2">
+				<div class="menuIcon"><img src="/img/imagemenu_mosaic.png" alt="모자이크"></div>
+				<span class="menuText">모자이크</span>
+			</li>
+			<li class="m3">
+				<div class="menuIcon"><img src="/img/imagemenu_rotation.png" alt="회전"></div>
+				<span class="menuText">회전</span>
+			</li>
+			<li class="m4">
+				<div class="menuIcon"><img src="/img/imagemenu_crop.png" alt="자르기"></div>
+				<span class="menuText">자르기</span>
+			</li>
+			<li class="m5">
+				<div class="menuIcon"><img src="/img/imagemenu_correction.png" alt="보정"></div>
+				<span class="menuText">보정</span>
+			</li>
+			<li class="m6">
+				<div class="menuIcon"><img src="/img/imagemenu_draw.png" alt="그리기"></div>
+				<span class="menuText">그리기</span>
+			</li>
+			<li class="m7">
+				<div class="menuIcon"><img src="/img/imagemenu_text.png" alt="텍스트"></div>
+				<span class="menuText">텍스트</span>
+			</li>
+		</ul>
+	</div>
+	
+	<div class="functionWrap">
+		<div class="functions">
+			<div class="sizeFunction fun">
+				<div class="area">
+					<span>원본 크기 </span>
+					<div class="areaBox">
+						<label for="canvasX">W</label><input type="text" id="originX" name="originX" readonly/>
+						<label for="canvasY">H</label><input type="text" id="originY" name="originY" readonly/>
+					</div>
+				</div>
+				<div class="area">
+					<span>캔버스</span>
+					<div class="areaBox">
+						<label for="canvasX">W</label><input type="text" id="canvasX" name="canvasX"/>
+						<b class="unlock" id="canvasLock"></b>
+						<label for="canvasY">H</label><input type="text" id="canvasY" name="canvasY"/>
+					</div>
+				</div>
+				<div class="area">
+					<span>이미지</span>
+					<div class="areaBox">
+						<label for="imageX">W</label><input type="text" id="imageX" name="imageX"/>
+						<b class="unlock" id="imageLock"></b>
+						<label for="imageY">H</label><input type="text" id="imageY" name="imageY"/>
+					</div>
+				</div>
+				<div class="area">
+					<!--span>맞춤</span-->
+					<div class="areaBox s2">
+						<button type="button" class="btn-gray" id="halign">가로맞춤</button>
+						<button type="button" class="btn-gray" id="valign">세로맞춤</button>
+						<button type="button" class="btn-gray" id="oalign">원본크기</button>
+					</div>
+				</div>
+			</div>
+
+			<div class="mosaicFunction pd-18 fun" style="display:none">
+				<span>모자이크</span>
+				<div class="areaBox s3">
+					<div class="mosaicZone"><img src="/img/mosaic_rect.png" alt="모자이크"><span><input name="mosaicr" id="mosaicr_2" type="radio" value="rect"/><label for="radio4a_2">사각</label></span></div>
+					<div class="mosaicZone"><img src="/img/mosaic_circle.png" alt="모자이크"><span><input name="mosaicr" id="mosaicr_1" type="radio" value="circle"/><label for="radio4a_1">원</label></span></div>
+				</div>
+				<div class="range_b" id="mosaicRange">
+					<input type="text" class="amount" id="mosaicAmount" readonly />
+					<div class="rangebox" id="mosaicRangebox"></div>
+				</div>
+				<div class="areaBox s2 pd-l-78">
+					<button type="button" class="btn-gray" onclick="javascript:completeAction('Mosaic')">확인</button>
+				</div>
+			</div>
+
+
+			<div class="rotationFunction pd-18 fun" style="display:none">
+				<span>회전</span>
+				<div class="areaBox s3">
+					<div class="rotationZone rataion1"><img src="/img/rotation1.png" alt="상하반전"><span>상하반전</span></div>
+					<div class="rotationZone rataion2"><img src="/img/rotation2.png" alt="좌우반전"><span>좌우반전</span></div>
+					<div class="rotationZone rataion3"><img src="/img/rotation3.png" alt="회전(좌)"><span>회전(좌)</span></div>
+					<div class="rotationZone rataion4"><img src="/img/rotation4.png" alt="회전(우)"><span>회전(우)</span></div>
+				</div>
+			</div>
+
+			<div class="cropFunction pd-18 fun" style="display:none">
+				<span>자르기</span>
+				<div class="cropBox">
+					<span><input name="cropr" id="radio4_1" type="radio" value="1" class="cropr"/><label for="radio4_1" class="btn-gray">원본비율</label></span>
+					<span><input name="cropr" id="radio4_2" type="radio" value="2" class="cropr"/><label for="radio4_2" class="btn-gray">자유</label></span>
+					<span><input name="cropr" id="radio4_3" type="radio" value="3" class="cropr"/><label for="radio4_3" class="btn-gray">4:3</label></span>
+					<span><input name="cropr" id="radio4_4" type="radio" value="4" class="cropr"/><label for="radio4_4" class="btn-gray">3:4</label></span>
+					<span><input name="cropr" id="radio4_5" type="radio" value="5" class="cropr"/><label for="radio4_5" class="btn-gray">16:9</label></span>
+					<span><input name="cropr" id="radio4_6" type="radio" value="6" class="cropr"/><label for="radio4_6" class="btn-gray">1:1</label></span>
+					
+					<div class="cropType">
+						<span><input name="r4a" id="radio4a_1" type="radio" value="circle"/><label for="radio4a_1">원</label></span>
+						<span><input name="r4a" id="radio4a_2" type="radio" value="rect" checked/><label for="radio4a_2">사각</label></span>
+					</div>
+
+					<button type="button" class="btn-gray confirm" onclick="javascript:completeAction('Crop')">확인</button>
+				</div>
+			</div>
+
+			<div class="correctionFunction pd-18 fun" style="display:none">
+				<div class="c1">
+					<label for="chk7b_1">흑백</label> <input id="chk7b_1" type="checkbox" />
+				</div>
+				<div class="c1">
+					<label>불투명</label>
+					<div class="range_b">
+						<input type="text" class="amount" id="filterAmount2" />
+						<div class="rangebox" id="filterRangebox2"></div>
+					</div>
+				</div>
+				<div class="c1">
+					<label>밝기</label>
+					<div class="range_b">
+						<input type="text" class="amount" id="filterAmountBrightness" />
+						<div class="rangebox" id="filterRangeboxBrightness"></div>
+					</div>
+				</div>
+				<div class="c1">
+					<label>대비</label>
+					<div class="range_b">
+						<input type="text" class="amount" id="filterAmountContrast" />
+						<div class="rangebox" id="filterRangeboxContrast"></div>
+					</div>
+				</div>
+				<div class="c1">
+					<label>채도</label>
+					<div class="range_b">
+						<input type="text" class="amount" id="filterAmountSaturation" />
+						<div class="rangebox" id="filterRangeboxSaturation"></div>
+					</div>
+				</div>
+			</div>
+
+			<div class="drawFunction fun" style="display:none">
+				<div class="area">
+					<span>그리기</span>
+					<div class="colors">
+						<span>색상</span>
+						<div class="color-palette form-group">
+							<label for="inline">Inline</label>
+							<input type="text" id="inline" class="form-control demo" data-inline="true" value="#000000" size="7">
+							<div id="currentDrawColor" class="current_color"></div>
+						</div>
+						<select id="lineWidth" name="lineWidth">
+							<option value="1">1px</option>
+							<option value="2">2px</option>
+							<option value="3">3px</option>
+							<option value="4">4px</option>
+							<option value="5">5px</option>
+							<option value="6">6px</option>
+							<option value="7">7px</option>
+							<option value="8">8px</option>
+							<option value="9">9px</option>
+							<option value="10">10px</option>
+						</select>
+					</div>
+				</div>
+				
+				<div class="drawArea">
+					<div class="lineType">
+						<span><input name="r5a" id="radio5a_1" type="radio" value="solid" checked><label for="radio5a_1">실선</label></span>
+						<span><input name="r5a" id="radio5a_2" type="radio" value="dotted"><label for="radio5a_2">점선</label></span>
+						<input type="hidden" value="Pencil" id="lineType" name="lineType"/>
+					</div>
+					<div class="shapeType">
+						<span><input name="r5" id="radio5_1" type="radio" data-fill="false"/><label for="radio5_1">○</label></span>
+						<span><input name="r5" id="radio5_2" type="radio" data-fill="true"/><label for="radio5_2">●</label></span>
+						<span><input name="r5" id="radio5_3" type="radio" data-fill="false"/><label for="radio5_3">□</label></span>
+						<span><input name="r5" id="radio5_4" type="radio" data-fill="true"/><label for="radio5_4">■</label></span>
+						<span><input name="r5" id="radio5_5" type="radio" data-fill="false"/><label for="radio5_5">△</label></span>
+						<span><input name="r5" id="radio5_6" type="radio" data-fill="true"/><label for="radio5_6">▲</label></span>
+					</div>
+				</div>
+				<div class="drawingType">
+					<span class="customButton"><input name="r5b" id="radio5b_1" type="radio" /><label for="radio5b_1">펜</label></span>
+					<span class="customButton"><input name="r5b" id="radio5b_2" type="radio" /><label for="radio5b_2">수평선</label></span>
+					<span class="customButton"><input name="r5b" id="radio5b_3" type="radio" /><label for="radio5b_3">수직선</label></span>
+					<span class="customButton"><input id="drawingDelete" type="button" value="지우개" onclick="javascript:removeObject();"/></span>
+				</div>
+			</div>	
+
+			<div class="textFunction fun" style="display:none">
+				<div class="area">
+					<span>텍스트</span>
+					<div class="colors">
+						<span>색상</span>
+						<div class="color-palette form-group">
+							<label for="inline">Inline</label>
+							<input type="text" id="fontColor" class="form-control" data-inline="true" value="#000000" size="7">
+							<div id="currnetFontColor" class="current_color"></div>
+						</div>
+						<select id="fontSize" name="fontSize">
+						</select>
+						<select id="fontStyle" name="fontStyle">
+						</select>
+					</div>
+				</div>
+				
+				<div class="d-flex justify-content-start pd-18">
+					<span class="customButton mg-r-5"><input name="fontR" id="fontR_1" type="checkbox" /><label for="fontR_1">Bold</label></span>
+					<span class="customButton mg-r-5"><input name="fontR" id="fontR_2" type="checkbox" /><label for="fontR_2">Italic</label></span>
+					<!--span class="customButton"><input name="fontR" id="fontR_3" type="checkbox" /><label for="fontR_3">Underline</label></span-->
+				</div>
+
+				<div class="d-flex flex-column center pd-18">
+					<textarea id="fontText" rows="6" class="mg-b-5"></textarea>
+
+					<span class="customButton"><input id="drawingDelete" type="button" value="추가" onclick="javascript:newFont();"/></span>
+				</div>
+			</div>
+		</div>
+		<div class="imageList">
+			<div class="imagePlus"><span>이미지 등록</span><img src="/img/image_plus.png" alt="이미지 등록" id="btn_imgModal"></div>
+			<div class="imageZone">
+
+				<div id="dropzone" style="width:100%;height:100%;" id="sortable" class="sortable" style="overflow:auto;">
+					<div class="image-message boxMessage" style="position: relative;top: 45%;color: #fff;font-size: 20px;width: 60%;text-align: center;margin: auto;">파일을 끌어오거나, 클릭하시면 첨부가 가능합니다.<br></div>
+					<div class="dropzonePreview">
+						<div class="panel panel-default dz-preview" style="width:110px; height:110px; float:left; margin:5px;">
+							<div class="card" style="margin: 5px;">
+								<div class="card-image text-center">
+									<img class='thumbnail dropzoneImg' data-dz-thumbnail onerror="javascript:this.src='/img/etc.png'" />
+									<!--div class="dz-filename" style=' white-space: nowrap; overflow:hidden;'><span data-dz-name></span></div-->
+									<div class="dz-progress"><span class="dz-upload" data-dz-uploadprogress></span></div>
+								</div>
+								<div class="card-content pd-x-5 justify-content-between">
+									<a href="javascript:;" alt="이미지 삭제" class="imageDelete"><i class="fas fa-trash"></i></a>
+									<input type='hidden' id='caption' value='9'>
+									<input type='hidden' class='fileId' name='fileId[]'>
+									<input type='hidden' class='type' name='type[]'>
+									<input type='hidden' class='ext' name='ext[]'>
+									<input type='hidden' class='path' name='path[]'>
+									<input type='hidden' class='imgWidth' name='width[]'>
+									<input type='hidden' class='imgHeight' name='height[]'>
+									<input type='hidden' class='imgsize' name='size[]'>
+									<input type='hidden' class='imgWatermark' name='watermarkPlace[]' value="3">
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+			</div>
+		</div>
+		<div class="buttons">
+			<button type="button" class="btn-gray" id="saveBtn" name="saveBtn" onclick="javascript:imageEditor();">등록</button>
+			<button type="button" class="btn-red" id="closeBtn">닫기</button>
+		</div>
+	</div>
+
+	<div class="editZone">
+		<div class="editIcon">
+			<img src="/img/img_front.png" id="imgFront" title="선택된 이미지 앞으로">
+			<img src="/img/img_back.png" id="imgBack" title="선택된 이미지 뒤로">
+		</div>
+		<div class="canvers_b">
+			<canvas style="width:600;height:400" id="imgCanvas" class="canvers"></canvas>
+			<div class="caption">
+				<textarea id="caption" name="caption" placeholder="캡션을 입력하세요">{result.image.caption}</textarea>
+				<textarea id="description" name="description" placeholder="메모을 입력하세요">{result.image.description}</textarea>
+			</div>
+		</div>
+	</div>
+</div>
+</form>
+
+<!-- Modal -->
+<div class="modal fade wd-800 h-650" id="imgSearchModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+	<div class="modal-dialog" role="document">
+		<div class="modal-content">
+			<div class="modal-header pd-y-10 pd-x-25">
+				<h6 class="modal-title wd-600 tx-black" id="myModalLabel">DB 이미지</h6>
+				<a href="#" rel="modal:close"><button type="button" class="modal-close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></a>
+			</div>
+			<div class="modal-body tx-black tx-normal">
+				<form name='frm_imgSearch' id='frm_imgSearch' onsubmit="return false;">
+				<div class="d-flex flex-wrap align-items-center justify-content-end ht-xl-40 mg-b-5">
+					<select name="type" id="type" class="form-control wd-150 mg-r-5 mg-b-0 h-30">
+						<option value="">모든파일</option>
+						<option value="image" selected>이미지</option>
+						<option value="doc">문서</option>
+					</select>
+					<div class="input-group wd-250 mg-r-5 mg-lg-b-5 mg-b-0 h-30">
+						<span class="input-group-addon pd-0 bd-0">
+							<select name="searchItem" id="searchItem" class="form-control">
+								<option value="caption">캡션</option>
+								<option value="createName">업로더</option>
+								<option value="fileId">이미지 ID</option>
+							</select>
+						</span>
+						<input type="text" class="form-control" id="keyword" name="keyword" placeholder="검색어를 입력하세요." value="">
+					</div>
+					<button type="button" class="btn btn-info pd-5 bd-0 mg-l-5 mg-t-0 tx-uppercase tx-13 tx-spacing-2" id="btn_imgSearch" name="btn_imgSearch"><i class="fas fa-search"></i>검색</button>
+                    <button type="button" class="btn btn-primary pd-5 bd-0 mg-l-5 mg-t-0 tx-uppercase tx-13 tx-spacing-2" id="btn_imgSelectOk" >선택완료</button>
+				</div>
+				</form>
+							
+                <div id="imageRow" class="d-flex flex-wrap pd-x-20"></div>
+                <div id="paging"></div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+let canvasChange = false;
+let imgSrc = '{result.image.path}';
+let imgWidth;
+let imgHeight;
+
+function imageEditor() {
+    let frmData = {};
+
+    frmData['id']='{result.image.id}';
+    if(canvasChange){
+       frmData['imgData']=canvas.toDataURL('{result.image.mimeType}');
+    }
+    frmData['path']='{result.image.path}';
+    frmData['mimeType']='{result.image.mimeType}';
+	frmData['caption']=$('#caption').val();
+	frmData['description']=$('#description').val();
+
+    $.ajax({
+        type:'POST',
+        data: frmData,
+        url:'/image/change/ajax',
+        success:function(){
+            $.ajax({
+                url: '/image/update/ajax',
+                method : 'POST',
+                data : $('#imgFrm').serialize()
+            }).done(function(data) {
+                // 기사편집에서 오픈되었으면
+                if( getQueryParams('ref')=='article'){
+                    let fileId=getQueryParams('id');
+                    let selctImg = $(opener.document).find("div[file_id='"+fileId+"']").find('.thumbnail');
+                    //let src = $(selctImg).attr('src');
+					let src =$(opener.document).find("div[file_id='"+fileId+"']").find('.file_path').val();
+					src = src.replace(/[.]([a-z]+)$/i,'.120x.0.$1')
+
+                    $(opener.document).find("div[file_id='"+fileId+"']").find('.imgCaption').val($("#caption").val());
+                    $(selctImg).attr("src",src+"?v=02");
+//					$(opener.document).find("#dropzone #"+fileId+" .imgCaption").src();
+                    //$(selctImg).closest('figure').find('figcaption').text($("#caption").val());
+                    //$(selctImg).attr("src",src);
+                    alert('업데이트가 완료되었습니다.');
+                }else{
+	                alert('업데이트가 완료되었습니다.');
+					window.opener.location.reload();
+                    window.opener.location.href='/image/list';
+                }
+                //self.close();
+            });
+        }
+    });
+}
+
+function getQueryParams( name ) {
+    let url = location.href;
+    name = name.replace(/[\[]/,"\\\[").replace(/[\]]/,"\\\]");
+    let regexS = "[\\?&]"+name+"=([^&#]*)";
+    let regex = new RegExp( regexS );
+    let results = regex.exec( url );
+    return results == null ? null : results[1];
+}
+
+// dropzone preview  세팅
+let drop = $('.dropzonePreview').html();
+$('.dropzonePreview').remove();
+//  dropzone 세팅
+let imgDropzone = "";
+imgDropzone = new Dropzone("#dropzone", {
+    url: "/file/upload/ajax",
+    thumbnailWidth: 100,
+    thumbnailHeight: 100,
+    previewTemplate: drop,
+    init: function () {
+        imgDropzone = this;
+        {? result.image} 
+        mockFile = {
+            "fileId": "{result.image.id}",
+            {? result.image.type=="doc"}
+            "thumb": "/img/{result.image.ext}.png",
+            {: result.image.type=="gif"}
+            "thumb": "{result.image.path}",
+			{:}
+            "thumb": "{=preg_replace('/([.][a-z]+)$/','.100x100.0$1',result.image.path)}",
+            {/}
+            "width": "{result.image.width}",
+            "height": "{result.image.height}",
+            "size": "{result.image.size}",
+            "path": "{result.image.path}",
+            "type": "{result.image.type}",
+            "ext": "{result.image.ext}",
+            "watermarkPlace": "{result.image.watermarkPlace}",
+        };
+        this.emit('addedfile', mockFile);
+        $(mockFile.previewElement).attr("fileId", mockFile['fileId']);
+        $(mockFile.previewElement).find('.path').val(mockFile['path']);
+        $(mockFile.previewElement).find('.fileId').val(mockFile['fileId']);
+        $(mockFile.previewElement).find('.imgWidth').val(mockFile['width']);
+        $(mockFile.previewElement).find('.imgHeight').val(mockFile['height']);
+        $(mockFile.previewElement).find('.imgsize').val(mockFile['size']);
+        $(mockFile.previewElement).find('.imgWatermark').val(mockFile['watermarkPlace']);
+        $(mockFile.previewElement).find('.type').val(mockFile['type']);
+        $(mockFile.previewElement).find('.ext').val(mockFile['ext']);
+
+        this.emit('thumbnail', mockFile, mockFile['thumb']);
+        $(".image-message").hide();
+        {/}
+    }
+});
+
+imgDropzone.on("sending", function(file, xhr, formData) {
+	formData.append("isDisplay", "N");
+});
+
+imgDropzone.on("complete", (file)=>{
+	uploadInfo = JSON.parse(file.xhr.responseText)['result'];
+	if(uploadInfo.size > 0){
+        $(file.previewElement).attr("fileId", uploadInfo['id']);
+		$(file.previewElement).find('.fileId').val(uploadInfo['id']);
+		$(file.previewElement).find('.path').val(uploadInfo['path']);
+		$(file.previewElement).find('.type').val(uploadInfo['type']);
+		$(file.previewElement).find('.ext').val(uploadInfo['ext']);
+		$(file.previewElement).find('.size').val(uploadInfo['size']);
+		$(file.previewElement).find('.width').val(uploadInfo['width']);
+		$(file.previewElement).find('.height').val(uploadInfo['height']);
+
+		$(".image-message").hide();
+
+		imagePlus(uploadInfo['path'],uploadInfo['width'],uploadInfo['height'],uploadInfo['id']);
+	}else{
+		$(file.previewElement).remove();
+		alert("파일 업로드를 실패하였습니다.\n관리자에게 문의하세요.");
+	}
+});
+
+//  dropzone 이미지 드래그 이동 세팅
+$(".sortable").sortable();
+
+$(document).on('click', '#dropzone .fa-trash', (e)=>{
+	if(confirm('해당 파일을 삭제하시겠습니까?')){
+		let title = $(e.target).closest('.card').find('.fileId').val();
+		canvas.getObjects().forEach((obj)=>{
+			if(obj.title == title){
+				deleteObject(obj, title);
+				return false;
+			}
+		});
+	}
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}
+    <link rel="stylesheet" href="/lib/tempusdominus-bootstrap/tempusdominus-bootstrap-4.min.css" />
+    <script type="text/javascript" src="/lib/tempusdominus-bootstrap/tempusdominus-bootstrap-4.min.js"></script>
+	<script src='/lib/locale/ko.js'></script>
+	
+	<script src="https://spi.maps.daum.net/imap/map_js_init/postcode.v2.js"></script>
+
+	<!-- <link href="/lib/dropzone/dropzone.css" rel="stylesheet" type="text/css" /> -->
+	<script src="/lib/dropzone/dropzone-min.js"></script>
+	<link href="/css/upload.css" rel="stylesheet" type="text/css" />
+	<script src="/js/upload.js" type="text/javascript"></script>
+	<script src='/lib/tinymce/tinymce.min.js'></script>
+
+    <!-- CodeMirror -->
+    <link rel="stylesheet" href="/lib/CodeMirror/lib/codemirror.css">
+    <link rel="stylesheet" href="/lib/CodeMirror/theme/3024-night.css">
+    <script src="/lib/CodeMirror/lib/codemirror.js"></script>
+    <script src="/lib/CodeMirror/mode/xml/xml.js"></script>
+    <script src="/lib/CodeMirror/mode/javascript/javascript.js"></script>
+    <script src="/lib/CodeMirror/mode/css/css.js"></script>
+    <script src="/lib/CodeMirror/mode/htmlmixed/htmlmixed.js"></script>
+    <script src="/lib/CodeMirror/mode/htmlembedded/htmlembedded.js"></script>
+    <script src="/lib/CodeMirror/addon/mode/multiplex.js"></script>
+    <!-- //CodeMirror -->
+
+	<style>
+		#collapseTemplate .card-block img {width:200px; margin:20px;opacity: 0.7;}
+		#collapseTemplate .card-block {background-color: #1D2939;}
+		img.selected{outline: 4px solid #17a2b8;outline-offset: -4px;border-radius: 5px;opacity: 1 !important;}
+		#wmPositionTool .selected{outline: 1px solid #ff000075;outline-offset:unset;box-shadow: 1px 1px 8px 0px #ff000069;}
+		#wmPositionTool img{border-radius: 2px;cursor: pointer;margin:7px;width: 35px;}
+	</style>
+</head>
+<body>
+{# left}
+{# header}
+	<main class="container">
+		<div role="document">
+			<div role="heading">회사정보</div>	
+			<section>
+				<!-- form -->
+				<form method="post" name="inputForm" id="inputForm" role="form" class="spacing">
+					<!-- 기본 -->
+					<details open>
+						<summary class="secondary">기본</summary>
+						<div class="grid">
+							<label for="name">회사명 <span class="red">*</span>
+								<input type="text" placeholder="회사명" name="name" id="name" autocomplete="off" maxlength="60" value="{result.name}">
+							</label>
+							<label for="representativeName">대표자성명 <span class="red">*</span>
+								<input type="text" placeholder="대표자성명" name="representativeName" id="representativeName" autocomplete="off" maxlength="60" value="{result.representativeName}">
+							</label>
+							<label for="coId">회사코드 <span class="red">*</span>
+								<input type="text" placeholder="회사명" name="coId" id="coId" autocomplete="off" maxlength="60" value="{result.coId}" {? result.coId !=""}readonly{/}>
+							</label>
+						</div>
+						<div class="grid">
+							<label for="description">회사소개 <span class="red">*</span>
+								<input type="text" placeholder="회사소개를 입력하세요." name="description" id="description" autocomplete="off" value="{result.description}">
+							</label>
+						</div>
+						<div class="grid">
+							<label for="tel">회사전화번호
+								<input type="text" placeholder="회사전화번호" name="tel" id="tel" autocomplete="off" maxlength="60" value="{result.tel}">
+							</label>
+							<label for="fax">팩스번호
+								<input type="text" placeholder="팩스번호" name="fax" id="fax" autocomplete="off" maxlength="60" value="{result.fax}">
+							</label>
+							<label for="alliance">사업및콘텐츠제휴
+								<input type="text" placeholder="사업및콘텐츠제휴" name="alliance" id="alliance" autocomplete="off" maxlength="60" value="{result.alliance}">
+							</label>
+						</div>
+						<div class="grid">
+							<label for="broadcast">방송문의
+								<input type="text" placeholder="방송문의" name="broadcast" id="broadcast" autocomplete="off" maxlength="60" value="{result.broadcast}">
+							</label>
+							<label for="articleInquiry">기사문의
+								<input type="text" placeholder="기사문의" name="articleInquiry" id="articleInquiry" autocomplete="off" maxlength="60" value="{result.articleInquiry}">
+							</label>
+							<label for="advertising">광고문의
+								<input type="text" placeholder="광고문의" name="advertising" id="advertising" autocomplete="off" maxlength="60" value="{result.advertising}">
+							</label>
+						</div>
+						<div class="grid">
+							<label for="licenessNo">사업자번호 <span class="red">*</span>
+								<input type="text" placeholder="사업자번호" name="licenessNo" id="licenessNo" autocomplete="off" maxlength="60" value="{result.licenessNo}">
+							</label>
+							<label for="ncNo">뉴스통신사업번호
+								<input type="text" placeholder="뉴스통신사업번호" name="ncNo" id="ncNo" autocomplete="off" maxlength="60" value="{result.ncNo}">
+							</label>
+							<label for="inNo">인터넷신문 번호
+								<input type="text" placeholder="인터넷신문 등록번호" name="inNo" id="inNo" autocomplete="off" maxlength="60" value="{result.inNo}">
+							</label>
+						</div>
+						<div class="grid">
+							<label for="domain[pc]">도메인<span class="red">*</span>
+								<input type="text" placeholder="도메인" name="domain[pc]" id="domain[pc]" autocomplete="off" maxlength="60" value="{result.domain.pc}">
+							</label>
+							<label for="domain[mobile]">모바일 도메인
+								<input type="text" placeholder="모바일 도메인" name="domain[mobile]" id="domain[mobile]" autocomplete="off" maxlength="60" value="{result.domain.mobile}">
+							</label>
+						</div>
+						<div class="grid">
+							<label for="domain[rep]">대표 도메인
+								<input type="text" placeholder="대표 도메인" name="domain[rep]" id="domain[rep]" autocomplete="off" maxlength="60" value="{result.domain.rep}">
+							</label>
+							<label for="domain[cdn]">CDN 도메인
+								<input type="text" placeholder="CDN 도메인" name="domain[cdn]" id="domain[cdn]" autocomplete="off" maxlength="60" value="{result.domain.cdn}">
+							</label>
+						</div>
+						<div>
+							<header>기타 도메인
+								<button class="btn btn-outline-secondary w-full sm:w-auto border-slate-300 border-dashed relative justify-start ml-2" type="button" onclick="javascript:etcDomainPlus();">
+									<span class="truncate mr-5">추가</span> 
+									<span class="w-8 h-8 absolute flex justify-center items-center right-0 top-0 bottom-0 my-auto ml-auto mr-0.5">
+										<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" icon-name="plus" data-lucide="plus" class="lucide lucide-plus w-4 h-4"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+									</span>
+								</button>
+							</header>
+							<div class="grid" id="domainEtc" style="grid-template-columns: 1fr 1fr;">
+							{? empty(result.domain.etc)}
+								<input type="text" name="domain[etc][]" id="domain[etc][]" value=""/>
+							{:}
+							{@ result.domain.etc}
+							<input type="text" name="domain[etc][{.index_}]" id="domain[etc][{.index_}]" value="{.value_}"/>
+							{/}
+							{/}
+							</div>
+						</div>
+						<div class="grid">
+							<label for="address[postcode]">
+								우편번호<button type="button" class="btn btn-sm btn-blue" id="addressBtn" style="margin-left: 0.2rem;">우편번호</button>
+								<input type="text" placeholder="우편번호" name="address[postcode]" id="address[postcode]" autocomplete="off" maxlength="60" value="{result.address.postcode}">
+							</label>
+							<label for="address[address1]">주소
+								<input type="text" placeholder="주소" name="address[address1]" id="address[address1]" autocomplete="off" maxlength="60" value="{result.address.address1}">
+							</label>
+							<label for="address[address2]">상세주소
+								<input type="text" placeholder="상세주소" name="address[address2]" id="address[address2]" autocomplete="off" maxlength="60" value="{result.address.address2}">
+							</label>
+						</div>
+						<div class="grid">
+							<label for="manager[name]">담당자
+								<input type="text" placeholder="담당자" name="manager[name]" id="manager[name]" autocomplete="off" maxlength="60" value="{result.manager.name}">
+							</label>
+							<label for="manager[email]">담당자E-mail
+								<input type="text" placeholder="E-mail" name="manager[email]" id="manager[email]" autocomplete="off" maxlength="60" value="{result.manager.email}">
+							</label>
+							<label for="manager[phone]">담당자전화번호
+								<input type="text" placeholder="담당자 전화번호" name="manager[phone]" id="manager[phone]" autocomplete="off" maxlength="60" value="{result.manager.phone}">
+							</label>
+						</div>
+						<div class="grid">
+							<label for="publisher">발행인
+								<input type="text" placeholder="발행인" name="publisher" id="publisher" autocomplete="off" maxlength="60" value="{result.publisher}">
+							</label>
+							<label for="editor">편집인
+								<input type="text" placeholder="편집인" name="editor" id="editor" autocomplete="off" maxlength="60" value="{result.editor}">
+							</label>
+							<label for="teenager">청소년보호담당자
+								<input type="text" placeholder="청소년보호담당자" name="teenager" id="teenager" autocomplete="off" maxlength="60" value="{result.teenager}">
+							</label>
+						</div>
+						<div class="grid">
+							<label for="registDate" data-target-input="#registDate" id="datetimepicker1" class="datetimepicker-input">
+                                <div data-target="#datetimepicker1" data-toggle="datetimepicker">
+                                    등록일자 <i class="fa-duotone fa-calendar-day"></i>
+                                </div>
+                                <input type="text" id="registDate" name="registDate" value="{result.registDate}" placeholder="등록일자" data-target="#datetimepicker1">
+                            </label>
+							<label for="publicDate" data-target-input="#publicDate" id="datetimepicker2" class="datetimepicker-input">
+                                <div data-target="#datetimepicker2" data-toggle="datetimepicker">
+                                    발행일자 <i class="fa-duotone fa-calendar-day"></i>
+                                </div>
+                                <input type="text" id="publicDate" name="publicDate" value="{result.publicDate}" placeholder="발행일자" data-target="#datetimepicker2">
+                            </label>
+							<label for="isUse">사용여부
+								<select id="isUse" name="isUse">
+									<option value="Y" selected="selected">사용</option>
+									<option value="N">미사용</option>
+								</select>
+							</label>
+						</div>
+						<div class="grid">
+							<label for="copyright">Copyright
+								<textarea id='copyright' name='copyright' rows="2">{result.copyright}</textarea>
+							</label>
+						</div>
+					</details>
+					<!--// 기본 -->
+					<!-- Image -->
+					<details>
+						<summary class="secondary">Image</summary>
+						<div class="grid">
+							<label for="upload_image_icon">favicon
+								<div id="upload_image_icon" class="fileZone">
+									<small class="boxMessage">클릭 또는 파일을 올려주세요.</small>
+									<input type="hidden" id="image_icon" name="image[icon]" value="{result.image.icon}"/>
+								</div>
+							</label>
+							<label for="upload_image_logo">로고
+								<div id="upload_image_logo" class="fileZone">
+									<small class="boxMessage">클릭 또는 파일을 올려주세요.</small>
+									<input type="hidden" id="image_logo" name="image[logo]" value="{result.image.logo}"/>
+								</div>
+							</label>
+							<label for="upload_image_footerLogo">하단 로고
+								<div id="upload_image_footerLogo" class="fileZone">
+									<small class="boxMessage">클릭 또는 파일을 올려주세요.</small>
+									<input type="hidden" id="image_footerLogo" name="image[footerLogo]" value="{result.image.footerLogo}"/>
+								</div>
+							</label>
+							<label for="upload_image_watermark">워터마크
+								<div id="upload_image_watermark" class="fileZone">
+									<small class="boxMessage">클릭 또는 파일을 올려주세요.</small>
+									<input type="hidden" id="image_watermark" name="image[watermark]" value="{result.image.watermark}"/>
+								</div>
+							</label>
+							<label for="default_watermark_place">기본 워터마크 위치
+								<div id="wmPositionTool" class="popover" style="display: block;margin-top: 7px;">
+									<input type="hidden" id="wmPosition" name="image[watermark_position]" value="{? empty(result.image.watermark_position)}0{:}{result.image.watermark_position}{/}">
+									<img src="/img/position_1.png" title="상단 좌측" alt="상단 좌측" value="1">
+									<img src="/img/position_2.png" title="상단 중앙" alt="상단 중앙" value="2">
+									<img src="/img/position_3.png" title="상단 우측" alt="상단 우측" value="3">
+									<br>
+									<img src="/img/position_4.png" title="중단 좌측" alt="중단 좌측" value="4">
+									<img src="/img/position_5.png" title="중단 중앙" alt="중단 중앙" value="5">
+									<img src="/img/position_6.png" title="중단 우측" alt="중단 우측" value="6"	>
+									<br>
+									<img src="/img/position_7.png" title="하단 좌측" alt="하단 좌측" value="7">
+									<img src="/img/position_8.png" title="하단 중앙" alt="하단 중앙" value="8">
+									<img src="/img/position_9.png" title="하단 우측" alt="하단 우측" value="9">
+									<br>
+									<img src="/img/position_0.png" title="워터마크 제거" alt="워터마크 제거" value="0">
+								</div>
+
+								<label for="default_caption_char" style="margin-top: 178px;">기본 캡션 문자
+									<input type="text" placeholder="기본 캡션 문자" name="image[caption_char]" id="default_caption_char" value="{result.image.caption_char}">
+								</label>
+								<label for="image_max_size">이미지 최대 크기
+									<input type="number" name="image[max_size]" id="image_max_size" value="{? empty(result.image.max_size)}850{:}{result.image.max_size}{/}" placeholder="850 px">
+								</label>
+
+							</label>
+						</div>
+					</details>
+					<!--// Image -->
+					<!-- SNS -->
+					<details>
+						<summary class="secondary">SNS</summary>
+						<div class="grid">
+							<label for="sns[naverpost]">Naver Post
+								<input type="text" placeholder="Naver Post" name="sns[naverpost]" id="sns[naverpost]" value="{result.sns.naverpost}">
+							</label>
+							<label for="sns[navertv]">Naver TV
+								<input type="text" placeholder="Naver TV" name="sns[navertv]" id="sns[navertv]" value="{result.sns.navertv}">
+							</label>
+						</div>
+						<div class="grid">
+							<label for="sns[naverblog]">Naver Blog
+								<input type="text" placeholder="Naver Blog" name="sns[naverblog]" id="sns[naverblog]" value="{result.sns.naverblog}">
+							</label>
+							<label for="sns[youtube]">Youtube
+								<input type="text" placeholder="Youtube" name="sns[youtube]" id="sns[youtube]" value="{result.sns.youtube}">
+							</label>
+						</div>
+						<div class="grid">
+							<label for="sns[facebookPage]">Facebook Page
+								<input type="text" placeholder="Facebook Page" name="sns[facebookPage]" id="sns[facebookPage]" value="{result.sns.facebookPage}">
+							</label>
+							<label for="sns[kakao]">카카오채널
+								<input type="text" placeholder="카카오채널" name="sns[kakao]" id="sns[kakao]" value="{result.sns.kakao}">
+							</label>
+						</div>
+						<div class="grid">
+							<label for="sns[twitter]">Twitter
+								<input type="text" placeholder="Twitter" name="sns[twitter]" id="sns[twitter]" value="{result.sns.twitter}">
+							</label>
+							<label for="sns[instagram]">Instagram
+								<input type="text" placeholder="Instagram" name="sns[instagram]" id="sns[instagram]" value="{result.sns.instagram}">
+							</label>
+						</div>
+					</details>
+					<!--// SNS -->
+					<!-- SEO -->
+					<details>
+						<summary class="secondary">SEO</summary>
+						<div class="grid">
+							<label for="seo[ga4Tag]">GA4 Tag
+								<input type="text" placeholder="GA4 Tag" name="seo[ga4Tag]" id="seo[ga4Tag]" value="{result.seo.ga4Tag}">
+							</label>
+							<label for="seo[ga3Tag]">Web Log Id
+								<input type="text" placeholder="Web Log Id Tag" name="seo[matomo]" id="seo[matomo]" value="{result.seo.matomo}">
+								{* ? empty(result.seo.matomo) *}
+								<button type="button" class="btn btn-sm btn-blue" id="matomoAddBtn">사이트 {? empty(result.seo.matomo)}추가{:}수정{/}</button>
+								{* / *}
+							</label>
+						</div>
+						<div class="grid">
+							<label for="seo[metaTag]">Meta Tag
+								<textarea placeholder="Meta Tag " name="seo[metaTag]" id="seo[metaTag]" rows="5">{? !empty(result.seo.metaTag)}{result.seo.metaTag}{/}</textarea>
+							</label>
+						</div>
+					</details>
+					<!--// SEO -->
+					<!-- 계정 -->
+					<details>
+						<summary class="secondary">계정</summary>
+						<article class="card">
+							<header>Google Analytics</header>
+							<div class="grid">
+								<label for="ganalytics[propertyId]">구글 property ID
+									<input type="text" placeholder="구글 property ID" name="ganalytics[propertyId]" id="ganalytics[propertyId]" value="{result.ganalytics.propertyId}"/>
+								</label>
+								<label for="ganalytics[gemail]">구글 Email
+									<input type="text" placeholder="구글 Email" name="ganalytics[gemail]" id="ganalytics[gemail]" value="{result.ganalytics.gemail}"/>
+								</label>
+								<label for=""></label>
+							</div>
+							<div class="grid">
+								<label for="">구글 Key File(json)
+									<div id="jsonzone" class="file-input"><small class="image-message boxMessage">여기에 파일을 올려주세요</small></div>
+									<div class="dz-preview dz-file-preview prejson">
+										<div class="dz-details">
+											<div class="dz-filename"><span data-dz-name></span></div>
+										</div>
+										<div class="dz-progress"><span class="dz-upload" data-dz-uploadprogress></span></div>
+										<div class="dz-error-message"><span data-dz-errormessage></span></div>
+									</div>
+									<input type="hidden" name="ganalytics[jsonkeyFileName]" id="ganalytics[jsonkeyFileName]" value="{result.ganalytics.jsonkeyFileName}"/>
+									<input type="hidden" name="ganalytics[jsonkeyFilePath]" id="ganalytics[jsonkeyFilePath]" value="{result.ganalytics.jsonkeyFilePath}"/>
+								</label>
+							</div>
+						</article>
+						<article class="card">
+							<header>Youtube
+								<button class="btn btn-outline-secondary w-full sm:w-auto border-slate-300 border-dashed relative justify-start ml-2" type="button" onclick="javascript:youtubePlus();">
+									<span class="truncate mr-5">추가</span> 
+									<span class="w-8 h-8 absolute flex justify-center items-center right-0 top-0 bottom-0 my-auto ml-auto mr-0.5">
+										<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" icon-name="plus" data-lucide="plus" class="lucide lucide-plus w-4 h-4"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+									</span>
+								</button>
+							</header>
+							<div id="youtubeInfo">
+								{? empty(result.youtube)}
+								<div class="grid youtubeInfo">
+									<label for="youtube[channelName]"> 채널명
+										<input type="text" name="youtube[0][channelName]" id="youtube[channelName]" value=""/>
+									</label>
+									<label for="youtube[channelId]">channelId
+										<input type="text" name="youtube[0][channelId]" id="youtube[channelId]" value=""/>
+									</label>
+									<label for="youtube[apiKey]">apiKey
+										<input type="text" name="youtube[0][apiKey]" id="youtube[apiKey]" value=""/>
+									</label>
+								</div>
+								{:}
+								{@ result.youtube}
+								<div class="grid youtubeInfo">
+									<label for="youtube[channelName]">채널명
+										<input type="text" name="youtube[{.index_}][channelName]" id="youtube[channelName]" value="{? !empty(.channelName)}{.channelName}{/}"/>
+									</label>
+									<label for="youtube[channelId]">channelId
+										<input type="text" name="youtube[{.index_}][channelId]" id="youtube[channelId]" value="{? !empty(.channelId)}{.channelId}{/}"/>
+									</label>
+									<label for="youtube[apiKey]">apiKey
+										<input type="text" name="youtube[{.index_}][apiKey]" id="youtube[apiKey]" value="{? !empty(.apiKey)}{.apiKey}{/}"/>
+									</label>
+								</div>
+								{/}
+								{/}
+							</div>
+						</article>
+						<article class="card">
+							<header><a href="https://docs.aws.amazon.com/ko_kr/ses/latest/DeveloperGuide/send-using-smtp-php.html" target="_blank">Amazon SES SMTP</a></header>
+							<div class="grid">
+								<label for="amazonSES[email]">verified email address
+									<input type="text" name="amazonSES[email]" id="amazonSES[email]" value="{result.amazonSES.email}"/>
+								</label>
+								<label for="amazonSES[usernameSmtp]">SMTP user name
+									<input type="text" name="amazonSES[usernameSmtp]" id="amazonSES[usernameSmtp]" value="{result.amazonSES.usernameSmtp}"/>
+								</label>
+							</div>
+							<div class="grid">
+								<label for="amazonSES[passwordSmtp]">SMTP password
+									<input type="text" name="amazonSES[passwordSmtp]" id="amazonSES[passwordSmtp]" value="{result.amazonSES.passwordSmtp}"/>
+								</label>
+								<label for=""></label>
+							</div>
+						</article>
+					</details>
+					<!--// 계정 -->
+					<!-- AI -->
+					<details {? empty(_SESSION.isSuper)}style="display: none;"{/}>
+						<summary class="secondary">AI</summary>
+						<div class="grid">
+							<label for="ai[use]">AI 사용 여부
+								<input type="checkbox" role="switch" class="" id="ai[use]" name="ai[use]" data-on="ON" data-off="OFF" {? result.ai.use==true}checked{/}>
+							</label>
+						</div>
+						<div class="grid">							
+							<label for="ai[openaiApiKey]">OPENAI API KEY
+								<input type="text" placeholder="OPENAI API KEY" name="ai[openaiApiKey]" id="ai[openaiApiKey]" value="{result.ai.openaiApiKey}">
+							</label>
+						</div>
+					</details>
+					<!--// AI -->
+					<!-- 웹푸시 -->
+					<details {? empty(_SESSION.isSuper)}style="display: none;"{/}>
+						<summary class="secondary">웹푸시</summary>
+						<div class="grid">
+							<label for="webPush[use]">웹푸시 사용
+								<input type="checkbox" role="switch" class="" id="webPush[use]" name="webPush[use]" data-on="ON" data-off="OFF" {? result.webPush.use==true}checked{/}>
+							</label>
+						</div>
+					</details>
+					<!--// 웹푸시 -->
+					<!-- 기타 설정 -->
+					<details>
+						<summary class="secondary">기타 설정</summary>
+						<div class="grid">
+                            <label class="spacing">기사 발행 후
+                                <div class="flex">
+                                    <label for="action_published_editor"><input type="radio" name="action[published]" id="action_published_editor" value="editor" />에디터</label>
+                                    <label for="action_published_list"><input type="radio" name="action[published]" id="action_published_list" value="list" />리스트</label>
+                                </div>
+                            </label>
+						</div>
+					</details>
+					<!--// 기타 설정 -->
+					<!-- ads.txt -->
+					<details>
+						<summary class="secondary">ads.txt / robots.txt</summary>
+						<article class="card">
+							<header>ads.txt</header>
+							<textarea name="ads" id="ads" rows="10" placeholder="ads.txt를 입력하세요">{result.ads}</textarea>
+						</article>
+						<article class="card">
+							<header>robots.txt</header>
+							<textarea name="robots" id="robots" rows="10" placeholder="robots.txt를 입력하세요">{result.robots}</textarea>
+						</article>
+					</details>
+					<!--// ads.txt -->
+					<!-- API -->
+					<details>
+						<summary class="secondary">API</summary>
+						<label for="api[key]">API KEY
+							<input type="text" placeholder="API KEY" name="api[key]" id="api[key]" value="{? result.api.key}{result.api.key}{:}{result.coId}{/}" readonly>
+						</label>
+						<label for="api[secret]">
+							<div class="flex"><span>API SECRET</span><button type="button" class="btn btn-sm btn-blue" id="genApiSecret">Generation</button></div>
+							<input type="text" placeholder="API SECRET" name="api[secret]" id="api[secret]" value="{result.api.secret}" readonly>
+						</label>
+					</details>
+					<!--// API -->
+					{? !empty(_SESSION.isSuper)}
+					<!-- 외부기사 -->
+					<details>
+						<summary class="secondary">외부기사</summary>
+						<div class="grid">
+							<label for="externalMedia[yna][use]">연합뉴스 사용
+								<input type="checkbox" role="switch" class="" id="externalMedia[yna][use]" name="externalMedia[yna][use]" data-on="ON" data-off="OFF" {? result.externalMedia.yna.use==true}checked{/}>
+							</label>
+						</div>
+					</details>
+					<!--// 외부기사 -->
+					{/}
+
+					{? !empty(_SESSION.isSuper)}
+					<!-- 외부기사 -->
+					<details>
+						<summary class="secondary">사이트 템플릿</summary>
+						<div class="grid">
+							{# siteTemplateKind}
+						</div>
+					</details>
+					<!--// 외부기사 -->
+					{/}
+					<!--details>
+						<summary role="button" class="secondary">사이트 템플릿</summary>
+						<input type="hidden" id="templateKind" name="templateKind" value="">
+					</details-->
+				</form>
+				<!--// form -->
+				<div class="flex justify-center">
+					<button type="button" class="btn btn-md" onclick="javascript:insertProc();">저장</button>
+				</div>
+			</section>
+		</div>
+	</main>
+
+	<!-- 토스트 -->
+	{# toast}
+	<!-- //토스트 -->
+
+	{? !empty(result.coId)}
+	<!-- 히스토리 -->
+	<script>
+		// 히스토리를 불러오기 위한 설정
+		let historyParams = {
+			collection : 'company',
+			coId : '{result.coId}',
+			id : '{result.coId}'
+		}
+	</script>
+	{# collectionHistory}
+	<!-- //히스토리 -->
+	{/}
+
+<script type="text/javascript">
+	let idResult=-1;
+
+	$(document).ready(()=> {
+		$('#addressBtn').click(()=>{
+			daumPostcode();
+		});
+		
+		$('#datetimepicker1,#datetimepicker2').datetimepicker({
+			locale:'ko',
+			format:'L',
+			allowInputToggle:true,
+			showTodayButton:true,
+			showClear:true
+		});
+
+		$('#coId').keyup((e)=>{
+			var coId = $(e.target).val();
+			if(coId.length == 3){
+				$.ajax({
+					type : 'POST',
+					url : '/company/idCheck/ajax',
+					data: {companyId: coId},
+					success : (result) => {
+						idResult = JSON.parse(result).result;
+						if (idResult == 0) {
+							$("#idResult").html("사용 가능한 코드입니다.");
+						} else {
+							$("#idResult").html("사용중인 코드입니다.");
+						}
+					}
+				});
+			}
+		});
+
+		if('{result.coId}'){
+			$('#coId').attr('readonly','readonly');
+			$('#insertProcBtn').val('회사 정보 변경');
+
+			$('input[name="action[published]"]').each(function(){
+				if( this.value == '{? !empty(result.action.published)}{result.action.published}{:}editor{/}'){
+					this.checked = true;
+				}
+			});
+		}
+		
+		$('#isUse').val('{? empty(result.isUse)}Y{:}{result.isUse}{/}');
+		$('#member_useLoginIdPw').val('{? empty(result.member.useLoginIdPw)}N{:}Y{/}');
+
+		// api secret 생성
+		$(document).on('click','#genApiSecret',()=>{
+			if(confirm('API SECRET을 생성하시겠습니까?')){
+				$.ajax({
+					url: '/company/genApiSecret/ajax',
+					method : 'POST',
+					dataType : 'json',
+				}).done((data)=>{
+					$('input[id="api[secret]"]').val(data.result.apiSecret);
+					// alert('API SECRET이 생성되었습니다.');
+				}).fail((jqXHR, textStatus, errorThrown)=>{
+					if (!!jqXHR?.responseJSON?.result?.msg) {
+						alert(jqXHR.responseJSON.result.msg);
+					} else {
+						alert(textStatus+' : '+errorThrown);
+					}
+				});
+			}
+		});
+
+		$(document).on('click','.imageDel',(e)=>{
+			if(confirm('등록된 이미지를 삭제하시겠습니까?')){
+				$(e.target).closest("div[id*='zone']").parent().find("input[id*='image']").attr('value','');
+				$(e.target).closest("article").remove();
+			}
+		});
+
+		{? !empty(result.templateKind)}$("#{result.templateKind}").addClass("selected"){/};
+
+		$('#wmPositionTool img').click(function() {
+			$('#wmPositionTool img').removeClass('selected');
+			$(this).addClass('selected');
+			$('#wmPosition').val($(this).attr('value'));
+		});
+
+		// 초기 워터마크 위치 선택
+		let wmPosition = $('#wmPosition').val();
+		if (wmPosition) {
+			$('#wmPositionTool img[value="' + wmPosition + '"]').addClass('selected');
+		} else {
+			$('#wmPositionTool img[value="0"]').addClass('selected');
+			$('#wmPosition').val('0');
+		}
+	});
+
+	function daumPostcode(){
+		new daum.Postcode({
+			oncomplete: (data)=>{
+				var fullAddr = ''; // 최종 주소 변수
+				var extraAddr = ''; // 조합형 주소 변수
+					
+				if(data.userSelectedType === 'R'){fullAddr = data.roadAddress;
+				}else {fullAddr = data.jibunAddress;}
+
+				if(data.userSelectedType === 'R'){
+					if(data.bname !== ''){
+						extraAddr += data.bname;
+					}
+					if(data.buildingName !== ''){
+						extraAddr += (extraAddr !== '' ? ', ' + data.buildingName : data.buildingName);
+					}
+					fullAddr += (extraAddr !== '' ? ' ('+ extraAddr +')' : '');
+				}
+
+				$('input[id="address[postcode]"').val(data.zonecode);
+				$('input[id="address[address1]"').val(fullAddr);
+				$('input[id="address[address2]"').focus();
+			}
+		}).open();
+	}
+
+	function insertProc(){
+		let action='';
+		if('{result.coId}'){
+			action='/company/update/ajax';
+		}else{
+			action='/company/insert/ajax';
+		}
+
+		if($('#name').val()==''){
+			alert('회사명을 입력하세요.');
+			return false;
+		}
+		if($('#coId').val()==''){
+			alert('회사코드를 입력하세요.');
+			return false;
+		}
+		if($('input[id="domain[pc]"').val()==''){
+			alert('도메인을 입력하세요.');
+			return false;
+		}
+		if($('#representativeName').val()==''){
+			alert('대표자성명을 입력하세요.');
+			return false;
+		}
+
+		if(idResult!='0' && '{result.coId}'==''){
+			alert('사용중인 아이디입니다. \n다른 ID를 입력하세요.');
+			return false;
+		}
+
+		// CodeEditor에서 값 가져옴
+		$('[id="seo[metaTag]"]').val(seoMetaTagCodeEditor.getValue());
+		
+		$.ajax({
+			url: action,
+			method : 'POST',
+			data : $('#inputForm').serialize()
+		}).done((data)=> {
+			alert('회사 정보가 변경되었습니다.');
+			location.reload();
+		}).fail((jqXHR, textStatus, errorThrown)=>{
+			console.log(jqXHR.responseJSON)
+			if (!!jqXHR?.responseJSON?.result?.msg) {
+				alert(jqXHR.responseJSON.result.msg);
+			} else {
+				alert(textStatus+' : '+errorThrown);
+			}
+		});
+	}
+
+	// image 업로드 설정
+	singleFileUpload({
+		uploadDir: 'company', 
+		uploadId: '#upload_image_icon', 
+		pathId: '#image_icon', 
+		path: '{result.image.icon}', 
+		acceptedFiles : '.jpeg,.jpg,.png,.gif,.ico'
+	});
+	singleFileUpload({
+		uploadDir: 'company', 
+		uploadId: '#upload_image_logo', 
+		pathId: '#image_logo', 
+		path: '{result.image.logo}', 
+	});
+	singleFileUpload({
+		uploadDir: 'company', 
+		uploadId: '#upload_image_footerLogo', 
+		pathId: '#image_footerLogo', 
+		path: '{result.image.footerLogo}', 
+	});
+	singleFileUpload({
+		uploadDir: 'company', 
+		uploadId: '#upload_image_watermark', 
+		pathId: '#image_watermark', 
+		path: '{result.image.watermark}', 
+		acceptedFiles: '.png'
+	});
+
+	/** 구글 Key File(json) **/
+	let prejson = $('.prejson').html();
+	$('.prejson').remove();
+
+	let jsonDropzone = new Dropzone("div#jsonzone", {
+		url: "/file/attach/ajax",
+		previewTemplate: prejson,
+		maxFiles:1
+	});
+
+	jsonDropzone.on('addedfile', (file)=>{
+		$('#jsonzone .boxMessage').remove();
+		if (jsonDropzone.files.length > 1) {
+			jsonDropzone.removeFile(jsonDropzone.files[0]);
+		}
+	});
+
+	jsonDropzone.on("sending", function(file, xhr, formData) {
+		formData.append("coId", $('#coId').val());
+		formData.append("path", "analytics");
+		formData.append("useOrgName", "1");
+	});
+
+	jsonDropzone.on("complete", (file)=>{
+		uploadInfo = JSON.parse(file.xhr.responseText)['result'];
+		$('input[id="ganalytics[jsonkeyFileName]"]').val(uploadInfo["name"]);
+		$('input[id="ganalytics[jsonkeyFilePath]"]').val(uploadInfo["path"]);
+	});
+
+	if( '{result.ganalytics.jsonkeyFilePath}' != ""){
+		$('div#jsonzone').text('{result.ganalytics.jsonkeyFileName}');
+	}
+
+	let youtubePlus = ()=>{
+		let youtube = $('.youtubeInfo:last').clone();
+		let len = $('.youtubeInfo').length;
+		$('#youtubeInfo').append(youtube);
+		$('.youtubeInfo:last input').val('');
+		let channelNameObj = document.querySelectorAll("input[id='youtube[channelName]']");
+		let channelIdObj = document.querySelectorAll("input[id='youtube[channelId]']");
+		let apiKeyObj = document.querySelectorAll("input[id='youtube[apiKey]']");
+		channelNameObj[channelNameObj.length-1].setAttribute('name', 'youtube['+len+'][channelName]');
+		channelIdObj[channelIdObj.length-1].setAttribute('name', 'youtube['+len+'][channelId]');
+		apiKeyObj[apiKeyObj.length-1].setAttribute('name', 'youtube['+len+'][apiKey]');
+	}
+
+	let etcDomainPlus = ()=>{
+		$('#domainEtc').append('<input type="text" name="domain[etc][]" id="domain[etc][]" value=""/>');
+	}
+
+	// CodeEditor 설정
+	var seoMetaTagCodeEditor = CodeMirror.fromTextArea(document.getElementById('seo[metaTag]'), {
+		lineNumbers: true,
+		mode: "css",
+		indentUnit: 4,
+		indentWithTabs: true,
+		theme: '3024-night'
+	});
+	seoMetaTagCodeEditor.setSize('100%', '500px');
+
+	// Matomo 사이트 등록 버튼 클릭 이벤트
+	$('#matomoAddBtn').on('click', function() {
+		// 로딩 상태 표시
+		$buttonText = $('#matomoAddBtn').text();
+		$(this).prop('disabled', true).text('등록 중...');
+		
+		$.ajax({
+			url: '/matomo/addSite/ajax',
+			type: 'POST',
+			dataType: 'json',
+			success: function(response) {
+				if (response.success) {
+					alert(response.message);
+					// 성공 시 페이지 새로고침 또는 필요한 UI 업데이트
+					location.reload();
+				} else {
+					alert('오류: ' + response.message);
+				}
+			},
+			error: function(xhr, status, error) {
+				alert('서버 오류가 발생했습니다: ' + error);
+			},
+			complete: function() {
+				// 버튼 상태 복원
+				$('#matomoAddBtn').prop('disabled', false).text($buttonText);
+			}
+		});
+	});
+</script>
+</body>
+</html>

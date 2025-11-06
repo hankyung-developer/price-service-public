@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>카테고리 팝업 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .selected-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 6px;
+            display: none;
+        }
+        .selected-info.show {
+            display: block;
+        }
+        .info-item {
+            margin: 5px 0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>카테고리 팝업 테스트</h1>
+        
+        <div class="test-section">
+            <h3>팝업 열기</h3>
+            <button class="btn" onclick="openCategoryPopup()">카테고리 선택 팝업 열기</button>
+            <p>팝업을 열어서 트리 구조와 폴더 아이콘이 제대로 작동하는지 테스트해보세요.</p>
+        </div>
+        
+        <div class="test-section">
+            <h3>디버깅 도구</h3>
+            <p>팝업이 열린 후 브라우저 개발자 도구 Console에서 다음 명령어를 실행하세요:</p>
+            <ul>
+                <li><code>debugTreeStructure()</code> - 트리 구조 상세 분석</li>
+                <li><code>testFirstTwisty()</code> - 첫 번째 트위스티 클릭 테스트</li>
+                <li><code>showAllChildUls()</code> - 모든 하위 카테고리 표시</li>
+                <li><code>forceExpandAll()</code> - 모든 하위 카테고리 강제 열기</li>
+            </ul>
+        </div>
+        
+        <div class="selected-info" id="selectedInfo">
+            <h3>선택된 카테고리</h3>
+            <div class="info-item">ID: <span id="selectedId">-</span></div>
+            <div class="info-item">이름: <span id="selectedName">-</span></div>
+            <div class="info-item">경로: <span id="selectedPath">-</span></div>
+            <div class="info-item">깊이: <span id="selectedDepth">-</span></div>
+        </div>
+    </div>
+
+    <script>
+        // 카테고리 선택 콜백 함수
+        function onCategorySelected(categoryData) {
+            console.log('선택된 카테고리:', categoryData);
+            
+            // 선택된 정보 표시
+            document.getElementById('selectedId').textContent = categoryData.id;
+            document.getElementById('selectedName').textContent = categoryData.name;
+            document.getElementById('selectedPath').textContent = categoryData.path.join(' > ');
+            document.getElementById('selectedDepth').textContent = categoryData.depth;
+            
+            // 정보 표시
+            document.getElementById('selectedInfo').classList.add('show');
+        }
+
+        // 팝업 열기
+        function openCategoryPopup() {
+            const popup = window.open(
+                '/category/popup', 
+                'categoryPopup', 
+                'width=800,height=600,scrollbars=yes,resizable=yes'
+            );
+            
+            if (popup) {
+                console.log('팝업이 열렸습니다.');
+            } else {
+                alert('팝업이 차단되었습니다. 팝업 차단을 해제해주세요.');
+            }
+        }
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('테스트 페이지 로드됨');
+        });
+    </script>
+</body>
+</html>

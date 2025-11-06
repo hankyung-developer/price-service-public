@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    {# head}	
+    <link rel="stylesheet" href="/lib/tempusdominus-bootstrap/tempusdominus-bootstrap-4.min.css" />
+    <script type="text/javascript" src="/lib/tempusdominus-bootstrap/tempusdominus-bootstrap-4.min.js"></script>
+	<script src='/lib/locale/ko.js'></script>
+	<script type="text/javascript" src="/lib/moment/moment.js"></script>
+	<link rel="stylesheet" type="text/css" href="/lib/daterangepicker/daterangepicker.min.css" />
+	<script type="text/javascript" src="/lib/daterangepicker/daterangepicker.min.js"></script>
+	<script src="/lib/chart.js/chart.min.js"></script>
+	
+	<style>
+		#articleTable {}
+		#articleTable [type="checkbox"] {margin:0; }
+		#articleTable th, #articleTable td, #articleTable a {--table-border-color:var(--gray-e2e);--color: var(--gray-696);}
+		#articleTable thead th {--border-width:3px;border-top: var(--border-width) solid var(--table-border-color);}
+		#articleTable td {padding : calc(var(--spacing) * 0.6 );font-size: 15px;vertical-align: middle;}
+		#articleTable .title {vertical-align: top;white-space: wrap;}
+		#articleTable .row-title {
+			line-height: normal;overflow: hidden;text-overflow: ellipsis;
+			display: -webkit-box;-webkit-line-clamp: 2;-webkit-box-orient: vertical;
+			word-wrap: break-word;word-break: keep-all;width: 100%;max-width:620px;min-width: 360px;
+		}
+		#articleTable .thumb {position: relative;width: calc(90px + ((var(--spacing) * 0.6) * 2));}
+		#articleTable .thumb > img {width:90px;min-width: 90px;border-radius:var(--border-radius);overflow:hidden;}
+		#articleTable .thumb .circle {position: absolute;bottom: 12px;right: 10px;cursor: pointer;
+			min-width: 18px;min-height: 18px;width: 18px;height: 18px;border-radius: 50%;line-height: 18px;font-size: 12px;}
+		#articleTable .thumb .articleImage {
+			display: flex;flex-wrap: wrap;align-items: center;
+			position: absolute;margin: 0;top: 70%;z-index: 99;
+			right: auto;
+			bottom: auto;
+			left: 90%;
+			transform: translate(0.25rem, -50%);
+			opacity: 0;
+  			pointer-events: none;
+			width: max-content;max-width: 172px;background-color: var(--tooltip-background-color);padding: 0.25rem;border-radius: var(--border-radius);
+		}
+		#articleTable .thumb .articleImage.on {opacity: 1; animation-duration: 0.2s;animation-name: tooltip-slide-right;}
+		#articleTable .thumb .articleImage::before {
+			content: '';
+			display: inline-block;
+			position: absolute;
+			z-index: 99;
+			top: 50%;
+			left: -9px;
+			margin-top: -5px;
+			border-width: 5px;
+			border-style: solid;
+			border-color: transparent var(--tooltip-background-color) transparent transparent;
+		}
+		.articleImage .img {padding: 0.1rem;background-color: var(--tooltip-background-color);;min-width: calc(50px + 0.2rem);}
+		.articleImage .img img {width:50px;height:33px;border-radius:3px;overflow:hidden;}
+
+		/* 모달 관련 스타일 */
+		.modal {
+			display: none;
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background-color: rgba(0, 0, 0, 0.5);
+			z-index: 1050;
+		}
+		.modal-dialog {
+			position: relative;
+			width: auto;
+			margin: 1.75rem auto;
+			max-width: 900px;
+		}
+		.modal-content {
+			position: relative;
+			display: flex;
+			flex-direction: column;
+			width: 100%;
+			background-color: #fff;
+			border-radius: 12px;
+			box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+			outline: 0;
+		}
+		.modal-header {
+			padding: 1.5rem;
+			border-bottom: 1px solid #f0f0f0;
+			background: linear-gradient(to right, #f8f9fa, #fff);
+			border-radius: 12px 12px 0 0;
+		}
+		.modal-header .modal-title {
+			margin-bottom: 0;
+			font-size: 1.25rem;
+			font-weight: 600;
+			color: #333;
+		}
+		.modal-header .close {
+			position: absolute;
+			right: 1.5rem;
+			top: 1.0rem;
+			background: none;
+			border: none;
+			font-size: 1.5rem;
+			color: #666;
+			opacity: 0.7;
+			transition: opacity 0.2s;
+		}
+		.modal-header .close:hover {
+			opacity: 1;
+		}
+		.modal-body {
+			padding: 0;
+			position: relative;
+			flex: 1 1 auto;
+		}
+		.modal-footer {
+			padding: 1.5rem;
+			border-top: 1px solid #f0f0f0;
+			background: #f8f9fa;
+			border-radius: 0 0 12px 12px;
+		}
+		.modal.show {
+			display: block;
+			overflow-x: hidden;
+			overflow-y: auto;
+		}
+		.modal.fade .modal-dialog {
+			transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+			transform: translate(0, -50px);
+			opacity: 0;
+		}
+		.modal.show .modal-dialog {
+			transform: none;
+			opacity: 1;
+		}
+		.article-detail {
+			padding: 1.5rem;
+		}
+		.article-header {
+			margin-bottom: 1rem;
+			padding-bottom: 1rem;
+			border-bottom: 1px solid #f0f0f0;
+		}
+		.article-header h3 {
+			margin-bottom: 1rem;
+			font-size: 1.5rem;
+			line-height: 1.4;
+			color: #333;
+			font-weight: 600;
+		}
+		.article-meta {
+			color: #666;
+			font-size: 0.9rem;
+			display: flex;
+			gap: 1.5rem;
+		}
+		.article-meta span {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		.article-meta span:before {
+			content: '';
+			display: inline-block;
+			width: 4px;
+			height: 4px;
+			background: #ddd;
+			border-radius: 50%;
+		}
+		.article-meta span:first-child:before {
+			display: none;
+		}
+		.article-content {
+			margin-bottom: 2rem;
+			line-height: 1.8;
+			color: #444;
+			font-size: 1rem;
+			overflow-y: scroll;
+			height: 40vh;
+		}
+		.article-content .image.align-center {
+			display: table;
+			margin: 0 auto;
+			text-align: center;
+		}
+		.article-info {
+			background: #f8f9fa;
+			padding: 1.0rem;
+			border-radius: 8px;
+			border: 1px solid #f0f0f0;
+		}
+		.info-section ul {
+			list-style: none;
+			padding: 0;
+			margin: 0;
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+			gap: 0.5rem;
+		}
+		.info-section li {
+			margin-bottom: 0;
+			display: flex;
+			align-items: center;
+		}
+		.info-section strong {
+			display: inline-block;
+			min-width: 80px;
+			color: #666;
+			font-weight: 500;
+		}
+		.modal-footer .btn {
+			margin-bottom: 0;
+			padding: 0.75rem 1.5rem;
+			border-radius: 6px;
+			font-weight: 500;
+			transition: all 0.2s;
+		}
+		.modal-footer .btn-secondary {
+			background: #f0f0f0;
+			border: 1px solid #ddd;
+			color: #666;
+		}
+		.modal-footer .btn-secondary:hover {
+			background: #e0e0e0;
+		}
+		.modal-footer .btn-primary {
+			background: #007bff;
+			border: none;
+			color: #fff;
+		}
+		.modal-footer .btn-primary:hover {
+			background: #0056b3;
+		}
+	</style>
+</head>
+<body>
+	{# left}
+	{# header}
+
+    <main class="container">
+        <div role="document">
+			<div role="heading">외부기사</div>
+			<section class="section-search"> 
+                <form role="search" name="searchForm" id="searchForm">
+					<input type="hidden" name="media" id="media" value="{? !empty(_GET.media)}{_GET.media}{/}">
+					<input type="hidden" name="sort" id="sort" value="{? !empty(_GET.sort)}{_GET.sort}{/}">
+					<input type="hidden" name="order" id="order" value="{? !empty(_GET.order)}{_GET.order}{/}">
+
+					<!-- 연합외신 필터 -->
+					{? !empty(_GET.media) && _GET.media == 'yna_foreign'}
+						<select id="serviceType" name="serviceType">
+							<option value="">외신매체</option>
+							<option value="FAF,GAF,PAF">AFP</option>
+							<option value="FAP,PAP">AP</option>
+							<option value="FRB,FRW,GRU,PRU">로이터</option>
+							<option value="FTA,PTA">타스</option>
+							<option value="FUP,PUP">UPI</option>
+							<option value="FXI,PXI,FXH,PXH,AKR4,PYH7">신화</option>
+							<option value="PEP">EPA</option>
+							<option value="PGT">GettyImage</option>
+							<option value="FAS">ASIAPULSE</option>
+							<option value="FBL,PBL">블룸버그</option>
+							<option value="FDP">DPA</option>
+							<option value="FKE,FKH">KCNA</option>
+							<option value="FKY,GKY,PKY">교도</option>
+							<option value="FNA">CNA</option>
+							<option value="FOA,POA">OANA</option>
+							<option value="PNY">NYT</option>
+							<option value="FVA,PVA">VNA</option>
+							<option value="FAG,PAG">Agerpres</option>
+							<option value="FIR,PIR">IRNA</option>
+							<option value="FPP,PPP">APP</option>
+							<option value="FSR">TASR</option>
+							<option value="PPE">PE</option>
+							<option value="FCY">Cyprus</option>
+							<option value="FBE">Belta</option>
+							<option value="FHN">크로아티아</option>
+							<option value="FMI">마케도니아</option>
+							<option value="FTG">TANJUG</option>
+						</select>
+					{/}
+					<!-- //연합외신 필터 -->
+
+					<!-- 연합뉴스 필터 -->
+					{? !empty(_GET.media) && str_starts_with(_GET.media, 'yna')}
+						<!-- BEGIN: 분야 -->
+						<select id="category" name="category">
+							<option value="" selected>분야</option>
+								{@ result.ynaCategory.category}
+									<option value="{.code}">{.name}</option>
+								{/}
+						</select>
+						<!-- END: 분야 -->
+
+						<!-- BEGIN: 대분류 -->
+						<select id="class1" name="class1">
+							<option value="" selected>대분류</option>
+								{@ result.ynaCategory.class1}
+									<option value="{.code}">{.name}</option>
+								{/}
+						</select>
+						<!-- END: 대분류 -->
+
+						<!-- BEGIN: 중분류 -->
+						<select id="class2" name="class2">
+							<option value="" selected>중분류</option>
+								{@ result.ynaCategory.class2}
+									<option value="{.code}">{.name}</option>
+								{/}
+						</select>
+						<!-- END: 중분류 -->
+
+						<!-- BEGIN: 소분류 -->
+						<select id="class3" name="class3">
+							<option value="" selected>소분류</option>
+								{@ result.ynaCategory.class3}
+									<option value="{.code}">{.name}</option>
+								{/}
+						</select>
+						<!-- END: 소분류 -->
+
+						<!-- BEGIN: 지역1 -->
+						<select id="region1" name="region1">
+							<option value="" selected>지역1</option>
+								{@ result.ynaCategory.region1}
+									<option value="{.code}">{.name}</option>
+								{/}
+						</select>
+						<!-- END: 지역1 -->
+
+						<!-- BEGIN: 지역2 -->
+						<select id="region2" name="region2">
+							<option value="" selected>지역2</option>
+								{@ result.ynaCategory.region2}
+									<option value="{.code}">{.name}</option>
+								{/}
+						</select>
+						<!-- END: 지역2 -->
+
+						<!-- BEGIN: 지역3 -->
+						<select id="region3" name="region3">
+							<option value="" selected>지역3</option>
+								{@ result.ynaCategory.region3}
+									<option value="{.code}">{.name}</option>
+								{/}
+						</select>
+						<!-- END: 지역3 -->
+
+						<!-- BEGIN: 이슈 -->
+						<!-- <select id="issue" name="issue">
+							<option value="" selected>이슈</option>
+								{@ result.ynaCategory.issue}
+									<option value="{.code}">{.name}</option>
+								{/}
+						</select> -->
+						<!-- END: 이슈 -->
+					{/}
+					<!-- //연합뉴스 필터 -->
+
+					<div class="select-input">
+						<div class="search-date datetimerange-input">
+							<div class="icon-calendar"><i class="fa-duotone fa-calendar-day"></i></div>
+							<input type="text" id="period">
+							<input type="hidden" id='startDate' name='startDate' value="{? !empty(_GET.startDate)}{_GET.startDate}{:}{=date('Y-m-d',strtotime('-15 days'))}{/}"/>
+							<input type="hidden" id='endDate' name='endDate' value="{? !empty(_GET.endDate)}{_GET.endDate}{:}{=date('Y-m-d')}{/}"/>
+						</div>
+					</div>
+
+					<select name="searchItem" id="searchItem">
+						<option value="title">제목</option>
+						<option value="text">제목+본문</option>
+					</select>
+
+					<div class="search-input">
+                        <input type="text" name="searchText" id="searchText" value="{? _GET.searchText}{_GET.searchText}{/}" placeholder="검색어를 입력하세요">
+                        <button id="btn_search" class="btn-search" type="button"><i class="fa-light fa-magnifying-glass"></i></button>
+                    </div>
+
+				</form>
+			</section>
+			<section role="list">
+				<nav role="tab" class="spacing">
+                    <ul>
+						<li><a class="{? _GET.media=='yna_news'}active{/}" role="tab"><a href="?media=yna_news">연합뉴스</a></li>
+						<li><a class="{? _GET.media=='yna_photo'}active{/}" role="tab"><a href="?media=yna_photo">연합포토</a></li>
+						<li><a class="{? _GET.media=='yna_graphic'}active{/}" role="tab"><a href="?media=yna_graphic">연합그래픽</a></li>
+						<li><a class="{? _GET.media=='yna_foreign'}active{/}" role="tab"><a href="?media=yna_foreign">연합외신</a></li>
+						<li><a class="{? _GET.media=='yna_pressRelease'}active{/}" role="tab"><a href="?media=yna_pressRelease">연합보도자료</a></li>
+                        <!-- <li><a class="{? _GET.media=='newsis'}active{/}" role="tab"><a href="?media=newsis">뉴시스</a></li>
+                        <li><a class="{? _GET.media=='news1'}active{/}" role="tab"><a href="?media=news1">뉴스1</a></li> -->
+					</ul>
+                </nav>
+				
+				<div class="list-cont">
+
+					<table role="tablist" id="articleTable">
+						<colgroup>
+							<col width="30px">
+                            <col width="110px">
+							<col width="*">
+							<col width="">
+							<col width="">
+							<col width="">
+							<col width="">
+							<col width="">
+							<col width="">
+							<col width="">
+						</colgroup>
+						<thead>
+							<tr>
+                                <th id="use">기사사용</th>
+                                <!-- <th id="contentType">유형</th> -->
+								<th id="thumb">사진</th>
+								<th id="title">제목</th>
+								<th id="length">글자수</th>
+								<!-- <th id="credit">Credit</th> -->
+								<th id="source">Source</th>
+								<th id="reporter">작성자</th>
+								<th id="receiveDate">수신일</th>
+								<th id="embargoDate">엠바고</th>
+							</tr>
+						</thead>
+						<tbody>
+							{@ result.items}
+							<tr id="at_{.externalId}">
+								<td class="use">
+									{? !empty(.isNotice)}
+										공지사항
+									{:}
+										<button class="btn-use" type="button" id="btn_useArticle" data-external-media="{.externalMedia}" data-external-id="{.externalId}">기사사용</button>
+									{/}
+								</td>
+                                <!-- <td class="contentType">{? !empty(.filter.contentType)}{.filter.contentType}{/}</td> -->
+								<td class="thumb">{? !empty(.thumbnail)}<img src="{=preg_replace('/^(.+)([.][a-z]+)$/','$1.90x60.0$2',.thumbnail)}" alt="사진" />{/}</td>
+								<td class="title">
+									<div class="flex nowrap">
+										{? !empty(.send)}
+											{@ .send}
+												{? ..coId == _SESSION.coId}
+													<a href="/article/editor?aid={..aid}" data-use-date="{..date}" data-use-manager="{..managerName}({..managerId})" data-tooltip="사용된 기사" data-placement="top" style="margin-right: 0.3rem;margin-bottom: 0.2rem;white-space: nowrap;" class="oval lemon">
+														사용: {..managerName}({..managerId}) {..date}
+													</a>
+												{/}
+											{/}
+										{/}
+										{? str_starts_with(.externalId, 'Notice')}
+										<span data-tooltip="공지사항" data-placement="top" style="margin-right: 0.3rem;margin-bottom: 0.2rem;white-space: nowrap;" class="oval gray">공지사항</span>
+										{/}
+										{? !empty(.filter.category)}
+											{@ .filter.category}{? !empty(..name)}<a data-tooltip="분야" href="javascript:;" onclick="$('#category').val('{..code}');window.search();" class="oval" style="margin-right: 0.3rem;margin-bottom: 0.2rem;white-space: nowrap;background-color: #E3F2FD;">{..name}</a>{/}{/}
+										{/}
+										{? !empty(.filter.class)}
+											{@ .filter.class}{? !empty(..name)}<a data-tooltip="분류" href="javascript:;" onclick="$('#class3').val('{..code}');window.search();" class="oval" style="margin-right: 0.3rem;margin-bottom: 0.2rem;white-space: nowrap;background-color: #E8F5E9;">{..name}</a>{/}{/}
+										{/}
+										{? !empty(.filter.region)}
+											{@ .filter.region}{? !empty(..name)}<a data-tooltip="지역" href="javascript:;" onclick="$('#region3').val('{..code}');window.search();" class="oval" style="margin-right: 0.3rem;margin-bottom: 0.2rem;white-space: nowrap;background-color: #FFF3E0;">{..name}</a>{/}{/}
+										{/}
+									</div>
+									<a href="javascript:;"><div class="row-title">{.title}</div></a>
+								</td>
+								<td class="length">{=number_format(.contentTextLength)}</td>
+								<!-- <td class="credit">{.credit}</td> -->
+								<td class="source">{.source}</td>
+								<td class="reporter">{.filter.writer.name}</td>
+								<td class="receiveDate">{=substr(.receiveDate, 0, 10)}<br>{=substr(.receiveDate, 11, 8)}</td>
+								<td class="embargoDate">{? !empty(.embargo.date)}{=substr(.embargo.date, 0, 10)}<br>{=substr(.embargo.date, 11, 8)}{/}</td>
+							</tr>
+							{/}
+						</tbody>
+					</table>
+				</div>
+				{# paging}
+			</section>
+		</div>
+	</main>
+
+	<!-- Modal : 작업중 로딩 -->
+	{#loading}
+
+	<!-- 기사 상세 모달 -->
+	<div class="modal fade" id="articleDetailModal" tabindex="-1" role="dialog" aria-labelledby="articleDetailModalLabel" aria-hidden="true">
+		<div class="modal-dialog modal-lg" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="articleDetailModalLabel">기사 상세 정보</h5>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+				</div>
+				<div class="modal-body">
+					<div class="article-detail">
+						<div class="article-header">
+							<h3 id="modalTitle"></h3>
+							<div class="article-meta">
+								<span id="modalMedia"></span>
+								<span id="modalReporter"></span>
+								<span id="modalDate"></span>
+							</div>
+						</div>
+						<div class="article-content" id="modalContent"></div>
+						<div class="article-info">
+							<div class="info-section">
+								<ul>
+									<li><strong>글자수:</strong> <span id="modalLength"></span></li>
+									<li><strong>Source:</strong> <span id="modalSource"></span></li>
+									<li><strong>엠바고:</strong> <span id="modalEmbargo"></span></li>
+									<li><strong>분야:</strong> <span id="modalCategory"></span></li>
+									<li><strong>분류:</strong> <span id="modalClass"></span></li>
+									<li><strong>지역:</strong> <span id="modalPlace"></span></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-dismiss="modal">닫기</button>
+					<button type="button" class="btn btn-primary" id="modalUseArticle">기사사용</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- ########## START : INLINE SCRIPT ########## -->
+	<script type="text/javascript">
+		$(document).ready(function(){
+			// 초기화
+			$('#dateType').val('{? !empty(_GET.dateType)}{_GET.dateType}{/}');
+			$('#category').val('{? !empty(_GET.category)}{_GET.category}{/}');
+			$('#serviceType').val('{? !empty(_GET.serviceType)}{_GET.serviceType}{/}');
+			$('#issue').val('{? !empty(_GET.issue)}{_GET.issue}{/}');
+			{? !empty(_GET.searchItem)}
+				$('#searchItem').val('{_GET.searchItem}');
+			{:}
+				$('#searchItem').val('title');
+			{/}
+
+			// yna class
+			$(document).on('change','#class1',function(){
+				var class1 = $(this).val();
+				$('#class2').val('');
+				$('#class3').val('');
+				if (class1) {
+					console.log($('#class2 option[value^="'+class1+'"]').length);
+					$('#class2 option').hide();
+					$('#class2 option[value=""]').show();
+					$('#class2 option[value^="'+class1+'"]').show();
+					$('#class3 option').hide();
+					$('#class3 option[value=""]').show();
+					$('#class3 option[value^="'+class1+'"]').show();
+				}
+			});
+			$(document).on('change','#class2',function(){
+				var class2 = $(this).val();
+				$('#class3').val('');
+				if (class2) {
+					console.log($('#class3 option[value^="'+class2+'"]').length);
+					$('#class3 option').hide();
+					$('#class3 option[value=""]').show();
+					$('#class3 option[value^="'+class2+'"]').show();
+				}
+			});
+			$('#class1').val('{? !empty(_GET.class1)}{_GET.class1}{/}');
+			$('#class1').trigger('change');
+			$('#class2').val('{? !empty(_GET.class2)}{_GET.class2}{/}');
+			$('#class2').trigger('change');
+			$('#class3').val('{? !empty(_GET.class3)}{_GET.class3}{/}');
+
+			// yna region
+			$(document).on('change','#region1',function(){
+				var region1 = $(this).val();
+				$('#region2').val('');
+				$('#region3').val('');
+				if (region1) {
+					console.log($('#region2 option[value^="'+region1+'"]').length);
+					$('#region2 option').hide();
+					$('#region2 option[value=""]').show();
+					$('#region2 option[value^="'+region1+'"]').show();
+					$('#region3 option').hide();
+					$('#region3 option[value=""]').show();
+					$('#region3 option[value^="'+region1+'"]').show();
+				}
+			});
+			$(document).on('change','#region2',function(){
+				var region2 = $(this).val();
+				$('#region3').val('');
+				if (region2) {
+					console.log($('#region3 option[value^="'+region2+'"]').length);
+					$('#region3 option').hide();
+					$('#region3 option[value=""]').show();
+					$('#region3 option[value^="'+region2+'"]').show();
+				}
+			});
+			$('#region1').val('{? !empty(_GET.region1)}{_GET.region1}{/}');
+			$('#region1').trigger('change');
+			$('#region2').val('{? !empty(_GET.region2)}{_GET.region2}{/}');
+			$('#region2').trigger('change');
+			$('#region3').val('{? !empty(_GET.region3)}{_GET.region3}{/}');
+
+			// 기간
+			$('#period').daterangepicker({
+				ranges: {
+					'오늘': [moment(), moment()],
+					'어제': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+					'최근 7일': [moment().subtract(6, 'days'), moment()],
+					'최근 30일': [moment().subtract(29, 'days'), moment()],
+					'이번달': [moment().startOf('month'), moment().endOf('month')],
+					'지난달': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+				},
+				locale:{
+					format: 'YYYY-MM-DD',
+					applyLabel:"적용",
+					cancelLabel:"취소",
+					customRangeLabel:"기간지정",
+					weekLabel: '주',
+					daysOfWeek: ['일', '월', '화', '수', '목', '금', '토'],
+					monthNames: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
+					firstDay: 0
+				},
+				language: "kr"
+			});
+			$('#period').on('show.daterangepicker', function(ev, picker) {
+				picker.leftCalendar.month = moment(picker.endDate).subtract(1, 'month');
+				picker.rightCalendar.month = moment(picker.endDate);
+				picker.updateCalendars();
+
+				// 각 달력의 헤더 텍스트 수정
+				let leftMonth = picker.leftCalendar.month;
+				let rightMonth = picker.rightCalendar.month;
+
+				let leftHeader = picker.container.find('.drp-calendar.left .month');
+				let rightHeader = picker.container.find('.drp-calendar.right .month');
+
+				leftHeader.text(`${leftMonth.year()}년 ${leftMonth.month() + 1}월`);
+				rightHeader.text(`${rightMonth.year()}년 ${rightMonth.month() + 1}월`);
+			});
+			$('#period').data('daterangepicker').setStartDate("{? !empty(_GET.startDate)}{_GET.startDate}{:}{=date('Y-m-d',strtotime('-1 year'))}{/}");
+			$('#period').data('daterangepicker').setEndDate("{? !empty(_GET.endDate)}{_GET.endDate}{:}{=date('Y-m-d')}{/}");
+		
+			// 버튼 : 검색
+			$('#btn_search').on('click', function(){
+				window.search();
+			});
+
+			$(document).on('change','#searchForm select',function(){
+				if ($(this).attr('id') != 'searchItem') {
+					window.search();
+				}
+			});
+
+			$("#searchText").on('keydown',function(e){
+				if (e.keyCode == 13) {
+					window.search();
+				}
+			});
+
+			// 기사사용 버튼튼
+            $(document).on('click', '#btn_useArticle', function(){
+                let externalMedia = $(this).data('external-media');
+                let externalId = $(this).data('external-id');
+
+                if (externalMedia) {
+                    externalArticleSend(externalMedia, externalId);
+                }
+            });
+		});
+
+		// 전역 스코프에 search 함수 정의
+		window.search = function() {
+            // 검색 버튼 비활성화
+            $('#searchText').prop('readonly',true);
+            $('#searchBtn').prop('disabled',true);
+            $('#searchBtn').addClass('loading-white');
+
+            const date = ($('#period').val()).split('-');
+            $('#startDate').val($('#period').val()?date[0]+'-'+date[1]+'-'+$.trim(date[2]):'');
+            $('#endDate').val($('#period').val()?$.trim(date[3])+'-'+date[4]+'-'+date[5]:'');
+            $("#searchForm").submit();
+		};
+
+        // 외부 기사 저장
+        let externalArticleSend = (externalMedia, externalId)=>{
+
+			// 사용된 기사 확인
+			if ($('#at_'+externalId).find('[data-use-date]').length > 0) {
+				let useDate = $('#at_'+externalId).find('[data-use-date]').data('use-date');
+				let useManager = $('#at_'+externalId).find('[data-use-date]').data('use-manager');
+				if (!confirm('이미 사용된 기사입니다.\n신규 기사로 사용하시겠습니까?\n\n사용일시 : '+useDate+', 사용자 : '+useManager)) {
+					return false;
+				}
+			} else if( !confirm("'데스크 > 기사'로 전송 후 편집화면으로 이동합니다.")){
+				return false;
+			}
+
+            $.ajax({
+                url: '/externalArticle/saveProc/ajax',
+                method : 'post',
+                contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                dataType: 'json',
+                data: { action : 'sendArticle', externalMedia : externalMedia, externalId : externalId},
+            beforeSend: function () {
+                $("#load-staus").empty().append('처리중입니다.');
+                $('#workingpopup').show();
+                $('[id="btn_useArticle"]').prop('disabled', true);
+				$('#modalUseArticle').prop('disabled', true);
+            }
+            }).done(function(data, textStatus, jqXHR) {
+                if(data.result.msg) {alert(data.result.msg)}
+                // 처리 후 랜딩
+                if(data.result.link){
+                    location.replace(data.result.link);
+                }else{
+                    location.reload();
+                }
+
+            }).fail(function(jqXHR, textStatus, errorThrown) {
+                if(jqXHR.responseJSON) {
+                    alert(jqXHR.responseJSON.result.msg);
+                } else {
+                    alert(textStatus+' : '+errorThrown);
+                }
+
+            }).always(function(){
+                $('#workingpopup').hide();
+                $('[id="btn_useArticle"]').prop('disabled', false);
+				$('#modalUseArticle').prop('disabled', false);
+            });
+        }
+
+		// 기사 상세 모달
+		$(document).on('click', '.row-title', function() {
+			const row = $(this).closest('tr');
+			const externalMedia = row.find('.use button').data('external-media');
+			const externalId = row.find('.use button').data('external-id');
+			
+			// 모달 데이터 설정
+			$('#articleDetailModal #modalTitle').text(row.find('.row-title').text());
+			$('#articleDetailModal #modalMedia').text(row.find('.media').text());
+			$('#articleDetailModal #modalReporter').text(row.find('.reporter').text());
+			$('#articleDetailModal #modalDate').text(row.find('.receiveDate').text());
+			$('#articleDetailModal #modalLength').text(row.find('.length').text());
+			$('#articleDetailModal #modalSource').text(row.find('.source').text());
+			$('#articleDetailModal #modalEmbargo').text(row.find('.embargoDate').text());
+			$('#articleDetailModal #modalCategory').text('');
+			$('#articleDetailModal #modalClass').text('');
+			$('#articleDetailModal #modalPlace').text('');
+
+			// 기사 내용 가져오기
+			$.ajax({
+				url: '/externalArticle/item/ajax',
+				method: 'GET',
+				data: {
+					externalMedia: externalMedia,
+					externalId: externalId
+				},
+				dataType: 'json',
+				success: function(response) {
+					console.log(response.result.article);
+					console.log(response.result.article);
+					if (!!response?.result?.article) {
+						if (response.result.article.content) {
+							$('#articleDetailModal #modalContent').html(response.result.article.content);
+						}
+						if (response.result.article.filter.category && response.result.article.filter.category.length > 0) {
+							let categoryText = '';
+							$(response.result.article.filter.category).each(function(index, item){
+								if (index > 0) categoryText += ', ';
+								categoryText += item.name;
+							});
+							$('#articleDetailModal #modalCategory').text(categoryText);
+						}
+						if (response.result.article.filter.class && response.result.article.filter.class.length > 0) {
+							let classText = '';
+							$(response.result.article.filter.class).each(function(index, item){
+								if (index > 0) classText += ', ';
+								classText += item.name;
+							});
+							$('#articleDetailModal #modalClass').text(classText);
+						}
+						if (response.result.article.filter.region && response.result.article.filter.region.length > 0) {
+							let regionText = '';
+							$(response.result.article.filter.region).each(function(index, item){
+								if (index > 0) regionText += ', ';
+								regionText += item.name;
+							});
+							$('#articleDetailModal #modalPlace').text(regionText);
+						}
+					}
+				}
+			});
+
+			if (!!externalMedia) {
+				$('#modalUseArticle').show();
+			} else {
+				$('#modalUseArticle').hide();
+			}
+
+			// 기사사용 버튼 설정
+			$('#modalUseArticle').off('click').on('click', function() {
+				if (!!externalMedia) {
+					externalArticleSend(externalMedia, externalId);
+				}
+			});
+
+			$('#articleDetailModal').modal('show');
+		});
+	</script>
+	<!-- ########## END : INLINE SCRIPT ########## -->
+</body>
+</html>

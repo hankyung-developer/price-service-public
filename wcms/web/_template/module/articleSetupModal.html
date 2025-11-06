@@ -1,0 +1,677 @@
+
+<!-- Article Setup Modal -->
+<style>
+	#articleModal .fileZone {height: 200px;}
+	#articleModal .select2-container--default .select2-results>.select2-results__options {max-height: 500px;}
+	#articleModal .select2-container--default .select2-results>.select2-results__options img{height:140px;}
+</style>
+<dialog id="articleModal">
+    <article class="card">
+		<header class="flex nowrap justify-between align-center mr-0">
+			<h6></h6>
+            <a href="#close" aria-label="Close" title="닫기" data-target="articleModal" onclick="toggleModal(event)"><i class="fa-light fa-circle-xmark fa-lg"></i></a>
+        </header>
+		<!-- layoutInput -->
+		<div class="layoutInput">
+			<input type="hidden" id="objId">
+			<!-- 기본설정 -->
+			<div class="group">
+				<div class="label">기본설정</div>
+				<div class="grid">
+					<div class="row">
+						<span class="label">제목</span>
+						<input type="text" id="title" placeholder="화면에 표출될 박스 명입니다." />
+					</div>
+					<div class="row">
+						<span class="label">제목 더보기 노출</span>
+						<input type="checkbox" role="switch" class="" id="showTitleMore" data-on="ON" data-off="OFF" checked/>
+						<span class="switch-label">ON</span>
+					</div>
+				</div>
+				<div class="row">
+					<span class="label">제목링크</span>
+					<input type="text" id="moreurl" placeholder="제목링크입니다.(옵션)" />
+				</div>
+				<div class="row">
+					<span class="label">custom boxId</span>
+					<input type="text" id="customBoxId" placeholder="사용자 지정 boxId (옵션)" />
+				</div>
+				<div class="grid">
+					<div class="row">
+						<span class="label">목록타입</span>
+						<input type="checkbox" role="switch" id="listtype" data-on="자동" data-off="수동" checked/>
+						<span class="switch-label">자동</span>
+					</div>
+					<div class="row">
+						<span class="label">그룹종류</span>
+						<select id="autogrouptype">
+							<option value="C">카테고리</option>
+							<option value="S">시리즈</option>
+							<option value="T">태그</option>
+							<option value="A">인기기사</option>
+							<option value="P">프로그램</option>
+							<option value="syncBox">박스연동</option>
+						</select>
+					</div>
+					<div class="row">
+						<span class="label">수동선택<br/>기사제외</span>
+						<input type="checkbox" role="switch" class="" id="removeheadline" data-on="ON" data-off="OFF" checked/>
+						<span class="switch-label">ON</span>
+					</div>
+					<div class="row">
+						<span class="label">기사합치기</span>
+						<input type="checkbox" role="switch" class="" id="articlemerge" data-on="ON" data-off="OFF" checked/>
+						<span class="switch-label">ON</span>
+					</div>
+					<div class="row">
+						<span class="label">정렬</span>
+						<input type="checkbox" role="switch" class="" id="articlesort" data-on="ON" data-off="OFF" checked/>
+						<span class="switch-label">ON</span>
+					</div>
+				</div>
+				<div class="row areas categoryArea">
+					<span class="label">카테고리</span>
+					<select class="select2" id="category" data-placeholder="카테고리 선택"  multiple="multiple" style="width:100%;">
+						<option value="{_SESSION.coId}000000000">최신기사</option>
+						{@ result.categoryList}
+							{? .isUse && .isNews}
+						<option class="level-{.depth}" value="{.id}" style='{?.depth==1}font-weight: 600;{/}'>{? .depth==2}&nbsp;&nbsp;&nbsp;&nbsp;{: .depth==3}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{/}{.name}</option>
+							{/}
+						{/}
+					</select>
+				</div>
+				<div class="row areas seriesArea">
+					<span class="label">시리즈</span>
+					<select class="select2" data-placeholder="시리즈 선택" id="series" multiple style="width:100%;">
+						{@ result.seriesList}
+							{? .isUse}
+						<option value="{.id}">{.name}</option>
+							{/}
+						{/}
+					</select>
+				</div>
+				<div class="row areas tagArea">
+					<span class="label">태그</span>
+					<input type="text" id="tags" placeholder="" data-role="tagsinput">
+				</div>
+				<div class="row areas programArea">
+					<span class="label">프로그램</span>
+					<select class="select2" data-placeholder="프로그램 선택" id="program" multiple style="width:100%;">
+						{@ result.programList}
+							{? .isUse}
+						<option value="{.id}">{.name}</option>
+							{/}
+						{/}
+					</select>
+				</div>
+				<div class="grid grid2-1-still areas analyticsArea">
+					<div class="row">
+						<span class="label">카테고리</span>
+						<select class="select2" id="gaCategory" name="gaCategory" data-placeholder="카테고리 선택"  multiple="multiple">
+							{@ result.categoryList}
+								{? .isUse && .isNews}
+							<option class="level-{.depth}" value="{.id}" style='{?.depth==1}font-weight: 600;{/}'>{? .depth==2}&nbsp;&nbsp;&nbsp;&nbsp;{: .depth==3}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{/}{.name}</option>
+								{/}
+							{/}
+						</select>
+					</div>
+					<div class="row">
+						<span class="label">기간</span>
+						<select class="opularTermDay select2" id="populartermday">
+							<option value="1">최근 1일</option>
+							<option value="2">최근 2일</option>
+							<option value="7" selected>최근 7일</option>
+							<option value="15">최근 15일</option>
+							<option value="30">최근 30일</option>
+						</select>
+					</div>
+				</div>
+				<div class="grid grid2 areas syncBoxArea">
+					<div class="row">
+						<span class="label">면 선택</span>
+						<select id="syncLayoutId" data-placeholder="면 선택">
+							<option value="">선택 없음</option>
+							{@ result.layoutKind}
+							<option value="{.id}">{.title}</option>
+							{/}
+						</select>
+					</div>
+					<div class="row">
+						<span class="label">박스연동</span>
+						<select id="syncBoxId" data-placeholder="박스 선택">
+							<option value="">선택 없음</option>
+						</select>
+					</div>
+				</div>
+				<div class="grid grid3">
+					<div class="row">
+						<span class="label">제목 [TEXT] 제거</span>
+						<input type="checkbox" role="switch" class="" id="removesquarebrackets" data-on="ON" data-off="OFF" checked/>
+						<span class="switch-label">ON</span>
+					</div>
+					<div class="row">
+						<span class="label">관련기사</span>
+						<input type="checkbox" role="switch" class="" id="useRelation" data-on="ON" data-off="OFF"/>
+						<span class="switch-label">OFF</span>
+					</div>
+					<div class="row">
+						<span class="label">속보</span>
+						<input type="checkbox" role="switch" class="" id="type_isFlash" data-on="ON" data-off="OFF"/>
+						<span class="switch-label">OFF</span>
+					</div>
+					<div class="row">
+						<span class="label">이미지 첨부만</span>
+						<input type="checkbox" role="switch" class="" id="onlyimage" data-on="ON" data-off="OFF" checked/>
+						<span class="switch-label">ON</span>
+					</div>
+					<div class="row">
+						<span class="label">동영상 첨부만</span>
+						<input type="checkbox" role="switch" class="" id="onlyVideo" data-on="ON" data-off="OFF"/>
+						<span class="switch-label">OFF</span>
+					</div>
+				</div>
+			</div>
+			<!-- //기본설정 -->
+			<!-- PC설정 -->
+			<div class="group">
+				<div class="label">PC설정</div>
+				<div class="grid grid1-2">
+					<div>
+						<div class="row">
+							<span class="label">노출</span>
+							<input type="checkbox" role="switch" class="" id="showpc" data-on="ON" data-off="OFF" checked/>
+							<span class="switch-label">ON</span>
+						</div>
+						<div class="row">
+							<span class="label">기사갯수</span>
+							<input type="text" class="showArticleNum" id="showarticlenum" data-type='num'/>
+						</div>
+						<div class="row">
+							<span class="label">본문글자수</span>
+							<input type="text" class="contentcutnum" id="contentcutnum" data-type='num'/>
+						</div>
+						<div class="row">
+							<span class="label">썸네일 노출</span>
+							<input type="checkbox" role="switch" class="" id="showthumbpc" data-on="ON" data-off="OFF" checked/>
+							<span class="switch-label">ON</span>
+						</div>
+						<div class="row">
+							<span class="label">썸네일 W/H</span>
+							<input type="text" class="thumbwidthpc" id="thumbwidthpc" placeholder="가로px" />
+							<input type="text" class="thumbheightpc" id="thumbheightpc" placeholder="세로px" />
+						</div>
+					</div>
+					<div>
+						<div class="row image-skin">
+							<span class="label" style="width:100px;justify-content: center;">PC<br/> Skin</span>
+							<select class="select2" id="pcSkin">
+								<option value="">안보이기</option>
+							</select>
+						</div>
+						<!--div class="row" style="height: 200px;max-height: 200px;justify-content: center;">
+							<img id="pcSkinPreview" src="" onError="this.src='/img/skin/show-hidden-icons.png';" style="width: auto;height: auto;max-width: 100%;max-height: 200px;">
+						</div-->
+					</div>
+				</div>
+			</div>
+			<!-- //PC설정 -->
+			<!-- MOBILE설정 -->
+			<div class="group">
+				<div class="label">MOBILE설정</div>
+				<div class="grid grid1-2">
+					<div>
+						<div class="row">
+							<span class="label">노출</span>
+							<input type="checkbox" role="switch" class="" id="showmobile" data-on="ON" data-off="OFF" checked/>
+							<span class="switch-label">ON</span>
+						</div>
+						<div class="row">
+							<span class="label">기사갯수</span>
+							<input type="text" class="mobileshowArticleNum" id="mobileshowarticlenum" data-type='num'/>
+						</div>
+						<div class="row">
+							<span class="label">본문글자수</span>
+							<input type="text" class="contentcutnummobile" id="contentcutnummobile" data-type='num'/>
+						</div>
+						<div class="row">
+							<span class="label">썸네일 노출</span>
+							<input type="checkbox" role="switch" class="" id="showthumbmobile" data-on="ON" data-off="OFF" checked/>
+							<span class="switch-label">ON</span>
+						</div>
+						<div class="row">
+							<span class="label">썸네일 W/H</span>
+							<input type="text" class="thumbwidthmobile" id="thumbwidthmobile" placeholder="가로px" />
+							<input type="text" class="thumbheightmobile" id="thumbheightmobile" placeholder="세로px" />
+						</div>
+					</div>
+					<div>
+						<div class="row image-skin">
+							<span class="label" style="width:100px;justify-content: center;">MOBILE<br/> Skin</span>
+							<select class="select2" id="mobileSkin">
+								<option value="">안보이기</option>
+							</select>
+						</div>
+						<!--div class="row" style="height: 200px;max-height: 200px;justify-content: center;">
+							<img id="mobileSkinPreview" src="" onError="this.src='/img/skin/show-hidden-icons.png';" style="width: auto;height: auto;max-width: 100%;max-height: 200px;">
+						</div-->
+					</div>
+				</div>
+			</div>
+			<!-- //MOBILE설정 -->
+			<!-- 이미지 업로드 -->
+			<div class="group">
+				<div class="label">이미지 업로드</div>
+				<div class="grid grid1-1-still">
+					<label for="upload_pcImage">PC 제목 이미지
+						<div id="upload_titleImagePathPC" class="fileZone">
+							<small class="boxMessage">클릭 또는 파일을 올려주세요.</small>
+							<input type="hidden" id="titleImagePathPC" value=""/>
+						</div>
+					</label>
+					<label for="upload_mobileImage">MOBILE 제목 이미지
+						<div id="upload_titleImagePathMobile" class="fileZone">
+							<small class="boxMessage">클릭 또는 파일을 올려주세요.</small>
+							<input type="hidden" id="titleImagePathMobile" value=""/>
+						</div>
+					</label>
+				</div>
+			</div>
+			<!-- //이미지 업로드 -->
+		</div>
+		<!--// layoutInput -->
+        <footer class="flex justify-end">
+			<button type="button" class="btn btn-md"  id="btn_saveObjSetup">저장</button>
+			<button type="button" class="btn btn-md btn-gray"  data-target="articleModal" onclick="toggleModal(event);">취소</button>
+		</footer>
+    </article>
+</dialog>
+<!-- Article Setup Modal -->
+
+<script>
+	// 제목 이미지 업로드 설정
+	let dropzoneArticleBoxTitleImagePathPC = new singleFileUpload({
+		uploadDir: 'layout/box/title', 
+		uploadId: '#articleModal #upload_titleImagePathPC', 
+		pathId: '#titleImagePathPC', 
+		path: '', 
+	});
+	let dropzoneArticleBoxTitleImagePathMobile = new singleFileUpload({
+		uploadDir: 'layout/box/title', 
+		uploadId: '#articleModal #upload_titleImagePathMobile', 
+		pathId: '#titleImagePathMobile', 
+		path: '', 
+	});
+
+	// 기사영역 세팅 모달창
+	$('#layoutBase').on("click",".moreBt",function(e){
+		var obj = $(e.target).closest('.object');
+
+		let dataObject = new Object();
+		
+		let except = ['data-dinnum','data-parentid'];
+		$.each( obj[0].attributes, ( index, attribute )=>{
+			if(attribute.name.indexOf('data-')!=-1 && except.indexOf(attribute.name) == -1){
+				dataObject[attribute.name.replace('data-','')] = attribute.value;
+			}
+		});
+
+		var modal = $('#articleModal');
+		openModal(document.getElementById('articleModal'));
+
+		// skin select 로딩
+		setSelectSkin(modal.find('select#pcSkin'), $(this).closest('[data-dinnum]').data('dinnum'), 'pc', dataObject['objecttype']);
+		setSelectSkin(modal.find('select#mobileSkin'), $(this).closest('[data-dinnum]').data('dinnum'), 'mobile', dataObject['objecttype']);
+		
+		modal.find('article.card').attr('data-objectType',obj.attr('data-objectType'));
+		modal.find('header h6').html((dataObject['title']?dataObject['title']:'기사')+' <small>(objId : '+dataObject['objid']+')</small>');
+		modal.find('#objId').val(dataObject['objid']);
+		modal.find('#title').val(dataObject['title']);
+		modal.find('#showTitleMore').prop('checked', dataObject.showtitlemore=="Y"?true:false);
+		modal.find('#moreurl').val(dataObject['moreurl']);
+		modal.find('#customBoxId').val(dataObject.customboxid);
+		modal.find('#listtype').prop('checked',dataObject['listtype']=="M"?false:true);
+		modal.find('#autogrouptype').val(dataObject['autogrouptype']?dataObject['autogrouptype']:'C');
+		modal.find('#removeheadline').prop('checked',dataObject['removeheadline']=="N"?false:true);
+		modal.find('#articlemerge').prop('checked',dataObject['articlemerge']=="N"?false:true);
+		modal.find('#articlesort').prop('checked',dataObject['articlesort']=="N"?false:true);
+		modal.find('#removesquarebrackets').prop('checked',dataObject['removesquarebrackets']=="N"?false:true);
+		modal.find('#category').val(dataObject['category']==undefined?[]:dataObject['category'].split(','));
+		modal.find('#gaCategory').val(dataObject['gacategory']==undefined?[]:dataObject['gacategory'].split(','));
+		modal.find('#populartermday').val(dataObject['populartermday']);
+		modal.find('#program').val(dataObject['program']==undefined?[]:dataObject['program'].split(','));
+		modal.find('#series').val(dataObject['series']==undefined?[]:dataObject['series'].split(','));
+		modal.find('#tags').tagsinput('removeAll');
+		modal.find('#tags').tagsinput('add',dataObject['tags']);
+		modal.find('#onlyimage').prop('checked',dataObject['onlyimage']=="N"?false:true);
+		modal.find('#onlyVideo').prop('checked',dataObject['onlyvideo']=="Y"?true:false);
+		modal.find('#type_isFlash').prop('checked',dataObject['type_isFlash']=="Y"?true:false);
+		modal.find('#useRelation').prop('checked',dataObject['userelation']=="Y"?true:false);
+		modal.find('#showpc').prop('checked',dataObject['showpc']=="N"?false:true);
+		modal.find('#showmobile').prop('checked',dataObject['showmobile']=="N"?false:true);
+		modal.find('#showarticlenum').val(dataObject['showarticlenumpc']);
+		modal.find('#mobileshowarticlenum').val(dataObject['showarticlenummobile']);
+		modal.find('#showthumbpc').prop('checked',dataObject['showthumbpc']=="N"?false:true);
+		modal.find('#showthumbmobile').prop('checked',dataObject['showthumbmobile']=="N"?false:true);
+		modal.find('#thumbwidthpc').val(dataObject['thumbwidthpc']);
+		modal.find('#thumbheightpc').val(dataObject['thumbheightpc']);
+		modal.find('#thumbwidthmobile').val(dataObject['thumbwidthmobile']);
+		modal.find('#thumbheightmobile').val(dataObject['thumbheightmobile']);
+		modal.find('#contentcutnum').val(dataObject['contentcutnumpc']);
+		modal.find('#contentcutnummobile').val(dataObject['contentcutnummobile']);
+		modal.find('#pcSkin').val(dataObject['pcskin']);
+		modal.find('#mobileSkin').val(dataObject['mobileskin']);
+		modal.find('#syncLayoutId').val(dataObject['synclayoutid']);
+		if (!!dataObject?.synclayoutid) modal.find('#syncBoxId').html(getSelectBoxId(dataObject['synclayoutid'], 'article', dataObject['objid']));
+		modal.find('#syncBoxId').val(dataObject['syncboxid']);
+		
+		modal.find('#titleImagePathPC').val(!!dataObject?.titleimagepathpc ? dataObject.titleimagepathpc : '');
+		dropzoneArticleBoxTitleImagePathPC.empty();
+		if(!!dataObject?.titleimagepathpc){
+			dropzoneArticleBoxTitleImagePathPC.add(dataObject.titleimagepathpc);
+		}
+		modal.find('#titleImagePathMobile').val(!!dataObject?.titleimagepathmobile ? dataObject.titleimagepathmobile : '');
+		dropzoneArticleBoxTitleImagePathMobile.empty();
+		if(!!dataObject?.titleimagepathmobile){
+			dropzoneArticleBoxTitleImagePathMobile.add(dataObject.titleimagepathmobile);
+		}
+
+		setArticleListType();
+		setAutogrouptype(dataObject['autogrouptype']);
+
+		if(dataObject['listtype']=="M"){
+			modal.find('.areas').hide();
+		}
+
+		// select2 초기화
+		modal.find('#category').select2({
+			dropdownParent: modal,
+			sorter : function(data){return data;}
+		});
+		modal.find('#gaCategory').select2({
+			dropdownParent: modal,
+			sorter: function(data) {return data;}
+		});
+		modal.find('#series').select2({dropdownParent: modal});
+		modal.find('#program').select2({dropdownParent: modal});
+		modal.find('#populartermday').select2({dropdownParent: modal});
+		modal.find('#pcSkin').select2({
+			dropdownParent: modal,
+			templateResult: formatState,
+			templateSelection: formatState
+
+		});
+		modal.find('#mobileSkin').select2({
+			dropdownParent: modal,
+			templateResult: formatState,
+			templateSelection: formatState
+		});
+
+		// 각각의 체크박스에 대해 초기값 설정
+		$('input[role="switch"]').each(function(){
+			var checked = $(this).prop('checked');
+			var row = $(this).closest('.row');
+			var on = $(this).data('on');
+			var off = $(this).data('off');
+
+			if (checked) {
+				row.find('.switch-label').empty().append(on);
+			} else {
+				row.find('.switch-label').empty().append(off);
+			}
+		});
+
+		setPreview(modal);
+	});
+
+	// 기사선택 수동 / 자동
+	$('#articleModal #listtype').on('change', function() {
+		setArticleListType();
+	});
+	let setArticleListType = ()=>{
+		var modal = $('#articleModal');
+		if (modal.find('#listtype').prop('checked')) {
+			setAutogrouptype(modal.find('#autogrouptype').val());
+			modal.find('#autogrouptype').prop('disabled', false);
+			modal.find('#removeheadline').prop('disabled', false);
+			modal.find('#articlemerge').prop('disabled', false);
+			if (modal.find('#articlemerge').prop('checked')) {
+				modal.find('#articlesort').prop('disabled', true);
+			} else {
+				modal.find('#articlesort').prop('disabled', false);
+			}
+		} else {
+			modal.find('.areas').hide();
+			modal.find('#autogrouptype').prop('disabled', true);
+			modal.find('#removeheadline').prop('disabled', true);
+			modal.find('#articlemerge').prop('disabled', true);
+			modal.find('#articlesort').prop('disabled', true);
+		}
+	};
+
+
+	// 그룹종류 카테고리 / 시리즈 선택시
+	$('#articleModal #autogrouptype').on('change',function(){
+		setAutogrouptype($(this).val());
+	});
+	const autoGroupTypeAreas = {
+		'C' : 'categoryArea',
+		'S' : 'seriesArea',
+		'T' : 'tagArea',
+		'P' : 'programArea',
+		'A' : 'analyticsArea',
+		'Y' : 'youtubeArea',
+		'syncBox' : 'syncBoxArea',
+	};
+	let setAutogrouptype = (autogrouptype)=>{
+		let modal = $('#articleModal');
+		let areas = autoGroupTypeAreas[autogrouptype]?autoGroupTypeAreas[autogrouptype]:autoGroupTypeAreas['C'];
+		modal.find('.areas').hide();
+		modal.find('.'+areas).show();
+	}
+
+	// 	박스설정 목록합치기 off일 경우에만 목록정렬 사용가능
+	$('#articleModal #articlemerge').on('click', function(e) {
+		let modal = $(this).closest('article');
+		if ($(this).prop('checked')) {
+			modal.find('#articlesort').prop('disabled', true);
+		}else{
+			modal.find('#articlesort').prop('disabled', false);
+		}
+	});
+
+	// [event] 박스연동 면 선택
+	$("#articleModal #syncLayoutId").on('change',function(e){
+		let modal = $(this).closest('article');
+		modal.find('#syncBoxId').html(getSelectBoxId($(this).val(), 'article', modal.find('#objId').val()));
+	});
+
+	// 기사갯수 수정 시
+	$("#articleModal #showarticlenum").on('change keyup paste',function(e){
+		var modal = $('#articleModal');
+		if($(this).val()){
+			var json = modal.find('#pcSkin option:selected').data('json');
+			if(json){
+				// articleCountType : less(이하), fixed(고정), multiple(배수)
+				if(json.articleCountType == 'less' && $(this).val() > json.articleCount){
+					$(this).val(json.articleCount);
+					alert('해당 skin의 기사수는 '+json.articleCount+' 이하만 허용됩니다.');
+				}
+				if(json.articleCountType == 'fixed' && $(this).val() != json.articleCount){
+					$(this).val(json.articleCount);
+					alert('해당 skin의 기사수는 '+json.articleCount+' 고정값만 허용됩니다.');
+				}
+				if(json.articleCountType == 'multiple' && $(this).val() % json.articleCount != 0){
+					$(this).val(json.articleCount);
+					alert('해당 skin의 기사수는 '+json.articleCount+' 배수만 허용됩니다.');
+				}
+			}
+		}
+	});
+
+	$("#articleModal #mobileshowarticlenum").on('change keyup paste',function(e){
+		var modal = $('#articleModal');
+		if($(this).val()){
+			var json = modal.find('#mobileSkin option:selected').data('json');
+			// articleCountType : less(이하), fixed(고정), multiple(배수)
+			if(json){
+				if(json.articleCountType == 'less' && $(this).val() > json.articleCount){
+					$(this).val(json.articleCount);
+					alert('해당 skin의 기사갯수는 '+json.articleCount+' 이하만 허용됩니다.');
+				}
+				if(json.articleCountType == 'fixed' && $(this).val() != json.articleCount){
+					$(this).val(json.articleCount);
+					alert('해당 skin의 기사갯수는 '+json.articleCount+' 고정값만 허용됩니다.');
+				}
+				if(json.articleCountType == 'multiple' && $(this).val() % json.articleCount != 0){
+					$(this).val(json.articleCount);
+					alert('해당 skin의 기사갯수는 '+json.articleCount+' 배수만 허용됩니다.');
+				}
+			}
+		}
+	});
+		
+	// skin 선택시 처리
+	$("#articleModal #pcSkin").on('change',function(e){
+		var modal = $('#articleModal');
+		setPreview(modal);
+		if($(this).val()){
+			var json = modal.find('#pcSkin option:selected').data('json');
+			modal.find('#showarticlenum').val(json.articleCount);
+			modal.find('#thumbwidthpc').val(json.thumbnail.pc.width);
+			modal.find('#thumbheightpc').val(json.thumbnail.pc.height);
+			modal.find('#contentcutnum').val(json.contentCutNum);
+			if(json.showThumbnail == 'Y'){
+				modal.find('#showthumbpc').prop('checked',json.showThumbnail=='Y'?true:false);
+			}
+		}
+	});
+
+	$("#articleModal #mobileSkin").on('change',function(e){
+		var modal = $('#articleModal');
+		setPreview(modal);
+		if($(this).val()){
+			var json = modal.find('#mobileSkin option:selected').data('json');
+			modal.find('#mobileshowarticlenum').val(json.articleCount);
+			modal.find('#thumbwidthmobile').val(json.thumbnail.mobile.width);
+			modal.find('#thumbheightmobile').val(json.thumbnail.mobile.height);
+			modal.find('#contentcutnummobile').val(json.contentCutNum);
+			if(json.showThumbnail == 'Y'){
+				modal.find('#showthumbmobile').prop('checked',json.showThumbnail=='Y'?true:false);
+			}
+		}
+	});
+
+	/**
+	 * 기사 박스 설정사항 저장
+	 */
+	 $("#btn_saveObjSetup").on('click',function(e){
+		var modal = $(this).closest('dialog');
+		
+		let dataObject = new Object();
+		dataObject['objId'] = modal.find("#objId").val();
+		dataObject['title'] = modal.find('#title').val();
+		dataObject['showTitleMore'] = modal.find('#showTitleMore').prop('checked')?"Y":"N";
+		dataObject['moreUrl'] = modal.find('#moreurl').val();
+		dataObject['customBoxId'] = modal.find('#customBoxId').val();
+		dataObject['listType'] = modal.find('#listtype').prop('checked')?"A":"M";
+		dataObject['autoGroupType'] = modal.find('#autogrouptype').val();
+		dataObject['removeHeadline'] = modal.find('#removeheadline').prop('checked')?"Y":"N";
+		dataObject['articleMerge'] = modal.find('#articlemerge').prop('checked')?"Y":"N";
+		dataObject['articleSort'] = modal.find('#articlesort ').prop('checked')?"Y":"N";
+		dataObject['removeSquareBrackets'] = modal.find('#removesquarebrackets').prop('checked')?"Y":"N";
+		dataObject['category'] = modal.find('#category').val().toString();
+		dataObject['gaCategory'] = modal.find('#gaCategory').val().toString();
+		dataObject['popularTermDay'] = modal.find('#populartermday').val();
+		dataObject['series'] = modal.find('#series').val().toString();
+		dataObject['program'] = modal.find('#program').val().toString();
+		dataObject['tags'] = modal.find('#tags').val().toString();
+		dataObject['onlyImage'] = modal.find('#onlyimage').prop('checked')?"Y":"N";
+		dataObject['onlyVideo'] = modal.find('#onlyVideo').prop('checked')?"Y":"N";
+		dataObject['type_isFlash'] = modal.find('#type_isFlash').prop('checked')?"Y":"N";
+		dataObject['useRelation'] = modal.find('#useRelation').prop('checked')?"Y":"N";
+		dataObject['showPC'] = modal.find('#showpc').prop('checked')?"Y":"N";
+		dataObject['showMobile'] = modal.find('#showmobile').prop('checked')?"Y":"N";
+		dataObject['showArticleNumPC'] = modal.find('#showarticlenum').val();
+		dataObject['showArticleNumMobile'] = modal.find('#mobileshowarticlenum').val();
+		dataObject['showThumbPC'] = modal.find('#showthumbpc').prop('checked')?"Y":"N";
+		dataObject['showThumbMobile'] = modal.find('#showthumbmobile').prop('checked')?"Y":"N";
+		dataObject['thumbWidthPC'] = modal.find('#thumbwidthpc').val();
+		dataObject['thumbHeightPC'] = modal.find('#thumbheightpc').val();
+		dataObject['thumbWidthMobile'] = modal.find('#thumbwidthmobile').val();
+		dataObject['thumbHeightMobile'] = modal.find('#thumbheightmobile').val();
+		dataObject['contentCutNumPC'] = modal.find('#contentcutnum').val();
+		dataObject['contentCutNumMobile'] = modal.find('#contentcutnummobile').val();
+		dataObject['pcSkin'] = modal.find('#pcSkin').val();
+		dataObject['mobileSkin'] = modal.find('#mobileSkin').val();
+		dataObject['syncLayoutId'] = modal.find('#syncLayoutId').val();
+		dataObject['syncBoxId'] = modal.find('#syncBoxId').val();
+		dataObject['titleImagePathPC'] = modal.find('#titleImagePathPC').val();
+		dataObject['titleImagePathMobile'] = modal.find('#titleImagePathMobile').val();
+		dataObject['analytics'] = '';
+
+		if(dataObject['autoGroupType']=="A"){
+			dataObject['category'] = '';
+			if( modal.find('#gaCategory').val().length > 0 ){
+				let tmpAnalytics = '';
+				for(let i=0; i< modal.find('#gaCategory').val().length; i++){
+					tmpAnalytics += 'popularityArticles_'+(dataObject['gaCategory']==""?"":modal.find('#gaCategory').val()[i]+"_")+dataObject['popularTermDay']+',';
+				}
+				dataObject['analytics'] = tmpAnalytics.substring(0, tmpAnalytics.length-1);
+			}else{
+				dataObject['analytics'] = 'popularityArticles_'+dataObject['popularTermDay'];
+			}
+		}
+			
+		var selectBox = $('[data-objId="'+dataObject['objId']+'"]');
+		selectBox.find('header > h6').text(dataObject['title']);
+		for (const [key, value] of Object.entries(dataObject)) {
+			selectBox.attr('data-'+key.toLowerCase() , value);
+		}
+
+		dataObject['pageId'] = $("#layoutSelect").val();
+
+		$.ajax({
+			url: '/layout/boxSave/ajax',
+			type: 'POST',
+			data: JSON.stringify(dataObject),
+			dataType: "json",
+			success: function (data) {
+				if (boxAutoDisplay) {
+					if(dataObject['listType']=="A"){
+						$(selectBox).find('.card-body').empty();
+						$(selectBox).addClass('disable');
+						$(selectBox).find('.card-body').removeClass('articleObjSortable ui-sortable');
+						let beforeContent = '자동 영역';
+						switch (dataObject['autoGroupType']) {
+							case "C":
+								beforeContent += '\n카테고리('+getCategoryInfo(dataObject['category'])+')';
+								break;
+							case "S":
+								beforeContent += '\n시리즈('+getSeriesInfo(dataObject['series'])+')';
+								break;
+							case "T":
+								beforeContent += '\n태그('+dataObject['tags']+')';
+								break;
+							case "A":
+								beforeContent += '\n인기기사';
+								break;
+							default:
+								break;
+						}
+						$(selectBox).find('.card-body').attr('data-before-content',beforeContent);
+					}else{
+						$(selectBox).removeClass('disable');
+						$(selectBox).find('.card-body').addClass('articleObjSortable ui-sortable');
+						$(selectBox).find('.card-body').attr('data-before-content','')
+					}
+				}
+				alert('저장완료');
+			},
+			error: function (){
+				alert('저장 시 오류가 발생했습니다.\n다시 저장을 해주세요.\n계속해서 오류가 발생되면 관리자에게 연락해주세요');
+			}
+		});
+
+		closeModal(document.getElementById('articleModal'));
+	});
+</script>

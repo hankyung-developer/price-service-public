@@ -69,7 +69,7 @@ class Api{
         // CORS 헤더 설정 (보안 강화: 특정 도메인만 허용)
         // TODO: 실제 프로덕션 환경에서는 허용할 도메인을 명시적으로 설정하세요
         $allowedOrigins = [
-            'https://hkprice.kod.es',
+            'https://www.hankyung.com',
             'https://price.hankyung.com',
             'http://localhost'
         ];

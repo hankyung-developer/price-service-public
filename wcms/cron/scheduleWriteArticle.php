@@ -5,15 +5,17 @@
  * scheduleEdit.html에 저장된 스케줄 정보를 기반으로
  * 설정된 시간에 자동으로 AI 기사를 생성합니다.
  * 
- * @usage: Linux Crontab
- * # 매 시간 정각마다 실행 (1분 단위로 실행하면 더 정확)
- * 0 * * * * /usr/bin/php /webSiteSource/wcms/cron/scheduleWriteArticle.php >> /webSiteSource/wcms/cron/logs/schedule_article.log 2>&1
+ * @usage: Linux Crontab (매분 실행 권장)
+ * # 매분 실행 (정확한 시간에 실행하기 위해 필수)
+ * * * * * /usr/bin/php /webSiteSource/wcms/cron/scheduleWriteArticle.php >> /webSiteSource/wcms/cron/logs/schedule_article.log 2>&1
  * 
- * 또는 매분 실행 (더 정확한 시간 체크)
- * * * * * * /usr/bin/php /webSiteSource/wcms/cron/scheduleWriteArticle.php >> /webSiteSource/wcms/cron/logs/schedule_article.log 2>&1
+ * 주의사항:
+ * - 스케줄 시간과 정확히 일치할 때만 실행 (예: 09:00 설정 시 09:00에만 실행)
+ * - 같은 분(09:00:XX) 내에서 여러 번 크론이 실행되어도 한 번만 기사 생성 (1분 이내 중복 방지)
+ * - 매일 같은 시간에 조건이 맞으면 무조건 실행됨 (다음날 정상 작동)
  * 
  * @author  Kodes <kodesinfo@gmail.com>
- * @version 1.0
+ * @version 1.1
  */
 
 // 에러 리포팅 설정
@@ -223,10 +225,11 @@ class ScheduleArticleWriter
         $this->writeLog("  타입: {$type}, 현재시간: {$currentTime}");
         $this->writeLog("  현재 상태 - 요일: {$currentDayOfWeek}, 날짜: {$currentDayOfMonth}, 월: {$currentMonth}");
         
-        // 마지막 실행 시간 체크 (동일 시간대 중복 실행 방지)
-        // 5분 이내에만 중복 실행 방지 (같은 시간대 내 크론 중복 방지용)
-        if ($this->wasExecutedRecently($schedule, 5)) {
-            $this->writeLog("  최근 실행됨 (5분 이내 중복 실행 방지)");
+        // 마지막 실행 시간 체크 (1분 이내 중복 실행 방지)
+        // 크론이 매분 실행되어 같은 분(09:00:XX) 내에서 여러 번 호출되어도 한 번만 실행
+        // 다음날이나 다른 시간에는 정상 실행됨
+        if ($this->wasExecutedRecently($schedule)) {
+            $this->writeLog("  최근 실행됨 (1분 이내 중복 실행 방지)");
             return false;
         }
         
@@ -320,7 +323,7 @@ class ScheduleArticleWriter
     }
     
     /**
-     * 시간 일치 여부 확인 (±5분 허용)
+     * 시간 일치 여부 확인 (정확히 일치해야 함)
      * 
      * @param string $currentTime 현재 시간 (HH:MM)
      * @param string $scheduledTime 예약 시간 (HH:MM)
@@ -328,27 +331,23 @@ class ScheduleArticleWriter
      */
     private function isTimeMatch($currentTime, $scheduledTime)
     {
-        $current = strtotime(date('Y-m-d') . ' ' . $currentTime);
-        $scheduled = strtotime(date('Y-m-d') . ' ' . $scheduledTime);
-        
-        // ±5분 이내면 실행
-        $diff = abs($current - $scheduled);
-        $isMatch = $diff <= 300; // 5분 = 300초
+        // HH:MM 형식으로 정확히 비교
+        $isMatch = ($currentTime === $scheduledTime);
         
         if ($isMatch) {
-            $this->writeLog("  시간 일치: {$currentTime} ≈ {$scheduledTime} (차이: {$diff}초)");
+            $this->writeLog("  시간 일치: {$currentTime} = {$scheduledTime}");
         } else {
-            $this->writeLog("  시간 불일치: {$currentTime} vs {$scheduledTime} (차이: {$diff}초)");
+            $this->writeLog("  시간 불일치: {$currentTime} vs {$scheduledTime}");
         }
         
         return $isMatch;
     }
     
     /**
-     * 최근 실행 여부 체크
+     * 최근 실행 여부 체크 (1분 이내 중복 실행 방지)
      * 
      * @param array $schedule 스케줄 정보
-     * @param int $minutes 분 단위 (기본: 5분)
+     * @param int $minutes 분 단위 (사용 안 함, 하위 호환성을 위해 유지)
      * @return bool 최근 실행 여부
      */
     private function wasExecutedRecently($schedule, $minutes = 5)
@@ -357,18 +356,21 @@ class ScheduleArticleWriter
             return false;
         }
         
+        // 마지막 실행 시간으로부터 경과 시간 계산
         $lastExecution = strtotime($schedule['lastExecution']['date']);
         $now = time();
-        $diff = $now - $lastExecution;
+        $diffSeconds = $now - $lastExecution;
         
-        // 디버그 로그
-        if ($diff < ($minutes * 60)) {
+        // 1분(60초) 이내면 중복 실행 방지
+        // 같은 분(09:00:10, 09:00:30, 09:00:50) 내에서는 한 번만 실행
+        // 다음날 같은 시간에는 정상 실행됨
+        if ($diffSeconds < 60) {
             $lastTimeStr = date('Y-m-d H:i:s', $lastExecution);
-            $diffMinutes = round($diff / 60, 1);
-            $this->writeLog("  마지막 실행: {$lastTimeStr} ({$diffMinutes}분 전)");
+            $this->writeLog("  마지막 실행: {$lastTimeStr} ({$diffSeconds}초 전, 중복 실행 방지)");
+            return true;
         }
         
-        return $diff < ($minutes * 60);
+        return false;
     }
     
     /**
@@ -436,6 +438,10 @@ class ScheduleArticleWriter
             ];
             
             $this->writeLog("    POST 데이터 준비 완료");
+            $this->writeLog("    - items 개수: " . count($items));
+            $this->writeLog("    - categoryId: {$categoryId}");
+            $this->writeLog("    - templateIdx: {$templateIdx}");
+            $this->writeLog("    - promptIdx: {$promptIdx}");
             
             // aiDraft() 직접 호출 (CLI 환경에서는 배열 반환)
             $draft = $this->article->aiDraft();
@@ -446,10 +452,27 @@ class ScheduleArticleWriter
                 throw new \Exception('AI Draft 응답이 배열이 아님');
             }
             
-            if (empty($draft['success']) || empty($draft['data'])) {
+            // 디버그: 전체 응답 출력
+            $this->writeLog("    응답 데이터: " . json_encode($draft, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+            
+            if (empty($draft['success'])) {
                 $errorMsg = $draft['msg'] ?? '알 수 없는 오류';
                 $this->writeLog("    ✗ AI Draft 실패: {$errorMsg}");
+                
+                // 추가 디버그 정보
+                if (isset($draft['error'])) {
+                    $this->writeLog("    에러 상세: " . json_encode($draft['error'], JSON_UNESCAPED_UNICODE));
+                }
+                if (isset($draft['debug'])) {
+                    $this->writeLog("    디버그 정보: " . json_encode($draft['debug'], JSON_UNESCAPED_UNICODE));
+                }
+                
                 throw new \Exception('AI 기사 초안 생성 실패: ' . $errorMsg);
+            }
+            
+            if (empty($draft['data'])) {
+                $this->writeLog("    ✗ AI Draft data가 비어있음");
+                throw new \Exception('AI 기사 초안 데이터가 비어있습니다.');
             }
             
             $this->writeLog("  ✓ 초안 생성 완료");
@@ -474,8 +497,22 @@ class ScheduleArticleWriter
                 }
             }
             
+            // 5. 차트 생성 (옵션)
+            $chartInfo = null;
+            if ($makeChart && !empty($chartData)) {
+                $this->writeLog("  차트 생성 중...");
+                $chartTitle = $articleData['title'] ?? '데이터 차트';
+                $chartInfo = $this->generateChart($chartData, $chartTitle);
+                
+                if ($chartInfo['success']) {
+                    $this->writeLog("  ✓ 차트 생성 완료");
+                } else {
+                    $this->writeLog("  ✗ 차트 생성 실패 (계속 진행)");
+                }
+            }
+            
             // 6. 본문 HTML 생성
-            $reviewContent = $this->buildReviewContent($articleData, $imageInfo);
+            $reviewContent = $this->buildReviewContent($articleData, $imageInfo, $chartInfo);
             
             // 7. 기사 저장
             $this->writeLog("  기사 저장 중...");
@@ -540,9 +577,18 @@ class ScheduleArticleWriter
                 throw new \Exception('aiSave 응답이 배열이 아님');
             }
             
+            // 디버그: 저장 결과 출력
+            $this->writeLog("    저장 결과: " . json_encode($saveResult, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+            
             if (empty($saveResult['success'])) {
                 $errorMsg = $saveResult['msg'] ?? '알 수 없는 오류';
                 $this->writeLog("    ✗ 저장 실패: {$errorMsg}");
+                
+                // 추가 디버그 정보
+                if (isset($saveResult['error'])) {
+                    $this->writeLog("    에러 상세: " . json_encode($saveResult['error'], JSON_UNESCAPED_UNICODE));
+                }
+                
                 throw new \Exception('기사 저장 실패: ' . $errorMsg);
             }
             

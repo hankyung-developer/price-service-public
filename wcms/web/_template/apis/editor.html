@@ -1796,8 +1796,11 @@ function loadExistingData() {
     
     if(config && config.type) {
         
+        // 스케줄 타입 정규화 (year -> yearly)
+        var scheduleType = config.type === 'year' ? 'yearly' : config.type;
+        
         // 스케줄 타입에 따라 탭 활성화
-        switchTab(config.type);
+        switchTab(scheduleType);
         
         // 중첩된 구조에서 데이터 추출 (기존 DB 구조 지원)
         var scheduleDataToUse = config;
@@ -1808,13 +1811,13 @@ function loadExistingData() {
         
         // 시간 설정 복원
         if(scheduleDataToUse.startTime) {
-            $('#' + config.type + 'StartTime').val(scheduleDataToUse.startTime);
+            $('#' + scheduleType + 'StartTime').val(scheduleDataToUse.startTime);
         }
         if(scheduleDataToUse.endTime) {
-            $('#' + config.type + 'EndTime').val(scheduleDataToUse.endTime);
+            $('#' + scheduleType + 'EndTime').val(scheduleDataToUse.endTime);
         }
         if(scheduleDataToUse.interval) {
-            $('#' + config.type + 'Interval').val(scheduleDataToUse.interval);
+            $('#' + scheduleType + 'Interval').val(scheduleDataToUse.interval);
         }
         
         // 선택된 항목들 복원
@@ -1869,7 +1872,7 @@ function loadExistingData() {
             });
         }
 
-        if(config.type === 'yearly' && scheduleDataToUse.months) {
+        if((config.type === 'yearly' || config.type === 'year') && scheduleDataToUse.months) {
             // 기존 체크박스 모두 해제
             $('#yearly-content input[type="checkbox"]').prop('checked', false);
             
@@ -1887,7 +1890,7 @@ function loadExistingData() {
         }
         
         // 선택된 항목 표시 업데이트
-        updateSelectedDisplay(config.type);
+        updateSelectedDisplay(scheduleType);
         
         // 스케줄 요약 업데이트
         updateScheduleSummary();
@@ -2155,8 +2158,8 @@ function bindApiModalEvents() {
         var phpPath = '';
         var startIdx = 0;
 
-        // result로 시작하는 경우 startIdx 조정
-        if (pathArray.length > 0 && pathArray[0] === 'result') {
+        // result 또는 data로 시작하는 경우 startIdx 조정 (root 노드 건너뛰기)
+        if (pathArray.length > 0 && (pathArray[0] === 'result' || pathArray[0] === 'data')) {
             startIdx = 1;
         }
         
@@ -2197,7 +2200,9 @@ function bindApiModalEvents() {
         apiData = subItems;
 
         $("#listTag").val(phpPath);
-        getUrlData(false); // 필드 자동 채우기
+        
+        // ROOT 선택 시 이미 가져온 데이터로 필드 채우기
+        populateFieldsFromApiData(subItems);
 
         $("#apiResponseModal").remove();
     });
@@ -3384,41 +3389,52 @@ function populateFieldsFromAI(fields) {
 function applyScheduleSettings(schedule) {
     if (!schedule.type) return;
     
+    // 스케줄 타입 정규화 (year -> yearly)
+    var scheduleType = schedule.type === 'year' ? 'yearly' : schedule.type;
+    
     // 스케줄 타입에 따라 탭 전환
-    switchTab(schedule.type);
+    switchTab(scheduleType);
     
     // 시간 설정
     if (schedule.startTime) {
-        $('#' + schedule.type + 'StartTime').val(schedule.startTime);
+        $('#' + scheduleType + 'StartTime').val(schedule.startTime);
     }
     if (schedule.endTime) {
-        $('#' + schedule.type + 'EndTime').val(schedule.endTime);
+        $('#' + scheduleType + 'EndTime').val(schedule.endTime);
     }
     if (schedule.interval) {
-        $('#' + schedule.type + 'Interval').val(schedule.interval);
+        $('#' + scheduleType + 'Interval').val(schedule.interval);
     }
     
     // 요일/일자/분기/월 설정
     if (schedule.type === 'weekly' && schedule.days) {
-        schedule.days.forEach(function(day) {
+        // 문자열인 경우 배열로 변환
+        var days = Array.isArray(schedule.days) ? schedule.days : schedule.days.split(',').map(function(d) { return d.trim(); });
+        days.forEach(function(day) {
             $('#weekly-content input[value="' + day + '"]').prop('checked', true);
         });
     } else if (schedule.type === 'monthly' && schedule.days) {
-        schedule.days.forEach(function(day) {
+        // 문자열인 경우 배열로 변환
+        var days = Array.isArray(schedule.days) ? schedule.days : schedule.days.split(',').map(function(d) { return d.trim(); });
+        days.forEach(function(day) {
             $('#monthly-content input[value="' + day + '"]').prop('checked', true);
         });
     } else if (schedule.type === 'quarterly' && schedule.quarters) {
-        schedule.quarters.forEach(function(quarter) {
+        // 문자열인 경우 배열로 변환
+        var quarters = Array.isArray(schedule.quarters) ? schedule.quarters : schedule.quarters.split(',').map(function(q) { return q.trim(); });
+        quarters.forEach(function(quarter) {
             $('#quarterly-content input[value="' + quarter + '"]').prop('checked', true);
         });
-    } else if (schedule.type === 'yearly' && schedule.months) {
-        schedule.months.forEach(function(month) {
+    } else if ((schedule.type === 'yearly' || schedule.type === 'year') && schedule.months) {
+        // 문자열인 경우 배열로 변환
+        var months = Array.isArray(schedule.months) ? schedule.months : schedule.months.split(',').map(function(m) { return m.trim(); });
+        months.forEach(function(month) {
             $('#yearly-content input[value="' + month + '"]').prop('checked', true);
         });
     }
     
     // 선택된 항목 표시 업데이트
-    updateSelectedDisplay(schedule.type);
+    updateSelectedDisplay(scheduleType);
     updateScheduleSummary();
 }
 

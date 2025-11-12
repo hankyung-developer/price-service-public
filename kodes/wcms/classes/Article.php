@@ -810,10 +810,19 @@ class Article
                 'max_tokens' => self::ARTICLE_MAX_TOKENS
             ]);
             
-            // 응답 데이터에 chart_data 추가
-            if($response['success'] && isset($response['data'])){
-                $response['data']['chart_data'] = $chartData;
+            // AI 응답 실패 시 에러 반환
+            if (!$response['success']) {
+                $errorMsg = $response['msg'] ?? $response['error'] ?? 'AI 응답 실패';
+                throw new \Exception($errorMsg);
             }
+            
+            // 응답 데이터 확인
+            if (empty($response['data'])) {
+                throw new \Exception('AI 응답 데이터가 비어있습니다.');
+            }
+            
+            // 응답 데이터에 chart_data 추가
+            $response['data']['chart_data'] = $chartData;
             
             $result = [ 'success' => true, 'data' => $response['data'] ];
 			

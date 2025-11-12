@@ -49,7 +49,7 @@ class GPT extends AIInterface
     {
         $this->coId = $this->common->coId;
         $this->siteDocPath = $this->common->config['path']['data'].'/'.$this->coId;
-        $company = $this->json->readJsonFile($this->siteDocPath.'/config', $this->coId.'_company');
+        $company = $this->json->readJsonFile('/webSiteSource/wcms/config', $this->coId.'_company');
         
         // AiLog 초기화
         if (!$this->aiLog) {

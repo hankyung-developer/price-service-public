@@ -222,12 +222,32 @@ class Apis
             if(preg_match_all('/{date[^}]*}/', $url, $matches)){
                 $index = array_search('{date}',$matches[0]);
                 if($index !== false){
-                    $date= date($dateChar, strtotime("-7 day"));
+                    // 날짜 형식에 따라 적절한 이전 기간으로 처리
+                    $timeOffset = "-1 day"; // 기본값
+                    
+                    // 년별 형식 (Y)
+                    if (preg_match('/^[Yy]$/i', $dateChar)) {
+                        $timeOffset = "-1 year";
+                    }
+                    // 월별 형식 (Y-m, Ym, Y-n, Yn 등)
+                    else if (preg_match('/^[Yy][-_\/]?[mn]$/i', $dateChar)) {
+                        $timeOffset = "-1 month";
+                    }
+                    // 주일별 형식 (Y-W, YW 등)
+                    else if (preg_match('/^[Yy][-_\/]?[Ww]$/i', $dateChar)) {
+                        $timeOffset = "-1 week";
+                    }
+                    // 일별 형식 (Y-m-d, Ymd, Y/m/d 등)
+                    else if (preg_match('/^[Yy][-_\/]?[mn][-_\/]?[dj]$/i', $dateChar)) {
+                        $timeOffset = "last monday";
+                    }
+                    
+                    $date= date($dateChar, strtotime($timeOffset));
                     unset($matches[0][$index]);
                 }else{
                     $date = date($dateChar);
                 }
-                $url = str_replace('{date}', date($dateChar, strtotime($date)), $url);
+                $url = str_replace('{date}', $date, $url);
 
                 foreach($matches[0] as $match){
                     $str = str_replace(['date','{','}'], [$date,'',''], $match);
@@ -252,7 +272,7 @@ class Apis
             if(empty($url)){
                 throw new \Exception("URL이 비어있습니다.", 400);
             }
-            
+
             // 디버그 로그
             error_log("=== API 호출 시작 ===");
             error_log("URL: " . $url);

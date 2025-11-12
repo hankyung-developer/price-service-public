@@ -438,78 +438,151 @@ class AllApiDataCollector
     }
 
     /**
-     * API 호출
+     * API 호출 (재시도 로직 포함)
+     * 
+     * @param string $url API URL
+     * @param string $returnType 반환 타입 (JSON|XML)
+     * @param string $headerParam 커스텀 헤더
+     * @param int $retryCount 현재 재시도 횟수 (내부 사용)
+     * @return array 파싱된 API 응답 데이터
+     * @throws Exception API 호출 실패 시
      */
-    private function callApi($url, $returnType = 'JSON', $headerParam = '')
+    private function callApi($url, $returnType = 'JSON', $headerParam = '', $retryCount = 0)
     {
-        $this->log("API 호출: {$url}", 'WARNING');
+        // 재시도 설정
+        $maxRetries = 5;           // 최대 재시도 횟수
+        $retryDelay = 2;           // 재시도 간 대기 시간 (초)
         
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'HKPrice-All-API-Collector/2.0');
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
-        // 요청 헤더 설정: API 설정에 헤더가 있으면 해당 헤더 사용, 없으면 기본 헤더 사용
-        if (!empty($headerParam)) {
-            $requestHeaders = [];
-            $normalizedHeader = str_replace(["\r\n", "\r"], "\n", $headerParam);
-            foreach (explode("\n", $normalizedHeader) as $headerLine) {
-                $headerLine = trim($headerLine);
-                if ($headerLine === '') {
-                    continue;
-                }
-                if (strpos($headerLine, ':') !== false) {
-                    $parts = explode(':', $headerLine, 2);
-                    $headerName = trim($parts[0]);
-                    $headerValue = trim($parts[1]);
-                    $requestHeaders[] = $headerName . ': ' . $headerValue;
-                } else {
-                    // 콜론이 없는 비정상적인 헤더 라인은 그대로 전달
-                    $requestHeaders[] = $headerLine;
-                }
-            }
-            if (!empty($requestHeaders)) {
-                curl_setopt($ch, CURLOPT_HTTPHEADER, $requestHeaders);
-            }
+        // 재시도 로그
+        if ($retryCount > 0) {
+            $this->log("API 재시도 ({$retryCount}/{$maxRetries}): {$url}", 'WARNING');
         } else {
-            curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                'Accept: application/json, application/xml, text/xml, */*',
-                'Accept-Language: ko-KR,ko;q=0.9,en;q=0.8',
-                'Cache-Control: no-cache'
-            ]);
+            $this->log("API 호출: {$url}", 'WARNING');
         }
         
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
-        $curlError = curl_error($ch);
-        curl_close($ch);
-        
-        if ($response === false) {
-            throw new Exception("cURL 오류: " . $curlError);
+        try {
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_USERAGENT, 'HKPrice-All-API-Collector/2.0');
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
+            
+            // 요청 헤더 설정: API 설정에 헤더가 있으면 해당 헤더 사용, 없으면 기본 헤더 사용
+            if (!empty($headerParam)) {
+                $requestHeaders = [];
+                $normalizedHeader = str_replace(["\r\n", "\r"], "\n", $headerParam);
+                foreach (explode("\n", $normalizedHeader) as $headerLine) {
+                    $headerLine = trim($headerLine);
+                    if ($headerLine === '') {
+                        continue;
+                    }
+                    if (strpos($headerLine, ':') !== false) {
+                        $parts = explode(':', $headerLine, 2);
+                        $headerName = trim($parts[0]);
+                        $headerValue = trim($parts[1]);
+                        $requestHeaders[] = $headerName . ': ' . $headerValue;
+                    } else {
+                        // 콜론이 없는 비정상적인 헤더 라인은 그대로 전달
+                        $requestHeaders[] = $headerLine;
+                    }
+                }
+                if (!empty($requestHeaders)) {
+                    curl_setopt($ch, CURLOPT_HTTPHEADER, $requestHeaders);
+                }
+            } else {
+                curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                    'Accept: application/json, application/xml, text/xml, */*',
+                    'Accept-Language: ko-KR,ko;q=0.9,en;q=0.8',
+                    'Cache-Control: no-cache'
+                ]);
+            }
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+            $curlError = curl_error($ch);
+            $curlErrno = curl_errno($ch);
+            curl_close($ch);
+            
+            // cURL 오류 발생 시
+            if ($response === false) {
+                // 타임아웃 관련 오류 코드 확인
+                $isTimeoutError = in_array($curlErrno, [
+                    CURLE_OPERATION_TIMEDOUT,  // 28: 타임아웃
+                    CURLE_COULDNT_CONNECT,     // 7: 연결 실패
+                    CURLE_COULDNT_RESOLVE_HOST // 6: 호스트 해석 실패
+                ]);
+                
+                // 타임아웃 또는 연결 오류이고 재시도 횟수가 남은 경우
+                if ($isTimeoutError && $retryCount < $maxRetries) {
+                    $this->log("연결 오류 발생 (errno: {$curlErrno}): {$curlError} - {$retryDelay}초 후 재시도", 'WARNING');
+                    sleep($retryDelay);
+                    return $this->callApi($url, $returnType, $headerParam, $retryCount + 1);
+                }
+                
+                // 재시도 횟수 초과 또는 재시도 불가능한 오류
+                throw new Exception("cURL 오류 (errno: {$curlErrno}): " . $curlError);
+            }
+            
+            // HTTP 오류 코드 확인
+            if ($httpCode < 200 || $httpCode >= 300) {
+                // 5xx 서버 오류인 경우 재시도
+                if ($httpCode >= 500 && $httpCode < 600 && $retryCount < $maxRetries) {
+                    $this->log("서버 오류 발생 (HTTP {$httpCode}) - {$retryDelay}초 후 재시도", 'WARNING');
+                    sleep($retryDelay);
+                    return $this->callApi($url, $returnType, $headerParam, $retryCount + 1);
+                }
+                
+                throw new Exception("HTTP 오류 코드: " . $httpCode);
+            }
+            
+            // 응답 데이터 파싱
+            // 응답 데이터의 첫 글자가 '<'이면 XML, 아니면 JSON으로 처리
+            if (isset($response[0]) && $response[0] === '<') {
+                $data = json_decode(json_encode(simplexml_load_string($response, "SimpleXMLElement", LIBXML_NOCDATA)), true);
+            } else {
+                $data = json_decode($response, true);
+            }
+            
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new Exception("JSON 파싱 오류: " . json_last_error_msg());
+            }
+            
+            // 재시도 성공 시 로그
+            if ($retryCount > 0) {
+                $this->log("API 재시도 성공 ({$retryCount}번째 시도)", 'INFO');
+            }
+            
+            return $data;
+            
+        } catch (Exception $e) {
+            // 예외 발생 시 재시도 가능한지 확인
+            $errorMsg = $e->getMessage();
+            $isRetryableError = (
+                strpos($errorMsg, 'timeout') !== false ||
+                strpos($errorMsg, 'timed out') !== false ||
+                strpos($errorMsg, 'connection') !== false ||
+                strpos($errorMsg, 'Connection refused') !== false
+            );
+            
+            // 재시도 가능한 오류이고 재시도 횟수가 남은 경우
+            if ($isRetryableError && $retryCount < $maxRetries) {
+                $this->log("재시도 가능한 오류 발생: {$errorMsg} - {$retryDelay}초 후 재시도", 'WARNING');
+                sleep($retryDelay);
+                return $this->callApi($url, $returnType, $headerParam, $retryCount + 1);
+            }
+            
+            // 재시도 불가능하거나 재시도 횟수 초과
+            if ($retryCount > 0) {
+                $this->log("API 재시도 실패 ({$retryCount}/{$maxRetries}): {$errorMsg}", 'ERROR');
+            }
+            
+            throw $e;
         }
-        
-        if ($httpCode < 200 || $httpCode >= 300) {
-            throw new Exception("HTTP 오류 코드: " . $httpCode);
-        }
-        
-        // 응답 데이터 파싱
-        // 응답 데이터의 첫 글자가 '<'이면 XML, 아니면 JSON으로 처리
-        if (isset($response[0]) && $response[0] === '<') {
-            $data = json_decode(json_encode(simplexml_load_string($response, "SimpleXMLElement", LIBXML_NOCDATA)), true);
-        } else {
-            $data = json_decode($response, true);
-        }
-        
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new Exception("JSON 파싱 오류: " . json_last_error_msg());
-        }
-        
-        return $data;
     }
 
     /**
@@ -520,6 +593,7 @@ class AllApiDataCollector
         $parsedData = [];
         
         // listTag를 사용하여 데이터 추출
+        
         $listTag = $api['listTag'] ?? "['data']['item']";
         $listPath = $this->parseListTag($listTag);
         $items = $this->getNestedValue($responseData, $listPath);
@@ -527,7 +601,6 @@ class AllApiDataCollector
         if (empty($items) || !is_array($items)) {
             throw new Exception("리스트 데이터를 찾을 수 없습니다.");
         }
-        
         
         foreach ($items as $index => $item) {
             // 조건 평가 먼저 수행

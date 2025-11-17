@@ -90,6 +90,9 @@ class ScheduleArticleWriter
     /** @var bool 디버그 모드 */
     private $debug = true;
     
+    /** @var DateTime 스크립트 시작 시간 (모든 스케줄 판단의 기준) */
+    private $executionTime;
+    
     /**
      * 생성자
      */
@@ -100,6 +103,10 @@ class ScheduleArticleWriter
         $this->article = new Article();
         $this->aiSetting = new AiSetting();
         $this->log = new Log();
+        
+        // 스크립트 시작 시점의 시간을 기준 시간으로 저장
+        // 여러 스케줄 처리 중에도 동일한 기준 시간 사용 (예: 09:30에 시작했으면 모든 스케줄이 09:30 기준으로 판단)
+        $this->executionTime = new DateTime();
         
         // 로그 디렉토리 생성
         $logDir = dirname(__DIR__) . '/cron/logs';
@@ -215,15 +222,15 @@ class ScheduleArticleWriter
         $config = $schedule['scheduleConfig'];
         $type = $config['type'] ?? '';
         
-        // 현재 시간
-        $now = new DateTime();
-        $currentTime = $now->format('H:i');
-        $currentDayOfWeek = (int)$now->format('N'); // 1(월) ~ 7(일)
-        $currentDayOfMonth = (int)$now->format('d');
-        $currentMonth = (int)$now->format('m');
+        // 스크립트 시작 시점의 시간을 기준으로 판단 (여러 스케줄 처리 시에도 동일한 기준 적용)
+        // 예: 09:30에 시작했으면, 첫 번째 스케줄 처리 후 09:31이 되더라도 모든 스케줄은 09:30 기준으로 판단
+        $currentTime = $this->executionTime->format('H:i');
+        $currentDayOfWeek = (int)$this->executionTime->format('N'); // 1(월) ~ 7(일)
+        $currentDayOfMonth = (int)$this->executionTime->format('d');
+        $currentMonth = (int)$this->executionTime->format('m');
         
-        $this->writeLog("  타입: {$type}, 현재시간: {$currentTime}");
-        $this->writeLog("  현재 상태 - 요일: {$currentDayOfWeek}, 날짜: {$currentDayOfMonth}, 월: {$currentMonth}");
+        $this->writeLog("  타입: {$type}, 기준시간: {$currentTime}");
+        $this->writeLog("  기준 상태 - 요일: {$currentDayOfWeek}, 날짜: {$currentDayOfMonth}, 월: {$currentMonth}");
         
         // 마지막 실행 시간 체크 (1분 이내 중복 실행 방지)
         // 크론이 매분 실행되어 같은 분(09:00:XX) 내에서 여러 번 호출되어도 한 번만 실행

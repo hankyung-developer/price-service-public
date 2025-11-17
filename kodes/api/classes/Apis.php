@@ -347,7 +347,15 @@ class Apis
             
             // Content-Type이 명확하지 않을 경우가 많아, 데이터 첫번째 문자로 내용으로 판별
             if(preg_match("/^</",trim($response))){ // XML 형식
-                $data = json_decode(json_encode(simplexml_load_string($response, "SimpleXMLElement", LIBXML_NOCDATA)), true);
+                // XML 파싱 후 루트 요소 이름 포함
+                $xml = simplexml_load_string($response, "SimpleXMLElement", LIBXML_NOCDATA);
+                if ($xml === false) {
+                    throw new \Exception("XML 파싱에 실패했습니다.");
+                }
+                $rootName = $xml->getName(); // 루트 요소 이름 가져오기 (예: 'response')
+                $parsedData = json_decode(json_encode($xml), true);
+                // 루트 요소를 포함한 구조로 반환
+                $data = [$rootName => $parsedData];
             }else if(preg_match("/^[{|\[]/",trim($response))){ // JSON 형식
                 $data = json_decode($response, true);
             }else{

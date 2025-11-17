@@ -57,3 +57,8 @@ yarn-error.log*
 *.backup
 *.old
 
+# 한경 기사 전송 프로그램
+wcms/cron/sendToHkWcms.php
+
+# sar 로그 생성 스크립트
+wcms/cron/sarLog.sh

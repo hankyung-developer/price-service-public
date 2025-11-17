@@ -305,8 +305,8 @@
 							<label for="isUse">
 								사용여부
 								<select id="isUse" name="isUse">
-									<option value="Y" {? result.item.isUse != 'N'}selected{/}>사용</option>
-									<option value="N" {? result.item.isUse == 'N'}selected{/}>미사용</option>
+									<option value="Y" {? result.item.isUse == true}selected{/}>사용</option>
+									<option value="N" {? result.item.isUse != true}selected{/}>미사용</option>
 								</select>
 							</label>
 						</div>

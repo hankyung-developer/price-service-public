@@ -2,6 +2,49 @@
 <html lang="ko">
 <head>
     {# head}
+    <style>
+        /* 스케줄 정보 표시 스타일 개선 */
+        .schedule-info {
+            line-height: 1.8;
+        }
+        .schedule-info > div {
+            margin: 3px 0;
+        }
+        .schedule-info .badge {
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+        .schedule-info .weekdays {
+            font-weight: 600;
+            color: #2563eb;
+        }
+        .schedule-info .red {
+            font-weight: 500;
+        }
+        
+        /* 데이터 정보 표시 스타일 */
+        .data-info {
+            line-height: 1.8;
+            font-size: 0.9em;
+        }
+        .data-info > div {
+            margin: 4px 0;
+        }
+        .data-info strong {
+            color: #374151;
+            font-size: 0.9em;
+        }
+        .data-info .item-count {
+            color: #3b82f6;
+            font-weight: 600;
+        }
+        .data-info .item-preview {
+            color: #6b7280;
+            font-size: 0.9em;
+        }
+    </style>
 </head>
 <body>
     {# left}
@@ -35,7 +78,8 @@
                             <tr>
                                 <th><input type="checkbox" id="chkSelectAll"/></th>
                                 <th>명칭</th>
-                                <th>내용</th>
+                                <th>데이터 정보</th>
+                                <th>동작시간</th>
                                 <th>사용여부</th>
                                 <th>생성일자</th>
                                 <th>수정일자</th>
@@ -46,10 +90,92 @@
                             <tr data-collection="{.collection}">
                                 <td><input type="checkbox" name="apiSelect" value="{.id}"/></td>
                                 <td><strong><a href="/aiSetting/scheduleEdit?idx={.idx}" class="title" title="{.title}">{? empty(.title)}<span class="red">제목없음</span>{:}{.title}{/}</a></strong></td>
-                                <td>{? empty(.content)}<span class="red">내용없음</span>{:}{.content}{/}</td>
-                                <td>{? .isUse}사용{:}미사용{/}</td>
-                                <td>{=substr(.insert.date,0,10)}<br/>({.insert.managerName})</td>
-                                <td>{=substr(.update.date,0,10)}<br/>({.update.managerName})</td>
+                                <td class="data-info">
+                                    {? !empty(.categoryName)}
+                                        <div><strong>📂 카테고리:</strong> {.categoryName}</div>
+                                    {:}
+                                        <div><span class="red">⚠ 카테고리 미설정</span></div>
+                                    {/}
+                                    
+                                    {? !empty(.selectedItems)}
+                                        <div><strong>📦 선택 품목:</strong> 
+                                            <span class="item-count">{=count(.selectedItems)}개</span>
+                                            <span class="item-preview" title="{? is_array(.selectedItems)}{=implode(', ', array_column(.selectedItems, 'title'))}{/}">
+                                                ({? is_array(.selectedItems) && count(.selectedItems) > 0}
+                                                    {=.selectedItems[0].title}
+                                                    {? count(.selectedItems) > 1} 외 {=count(.selectedItems)-1}개{/}
+                                                {/})
+                                            </span>
+                                        </div>
+                                    {:}
+                                        <div><strong>📦 선택 품목:</strong> <span style="color: #6b7280;">자동 선택</span></div>
+                                    {/}
+                                    
+                                    <div><strong>📅 조회 기간:</strong> 
+                                        {? .dataPeriod == '7'}1주일
+                                        {: .dataPeriod == '30'}1개월
+                                        {: .dataPeriod == '90'}3개월
+                                        {: .dataPeriod == '180'}6개월
+                                        {: .dataPeriod == '365'}1년
+                                        {:}1주일{/}
+                                    </div>
+                                </td>
+                                <td class="schedule-info">
+                                    {? .scheduleConfig.type == 'daily'}
+                                        <span class="badge badge-gray">매일</span>
+                                            {? empty(.scheduleConfig.daily.time)}
+                                                <span class="red">⚠ 시간 미설정</span>
+                                            {:}
+                                                🕐 {=.scheduleConfig.daily.time}
+                                            {/}
+                                    {: .scheduleConfig.type == 'weekly'}
+                                        <span class="badge badge-blue">매주</span>
+                                            {? !empty(.scheduleConfig.weekly.days)}
+                                                📅 <span class="weekdays" data-days="{=implode(',', .scheduleConfig.weekly.days)}">{=implode(',', .scheduleConfig.weekly.days)}</span>
+                                            {:}
+                                                <span class="red">⚠ 요일 미설정</span>
+                                            {/}
+                                            {? empty(.scheduleConfig.weekly.time)}
+                                                <span class="red">⚠ 시간 미설정</span>
+                                            {:}
+                                                🕐 {=.scheduleConfig.weekly.time}
+                                            {/}
+                                    {: .scheduleConfig.type == 'monthly'}
+                                        <span class="badge badge-green">매월</span>
+                                            {? !empty(.scheduleConfig.monthly.dates)}
+                                                📅 매월 {=implode(', ', .scheduleConfig.monthly.dates)}일
+                                            {:}
+                                                <span class="red">⚠ 날짜 미설정</span>
+                                            {/}
+                                            {? empty(.scheduleConfig.monthly.time)}
+                                                <span class="red">⚠ 시간 미설정</span>
+                                            {:}
+                                                🕐 {=.scheduleConfig.monthly.time}
+                                            {/}
+                                    {: .scheduleConfig.type == 'yearly'}
+                                        <span class="badge badge-purple">매년</span>
+                                            {? !empty(.scheduleConfig.yearly.months)}
+                                                📅 {=implode(', ', .scheduleConfig.yearly.months)}월
+                                                {? !empty(.scheduleConfig.yearly.dates)}
+                                                    {=implode(', ', .scheduleConfig.yearly.dates)}일
+                                                {:}
+                                                    <span class="red">⚠ 일 미설정</span>
+                                                {/}
+                                            {:}
+                                                <span class="red">⚠ 월 미설정</span>
+                                            {/}
+                                            {? empty(.scheduleConfig.yearly.time)}
+                                                <span class="red">⚠ 시간 미설정</span>
+                                            {:}
+                                                🕐 {=.scheduleConfig.yearly.time}
+                                            {/}
+                                    {:}
+                                        <span class="red">⚠ 스케줄 정보없음</span>
+                                    {/}
+                                </td>
+                                <td>{? .isUse}<span style="color: green;">✓ 사용</span>{:}<span style="color: gray;">✕ 미사용</span>{/}</td>
+                                <td>{=substr(.insert.date,0,10)}<br/><small>({.insert.managerName})</small></td>
+                                <td>{=substr(.update.date,0,10)}<br/><small>({.update.managerName})</small></td>
                             </tr>
                             {/}
                         </tbody>
@@ -80,7 +206,45 @@
 </dialog>
 
 <script type="text/javascript">
+    /**
+     * 요일 숫자를 한글로 변환하는 함수
+     * @param {string|number} dayNum - 요일 숫자 (0=일요일, 1=월요일, ..., 6=토요일)
+     * @returns {string} 한글 요일
+     */
+    function convertDayToKorean(dayNum) {
+        const days = {
+            '0': '일',
+            '1': '월',
+            '2': '화',
+            '3': '수',
+            '4': '목',
+            '5': '금',
+            '6': '토'
+        };
+        return days[String(dayNum)] || dayNum;
+    }
+
+    /**
+     * 페이지 로드 시 모든 요일 숫자를 한글로 변환
+     */
+    function convertWeekdaysToKorean() {
+        $('.weekdays').each(function() {
+            const daysData = $(this).attr('data-days');
+            if (daysData) {
+                // 콤마로 구분된 요일 숫자를 배열로 변환
+                const dayNumbers = daysData.split(',').map(d => d.trim());
+                // 각 숫자를 한글 요일로 변환
+                const koreanDays = dayNumbers.map(convertDayToKorean);
+                // 변환된 요일을 표시 (예: 월, 화, 수, 목, 금)
+                $(this).text(koreanDays.join(', '));
+            }
+        });
+    }
+
     $(document).ready(function(){
+        // 요일 숫자를 한글로 변환
+        convertWeekdaysToKorean();
+
         $('#insertBtn').click(function(){
             location.href='/aiSetting/scheduleEdit';
         });

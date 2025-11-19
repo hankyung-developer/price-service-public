@@ -506,6 +506,8 @@ class ScheduleArticleWriter
             
             // 5. 차트 생성 (옵션)
             $chartInfo = null;
+            $makeChart = false; // 차트생성되지 않도록 처리
+
             if ($makeChart && !empty($chartData)) {
                 $this->writeLog("  차트 생성 중...");
                 $chartTitle = $articleData['title'] ?? '데이터 차트';

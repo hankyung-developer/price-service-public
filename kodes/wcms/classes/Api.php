@@ -66,19 +66,8 @@ class Api{
             $response['executionTime'] = $executionTime . 'ms';
         }
         
-        // CORS 헤더 설정 (보안 강화: 특정 도메인만 허용)
-        // TODO: 실제 프로덕션 환경에서는 허용할 도메인을 명시적으로 설정하세요
-        $allowedOrigins = [
-            'https://www.hankyung.com',
-            'https://price.hankyung.com',
-            'http://localhost'
-        ];
-        
-        $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-        if (in_array($origin, $allowedOrigins)) {
-            header('Access-Control-Allow-Origin: ' . $origin);
-        }
-        
+        // CORS 헤더 설정 (크로스 도메인 요청 허용)
+        header('Access-Control-Allow-Origin: *');
         header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
         header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
         header('Access-Control-Allow-Credentials: true');
@@ -221,6 +210,7 @@ class Api{
                     } else {
                         $filter['categoryId'] = ['$regex' => $pattern, '$options' => ''];
                     }
+                    $filter[$sortField] = ['$nin' => ["", null]];
                 }
                 if(!empty($sortField) && !empty($sortDirection)){
                     $sortOption = [$sortField => $sortDirection];
@@ -238,7 +228,7 @@ class Api{
             // 정렬 옵션 (날짜 오름차순)
             $options = [
                 'sort' => $sortOption,
-                'projection' => ['_id' => 0,'insert'=>0, 'update'=>0,'coId'=>0]
+                'projection' => ['_id' => 0,'insert'=>0, 'update'=>0,'coId'=>0,'rid'=>0,'id'=>0,'kind'=>0,'grade'=>0,'market'=>0,'gradeCode'=>0]
             ];
 
             // 데이터 조회
@@ -312,7 +302,7 @@ class Api{
 
             $options = [
                 'sort' => ['date' => -1, 'grade' => 1, 'market' => 1],
-                'projection' => ['_id' => 0, 'insert' => 0, 'update' => 0, 'coId' => 0,'id'=>0, 'rid'=>0 ],
+                'projection' => ['_id' => 0, 'insert' => 0, 'update' => 0, 'coId' => 0,'id'=>0, 'rid'=>0, 'gradeCode'=>0, 'marketCode'=>0, 'categoryId'=>0, 'gradeCode'=>0],
                 'limit' => $limit,
                 'skip' => ($page - 1) * $limit
             ];
@@ -496,7 +486,10 @@ class Api{
         }
         
         // 배열 인덱스를 숫자로 변환
-        return array_values($groupedData);
+        $result = array_values($groupedData);
+        
+        // 최대 100개까지만 반환
+        return array_slice($result, 0, 10);
     }
     
     

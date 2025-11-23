@@ -722,11 +722,18 @@ class Article
 			// AI Prompt 생성 (최적화)
 			$chartDataJson = json_encode($chartData, JSON_UNESCAPED_UNICODE);
 			
-			$prompt = $articlePrompt['content'];
+			$prompt = "🚨🚨🚨 CRITICAL RULE: You MUST use ONLY the FIRST element (index 0) from each item's 'data' array. DO NOT look at the 'date' field. DO NOT search for the latest date. ONLY use data[0]. 🚨🚨🚨\n\n";
+			$prompt .= "🚨🚨🚨 절대 규칙: 각 품목의 'data' 배열에서 오직 첫 번째 요소(인덱스 0)만 사용하세요. 'date' 필드를 보지 마세요. 최신 날짜를 찾지 마세요. data[0]만 사용하세요. 🚨🚨🚨\n\n";
+			$prompt .= $articlePrompt['content'];
 			$prompt .= "\n\n=== 카테고리 ===\n{$categoryName}\n";
 			$prompt .= "\n=== 선택된 품목 ===\n" . implode(', ', $itemNames) . "\n";
 			$prompt .= "\n=== 템플릿 ===\n제목: {$template['title']}\n본문: {$template['content']}\n";
-			$prompt .= "\n=== 시장 데이터 ===\n{$chartDataJson}\n";
+			$prompt .= "\n=== 시장 데이터 ===\n{$chartDataJson}\n\n";
+			$prompt .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+			$prompt .= "🚨🚨🚨 CRITICAL: Use ONLY data[0] from each item's data array! 🚨🚨🚨\n";
+			$prompt .= "🚨🚨🚨 절대 규칙: 각 품목 data 배열의 첫 번째(인덱스 0)만 사용! 🚨🚨🚨\n";
+			$prompt .= "🚨🚨🚨 DO NOT look at 'date' field! DO NOT find latest date! 🚨🚨🚨\n";
+			$prompt .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
 			$prompt .= "\n=== 사용자 요청 ===\n{$userPrompt}\n\n";
 			
 			$prompt .= "=== 작성 요구사항 ===\n";
@@ -739,21 +746,30 @@ class Article
 			$prompt .= "   - 변동률 색상: 양수 #dc3545(빨강), 음수 #007bff(파랑), 0% #000(검정)\n";
 			$prompt .= "4. \\n\\n으로 문단 구분\n\n";
 			
-			$prompt .= "=== ⚠️ 데이터 사용 규칙 (매우 중요) ===\n";
-			$prompt .= "1. **데이터 구조**: 위 '시장 데이터'는 {'data': [품목배열]} 형식이며, 각 품목은 {'name': '품목명', 'data': [날짜별데이터]} 구조입니다\n";
-			$prompt .= "2. **표 작성 순서**: 제공된 data 배열을 oneWeekAgoChange 값으로 내림차순 정렬한 후, 상위 5개 품목만 선택하여 표를 작성하세요\n";
-			$prompt .= "3. **데이터 추출**: 각 품목의 data 배열에서 첫 번째 항목(data[0])의 값만 사용하세요\n";
-			$prompt .= "4. **필드 사용**:\n";
-			$prompt .= "   - 현재가: price 필드\n";
-			$prompt .= "   - 1주전가격: oneWeekAgoPrice 필드\n";
-			$prompt .= "   - 1주변동률: oneWeekAgoChange 필드\n";
-			$prompt .= "   - 품목명: itemName 또는 name 필드\n";
-			$prompt .= "5. **절대 금지**: JSON에 없는 숫자를 만들거나 계산하지 마세요. 제공된 값을 그대로 사용하세요\n\n";
-			$prompt .= "✅ **표 작성 예시**:\n";
-			$prompt .= "1. oneWeekAgoChange로 정렬 → 상위 5개 선택\n";
-			$prompt .= "2. 각 품목의 data[0]에서: {\"itemName\":\"파\", \"price\":9000, \"oneWeekAgoPrice\":7200, \"oneWeekAgoChange\":25.0}\n";
-			$prompt .= "3. 표: 파 | 9,000원 | 7,200원 | +25.0%\n\n";
+			$prompt .= "=== 🚨 데이터 추출 규칙 (절대 준수!) ===\n\n";
+			$prompt .= "**STEP-BY-STEP 표 작성 방법**:\n";
+			$prompt .= "1. 시장 데이터의 첫 번째 품목 선택: 시장데이터.data[0]\n";
+			$prompt .= "2. 그 품목의 data 배열에서 첫 번째 요소만 선택: 시장데이터.data[0].data[0]\n";
+			$prompt .= "3. 필요한 필드 추출: .name, .price, .oneWeekAgoPrice, .oneWeekAgoChange\n";
+			$prompt .= "4. 2-5번째 품목도 동일하게: data[1].data[0], data[2].data[0], data[3].data[0], data[4].data[0]\n\n";
+			$prompt .= "🔒 **절대 금지 사항**:\n";
+			$prompt .= "❌ 'date' 필드를 읽거나 비교하는 행위\n";
+			$prompt .= "❌ 최신 날짜를 찾는 행위\n";
+			$prompt .= "❌ data[1], data[2], data[3] 등 data[0]이 아닌 인덱스 사용\n";
+			$prompt .= "❌ 여러 날짜 데이터를 비교하는 행위\n";
+			$prompt .= "❌ 숫자를 계산하거나 수정하는 행위\n\n";
+			$prompt .= "✅ **허용되는 유일한 방법**:\n";
+			$prompt .= "각 품목의 data 배열에서 **오직 첫 번째 요소(인덱스 0)만** 사용\n\n";
 			$prompt .= "🖼️ **이미지 프롬프트**: 품목명을 간단한 영문 명사로 변환 (예: '깐마늘(국산)' → 'garlic')\n\n";
+			
+			$prompt .= "🚨🚨🚨 표 작성 전 필수 확인 (체크리스트) 🚨🚨🚨\n";
+			$prompt .= "□ 각 품목의 data 배열에서 오직 data[0](첫 번째)만 사용했습니까?\n";
+			$prompt .= "□ date 필드를 전혀 보지 않았습니까?\n";
+			$prompt .= "□ 최신 날짜를 찾거나 비교하지 않았습니까?\n";
+			$prompt .= "□ data[1], data[2] 등을 사용하지 않았습니까?\n";
+			$prompt .= "□ JSON의 정확한 숫자를 수정 없이 그대로 사용했습니까?\n";
+			$prompt .= "□ 위 예시의 '올바름'과 일치합니까?\n\n";
+			$prompt .= "모든 항목에 체크할 수 없다면, 다시 처음부터 작성하세요!\n\n";
 			
 			$prompt .= "=== 출력 형식 ===\n```json\n{\n";
 			$prompt .= '  "title": "제목 (10-15자)",'."\n";
@@ -764,6 +780,23 @@ class Article
 			$prompt .= "}```\n\n";
 			
 			$prompt .= "⚠️ 주의: JSON 완전히 종료, 중간에 잘리지 않게, 표는 HTML 형식, 모든 수치는 제공된 데이터에서만 가져올 것\n\n";
+			$prompt .= "=== 📝 실제 예시 (매우 중요!) ===\n\n";
+			$prompt .= "예시 1 - 미나리:\n";
+			$prompt .= "{\"name\": \"미나리\", \"data\": [\n";
+			$prompt .= "  {\"date\": \"2025-11-20\", \"price\": 55000, \"oneWeekAgoPrice\": 37000, \"oneWeekAgoChange\": 48.65},  ← data[0] 사용!\n";
+			$prompt .= "  {\"date\": \"2025-11-21\", \"price\": 47100, \"oneWeekAgoPrice\": 37000, \"oneWeekAgoChange\": 27.3}   ← 무시!\n";
+			$prompt .= "]}\n";
+			$prompt .= "✅ 올바름: 미나리 | 55,000원 | 37,000원 | +48.65%\n";
+			$prompt .= "❌ 틀림: 미나리 | 47,100원 | 37,000원 | +27.3%\n\n";
+			$prompt .= "예시 2 - 붉은고추:\n";
+			$prompt .= "{\"name\": \"붉은고추\", \"data\": [\n";
+			$prompt .= "  {\"date\": \"2025-11-20\", \"price\": 176000, \"oneWeekAgoPrice\": 130000, \"oneWeekAgoChange\": 35.38},  ← data[0] 사용!\n";
+			$prompt .= "  {\"date\": \"2025-11-19\", \"price\": 153000, \"oneWeekAgoPrice\": 130000, \"oneWeekAgoChange\": 17.69},   ← 무시!\n";
+			$prompt .= "  {\"date\": \"2025-11-21\", \"price\": 183000, \"oneWeekAgoPrice\": 157000, \"oneWeekAgoChange\": 16.56}    ← 무시!\n";
+			$prompt .= "]}\n";
+			$prompt .= "✅ 올바름: 붉은고추 | 176,000원 | 130,000원 | +35.38%\n";
+			$prompt .= "❌ 틀림: 붉은고추 | 183,000원 | 157,000원 | +16.6% (data[2] 사용 - 절대 금지!)\n";
+			$prompt .= "❌ 틀림: 붉은고추 | 153,000원 | 130,000원 | +17.69% (data[1] 사용 - 절대 금지!)\n\n";
 			$prompt .= "=== 표 HTML 예시 ===\n";
 			$prompt .= "<table>\n";
 			$prompt .= "  <thead>\n";
@@ -771,7 +804,7 @@ class Article
 			$prompt .= "      <th style=\"text-align: left\">품목</th>\n";	
 			$prompt .= "      <th style=\"text-align: right\">현재가</th>\n";
 			$prompt .= "      <th style=\"text-align: right\">1주전</th>\n";
-			$prompt .= "      <th style=\"text-align: right\">변동률</th>\n";
+			$prompt .= "      <th style=\"text-align: right\">1주전 변동률</th>\n";
 			$prompt .= "    </tr>\n";
 			$prompt .= "  </thead>\n";
 			$prompt .= "  <tbody>\n";

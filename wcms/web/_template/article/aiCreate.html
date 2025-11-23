@@ -1108,7 +1108,7 @@
                 const startDate = getDateBefore(7);
                 
                 // API URL 구성
-                const url = 'https://price-api.hankyung.com/api/data?categoryId=' + encodeURIComponent(categoryId) + '&startDate=' + startDate + '&sortField=prevDayChange&sortOrder=desc';
+                const url = 'https://price-api.hankyung.com/api/data?categoryId=' + encodeURIComponent(categoryId) + '&startDate=' + startDate + '&sortField=oneWeekAgoChange&sortOrder=desc';
                 debug('API 호출:', url);
                 
                 showLoading('품목 데이터 로딩중...', '잠시만 기다려주세요.');
@@ -1139,7 +1139,8 @@
                         kind: (v.data && v.data[0] && v.data[0].kind) || '',
                         grade: (v.data && v.data[0] && v.data[0].grade) || '',
                         price: (v.data && v.data[0] && v.data[0].price) || '',
-                        prevDayPrice: (v.data && v.data[0] && v.data[0].prevDayPrice) || ''
+                        oneWeekAgoPrice: (v.data && v.data[0] && v.data[0].oneWeekAgoPrice) || '',
+                        oneWeekAgoChange: (v.data && v.data[0] && v.data[0].oneWeekAgoChange) || ''
                     };
                 }).filter(item => item.id && item.title);
                 
@@ -2117,8 +2118,8 @@
                 { text: '종류', field: 'kind', width: '20%', align: 'left' },
                 { text: '등급', field: 'grade', width: '10%', align: 'center' },
                 { text: '가격', field: 'price', width: '15%', align: 'right' },
-                { text: '전일가격', field: 'prevDayPrice', width: '15%', align: 'right' },
-                { text: '변동', field: 'change', width: '10%', align: 'right' }
+                { text: '1주전가격', field: 'oneWeekAgoPrice', width: '15%', align: 'right' },
+                { text: '1주변동', field: 'change', width: '10%', align: 'right' }
             ];
             
             headers.forEach(header => {
@@ -2189,17 +2190,25 @@
                 filtered.sort((a, b) => {
                     let aVal, bVal;
                     
-                    if (sortColumn === 'price' || sortColumn === 'prevDayPrice') {
+                    if (sortColumn === 'price' || sortColumn === 'oneWeekAgoPrice') {
                         aVal = parseFloat(a[sortColumn]) || 0;
                         bVal = parseFloat(b[sortColumn]) || 0;
                     } else if (sortColumn === 'change') {
-                        const aPrice = parseFloat(a.price) || 0;
-                        const aPrevPrice = parseFloat(a.prevDayPrice) || 0;
-                        const bPrice = parseFloat(b.price) || 0;
-                        const bPrevPrice = parseFloat(b.prevDayPrice) || 0;
+                        // oneWeekAgoChange 값이 있으면 그대로 사용, 없으면 계산
+                        aVal = parseFloat(a.oneWeekAgoChange) || 0;
+                        bVal = parseFloat(b.oneWeekAgoChange) || 0;
                         
-                        aVal = aPrevPrice > 0 ? ((aPrice - aPrevPrice) / aPrevPrice) * 100 : 0;
-                        bVal = bPrevPrice > 0 ? ((bPrice - bPrevPrice) / bPrevPrice) * 100 : 0;
+                        // 만약 change 값이 없으면 직접 계산
+                        if (aVal === 0) {
+                            const aPrice = parseFloat(a.price) || 0;
+                            const aWeekAgoPrice = parseFloat(a.oneWeekAgoPrice) || 0;
+                            aVal = aWeekAgoPrice > 0 ? ((aPrice - aWeekAgoPrice) / aWeekAgoPrice) * 100 : 0;
+                        }
+                        if (bVal === 0) {
+                            const bPrice = parseFloat(b.price) || 0;
+                            const bWeekAgoPrice = parseFloat(b.oneWeekAgoPrice) || 0;
+                            bVal = bWeekAgoPrice > 0 ? ((bPrice - bWeekAgoPrice) / bWeekAgoPrice) * 100 : 0;
+                        }
                     } else {
                         aVal = String(a[sortColumn] || '').toLowerCase();
                         bVal = String(b[sortColumn] || '').toLowerCase();
@@ -2228,8 +2237,8 @@
                         tr.className = 'selected';
                     }
                     
-                    // 가격 변동 계산
-                    const changeInfo = calculateChange(item.price, item.prevDayPrice);
+                    // 가격 변동 계산 (1주전 기준)
+                    const changeInfo = calculateChange(item.price, item.oneWeekAgoPrice);
                     
                     tr.innerHTML = 
                         '<td style="text-align:center;">' + (isSelected ? '✓' : '') + '</td>' +
@@ -2237,7 +2246,7 @@
                         '<td>' + (item.kind || '-') + '</td>' +
                         '<td style="text-align:center;">' + (item.grade || '-') + '</td>' +
                         '<td style="text-align:right;"><strong>' + formatPrice(item.price) + '</strong></td>' +
-                        '<td style="text-align:right;">' + formatPrice(item.prevDayPrice) + '</td>' +
+                        '<td style="text-align:right;">' + formatPrice(item.oneWeekAgoPrice) + '</td>' +
                         '<td style="text-align:right;" class="' + changeInfo.class + '">' +
                         '<strong>' + changeInfo.symbol + ' ' + Math.abs(changeInfo.percent) + '%</strong>' +
                         '</td>';

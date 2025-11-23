@@ -660,62 +660,64 @@ class Article
 			$_GET['sid'] = implode(",", array_column($items,"id"));
 			$_GET['startDate']= date("Y-m-d", strtotime("-7 days"));
 			$_GET['endDate'] = date("Y-m-d");
+			$_GET['sortField'] = 'oneWeekAgoChange';
+			$_GET['sortOrder'] = 'desc';
 			$chartData = $api->data();
 
-		// 카테고리 정보 가져오기
-		$category = new Category();
-		$categoryInfo = $category->getHierarchy($categoryId);
-		$categoryName = '';
-		$firstDepthCategoryId = '';
-		
-		if (!empty($categoryInfo['data'])) {
-			// 1depth 카테고리 ID 가져오기 (첫 번째 항목)
-			$firstCategory = reset($categoryInfo['data']);
-			$firstDepthCategoryId = isset($firstCategory['id']) ? $firstCategory['id'] : '';
+			// 카테고리 정보 가져오기
+			$category = new Category();
+			$categoryInfo = $category->getHierarchy($categoryId);
+			$categoryName = '';
+			$firstDepthCategoryId = '';
 			
-			// 계층 구조의 마지막 항목(가장 하위 카테고리) 이름 가져오기
-			$lastCategory = end($categoryInfo['data']);
-			$categoryName = isset($lastCategory['name']) ? $lastCategory['name'] : '';
-		}
-
-		// 카테고리 타입 판별 (1depth 카테고리 ID 기반)
-		// hkp001: 농수산물, hkp002: 생필품, hkp003: 축산물, hkp004: 원자재
-		$categoryType = '';
-		$isAgricultural = false;
-		
-		if (!empty($firstDepthCategoryId)) {
-			if (strpos($firstDepthCategoryId, 'hkp001') === 0) {
-				$categoryType = '농수산물';
-				$isAgricultural = true;
-			} elseif (strpos($firstDepthCategoryId, 'hkp002') === 0) {
-				$categoryType = '생필품';
-				$isAgricultural = true;
-			} elseif (strpos($firstDepthCategoryId, 'hkp003') === 0) {
-				$categoryType = '축산물';
-				$isAgricultural = true;
-			} elseif (strpos($firstDepthCategoryId, 'hkp004') === 0) {
-				$categoryType = '원자재';
-				$isAgricultural = false;
+			if (!empty($categoryInfo['data'])) {
+				// 1depth 카테고리 ID 가져오기 (첫 번째 항목)
+				$firstCategory = reset($categoryInfo['data']);
+				$firstDepthCategoryId = isset($firstCategory['id']) ? $firstCategory['id'] : '';
+				
+				// 계층 구조의 마지막 항목(가장 하위 카테고리) 이름 가져오기
+				$lastCategory = end($categoryInfo['data']);
+				$categoryName = isset($lastCategory['name']) ? $lastCategory['name'] : '';
 			}
-		}
 
-		// 선택된 품목명 추출
-		$itemNames = [];
-		foreach ($items as $item) {
-			if (isset($item['title'])) {
-				$itemNames[] = $item['title'];
+			// 카테고리 타입 판별 (1depth 카테고리 ID 기반)
+			// hkp001: 농수산물, hkp002: 생필품, hkp003: 축산물, hkp004: 원자재
+			$categoryType = '';
+			$isAgricultural = false;
+			
+			if (!empty($firstDepthCategoryId)) {
+				if (strpos($firstDepthCategoryId, 'hkp001') === 0) {
+					$categoryType = '농수산물';
+					$isAgricultural = true;
+				} elseif (strpos($firstDepthCategoryId, 'hkp002') === 0) {
+					$categoryType = '생필품';
+					$isAgricultural = true;
+				} elseif (strpos($firstDepthCategoryId, 'hkp003') === 0) {
+					$categoryType = '축산물';
+					$isAgricultural = true;
+				} elseif (strpos($firstDepthCategoryId, 'hkp004') === 0) {
+					$categoryType = '원자재';
+					$isAgricultural = false;
+				}
 			}
-		}
-		$itemsText = !empty($itemNames) ? implode(', ', $itemNames) . '. ' : '';
-		
-		// 카테고리별 이미지 프롬프트 가이드
-		if ($isAgricultural) {
-			// 농수산물: 시장/식품 이미지
-			$imagePromptGuide = "{$itemsText} Professional photojournalism, Korean market, fresh produce, bright natural lighting, market scene, natural documentary style, professional food photography, Korean style";
-		} else {
-			// 원자재: 전문적인 산업/금융 이미지 (시장/식품 이미지 절대 금지)
-			$imagePromptGuide = "{$itemsText} Commodity materials, professional industrial photography, high quality product shot, studio lighting, metallic surface, raw material, industrial product, commercial photography for financial news, modern industrial aesthetic, clean composition, professional business photography, NOT market NOT vegetables NOT food NOT produce NOT groceries";
-		}
+
+			// 선택된 품목명 추출
+			$itemNames = [];
+			foreach ($items as $item) {
+				if (isset($item['title'])) {
+					$itemNames[] = $item['title'];
+				}
+			}
+			$itemsText = !empty($itemNames) ? implode(', ', $itemNames) . '. ' : '';
+			
+			// 카테고리별 이미지 프롬프트 가이드
+			if ($isAgricultural) {
+				// 농수산물: 시장/식품 이미지
+				$imagePromptGuide = "{$itemsText} Professional photojournalism, Korean market, fresh produce, bright natural lighting, market scene, natural documentary style, professional food photography, Korean style";
+			} else {
+				// 원자재: 전문적인 산업/금융 이미지 (시장/식품 이미지 절대 금지)
+				$imagePromptGuide = "{$itemsText} Commodity materials, professional industrial photography, high quality product shot, studio lighting, metallic surface, raw material, industrial product, commercial photography for financial news, modern industrial aesthetic, clean composition, professional business photography, NOT market NOT vegetables NOT food NOT produce NOT groceries";
+			}
 
 			// AI Prompt 생성 (최적화)
 			$chartDataJson = json_encode($chartData, JSON_UNESCAPED_UNICODE);
@@ -729,39 +731,44 @@ class Article
 			
 			$prompt .= "=== 작성 요구사항 ===\n";
 			$prompt .= "1. 템플릿과 비슷한 분량 (8-12문단, 1200-1800자)\n";
-			$prompt .= "2. 본문 마지막에 표 포함 (상위 5개 품목, 현재가/1주일전/변동률)\n";
+			$prompt .= "2. 본문 마지막에 표 포함 (현재가/1주전가격/1주변동률)\n";
 			$prompt .= "3. 표 HTML 스타일:\n";
 			$prompt .= "   - <table> 태그 사용\n";
-			$prompt .= "   - 품목명(텍스트): 좌측 정렬 (style=\"text-align: left\")\n";
-			$prompt .= "   - 가격, 변동률(숫자): 우측 정렬 (style=\"text-align: right\")\n";
-			$prompt .= "   - 변동률 색상: 상승(양수) #dc3545(빨강), 하락(음수) #007bff(파랑), 0% #000(검정)\n";
+			$prompt .= "   - 품목명: 좌측정렬 (style=\"text-align: left\")\n";
+			$prompt .= "   - 가격/변동률: 우측정렬 (style=\"text-align: right\")\n";
+			$prompt .= "   - 변동률 색상: 양수 #dc3545(빨강), 음수 #007bff(파랑), 0% #000(검정)\n";
 			$prompt .= "4. \\n\\n으로 문단 구분\n\n";
 			
-		$prompt .= "=== ⚠️ 필수 준수 사항 (매우 중요) ===\n";
-		$prompt .= "1. **데이터 정확성**: 위의 '시장 데이터'에 제공된 수치만 사용할 것. 절대로 임의의 숫자를 만들어내지 말 것\n";
-		$prompt .= "2. **표 작성 시**: 반드시 제공된 실제 데이터의 가격, 날짜, 변동률을 그대로 사용할 것\n";
-		$prompt .= "3. **품목 정보**: 제공된 품목(sid, name, kind, grade) 정보만 사용할 것\n";
-		$prompt .= "4. **날짜 정확성**: 제공된 데이터의 실제 날짜를 사용할 것\n";
-		$prompt .= "5. **가격 정확성**: 제공된 price, prevDayPrice 등의 값을 정확히 사용할 것\n";
-		$prompt .= "6. **계산 정확성**: 변동률 계산 시 제공된 데이터로만 계산할 것\n";
-		$prompt .= "7. **표 스타일**: 품목명은 좌측정렬, 가격/변동률은 우측정렬, 0%는 검정색(#000) 표시\n";
-		$prompt .= "8. **이미지 프롬프트**: 품목명을 반드시 간단한 일반 명사로 변환하여 영문으로 작성 (예: '깐마늘(국산) 1kg' → 'garlic', '사과(부사)' → 'apple')\n";
-		$prompt .= "❗ 위 규칙을 위반하여 임의의 수치를 사용하면 안 됩니다. 제공된 데이터가 없으면 해당 내용을 생략하세요.\n\n";
+			$prompt .= "=== ⚠️ 데이터 사용 규칙 (매우 중요) ===\n";
+			$prompt .= "1. **데이터 구조**: 위 '시장 데이터'는 {'data': [품목배열]} 형식이며, 각 품목은 {'name': '품목명', 'data': [날짜별데이터]} 구조입니다\n";
+			$prompt .= "2. **표 작성 순서**: 제공된 data 배열을 oneWeekAgoChange 값으로 내림차순 정렬한 후, 상위 5개 품목만 선택하여 표를 작성하세요\n";
+			$prompt .= "3. **데이터 추출**: 각 품목의 data 배열에서 첫 번째 항목(data[0])의 값만 사용하세요\n";
+			$prompt .= "4. **필드 사용**:\n";
+			$prompt .= "   - 현재가: price 필드\n";
+			$prompt .= "   - 1주전가격: oneWeekAgoPrice 필드\n";
+			$prompt .= "   - 1주변동률: oneWeekAgoChange 필드\n";
+			$prompt .= "   - 품목명: itemName 또는 name 필드\n";
+			$prompt .= "5. **절대 금지**: JSON에 없는 숫자를 만들거나 계산하지 마세요. 제공된 값을 그대로 사용하세요\n\n";
+			$prompt .= "✅ **표 작성 예시**:\n";
+			$prompt .= "1. oneWeekAgoChange로 정렬 → 상위 5개 선택\n";
+			$prompt .= "2. 각 품목의 data[0]에서: {\"itemName\":\"파\", \"price\":9000, \"oneWeekAgoPrice\":7200, \"oneWeekAgoChange\":25.0}\n";
+			$prompt .= "3. 표: 파 | 9,000원 | 7,200원 | +25.0%\n\n";
+			$prompt .= "🖼️ **이미지 프롬프트**: 품목명을 간단한 영문 명사로 변환 (예: '깐마늘(국산)' → 'garlic')\n\n";
 			
-		$prompt .= "=== 출력 형식 ===\n```json\n{\n";
-		$prompt .= '  "title": "제목 (10-15자)",'."\n";
-		$prompt .= '  "subtitle": "부제목 (20-30자)",'."\n";
-		$prompt .= '  "content": "본문 (표 포함, 제공된 실제 데이터만 사용)",'."\n";
-		$prompt .= '  "tags": ["태그1", "태그2", "태그3"],'."\n";
-		$prompt .= '  "image_prompt": "영문 프롬프트 - 품목명은 반드시 간단한 일반 명사로 변환할 것 (예: 깐마늘(국산) 1kg → garlic, 사과(부사) → apple, 말린 고추 → pepper). 괄호, 단위, 수식어 모두 제거하고 핵심 품목명만 사용. ('.$imagePromptGuide.')"'."\n";
-		$prompt .= "}```\n\n";
+			$prompt .= "=== 출력 형식 ===\n```json\n{\n";
+			$prompt .= '  "title": "제목 (10-15자)",'."\n";
+			$prompt .= '  "subtitle": "부제목 (20-30자)",'."\n";
+			$prompt .= '  "content": "본문 (표 포함, 제공된 실제 데이터만 사용)",'."\n";
+			$prompt .= '  "tags": ["태그1", "태그2", "태그3"],'."\n";
+			$prompt .= '  "image_prompt": "영문 프롬프트 - 품목명은 반드시 간단한 일반 명사로 변환할 것 (예: 깐마늘(국산) 1kg → garlic, 사과(부사) → apple, 말린 고추 → pepper). 괄호, 단위, 수식어 모두 제거하고 핵심 품목명만 사용. ('.$imagePromptGuide.')"'."\n";
+			$prompt .= "}```\n\n";
 			
 			$prompt .= "⚠️ 주의: JSON 완전히 종료, 중간에 잘리지 않게, 표는 HTML 형식, 모든 수치는 제공된 데이터에서만 가져올 것\n\n";
 			$prompt .= "=== 표 HTML 예시 ===\n";
 			$prompt .= "<table>\n";
 			$prompt .= "  <thead>\n";
 			$prompt .= "    <tr>\n";
-			$prompt .= "      <th style=\"text-align: left\">품목</th>\n";
+			$prompt .= "      <th style=\"text-align: left\">품목</th>\n";	
 			$prompt .= "      <th style=\"text-align: right\">현재가</th>\n";
 			$prompt .= "      <th style=\"text-align: right\">1주전</th>\n";
 			$prompt .= "      <th style=\"text-align: right\">변동률</th>\n";

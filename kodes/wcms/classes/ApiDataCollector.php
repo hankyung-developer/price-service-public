@@ -457,7 +457,21 @@ abstract class ApiDataCollector
                     // date 필드는 기존의 eval/date 처리 로직 적용
                     if (strpos($defaultValue, 'date(') !== false || strpos($defaultValue, 'strtotime(') !== false) {
                         try {
-                            $curDate = isset($this->currentDate) && $this->currentDate !== '' ? strtotime($this->currentDate) : time();
+                            // 날짜 형식이 Ym, Y-m, Y/m 인 경우 01일을 붙여서 완전한 날짜로 보정하여 오류 방지
+                            $tempDate = isset($this->currentDate) ? $this->currentDate : '';
+                            
+                            if ($tempDate !== '') {
+                                if (preg_match('/^\d{6}$/', $tempDate)) {
+                                    $tempDate .= '01'; // 202510 -> 20251001
+                                } elseif (preg_match('/^\d{4}-\d{2}$/', $tempDate)) {
+                                    $tempDate .= '-01'; // 2025-10 -> 2025-10-01
+                                } elseif (preg_match('/^\d{4}\/\d{2}$/', $tempDate)) {
+                                    $tempDate .= '/01'; // 2025/10 -> 2025/10/01
+                                }
+                                $curDate = strtotime($tempDate);
+                            } else {
+                                $curDate = time();
+                            }
                             $evalCode = $defaultValue;
                             $evalCode = str_replace('$curDate', "'{$curDate}'", $evalCode);
                             $value = eval("return {$evalCode};");
@@ -492,6 +506,8 @@ abstract class ApiDataCollector
             if (is_string($value)) {
                 $value = trim($value);
             }
+
+            print_r($value);
 
             $parsedItem[$field] = $value;
         }

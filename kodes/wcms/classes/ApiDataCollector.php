@@ -507,8 +507,6 @@ abstract class ApiDataCollector
                 $value = trim($value);
             }
 
-            print_r($value);
-
             $parsedItem[$field] = $value;
         }
         

@@ -368,6 +368,25 @@ class Image
             // ID 생성 (타임스탬프 + 랜덤)
             $fileId = date('YmdHis') . substr(md5(uniqid()), 0, 8);
 
+            // 파일 정보 가져오기 (실제 파일에서 크기/MIME 타입 추출)
+            $mimeType = '';
+            $fileSize = 0;
+            $fileInfo = [0, 0]; // width, height 기본값
+            
+            if (file_exists($webPath)) {
+                // 파일 크기
+                $fileSize = filesize($webPath);
+                
+                // MIME 타입
+                $mimeType = mime_content_type($webPath);
+                
+                // 이미지 크기 (width, height)
+                $imageSizeInfo = @getimagesize($webPath);
+                if ($imageSizeInfo !== false) {
+                    $fileInfo = $imageSizeInfo;
+                }
+            }
+
             // DB에 저장할 데이터 구조
             $fileData = [
                 'id' => $fileId,

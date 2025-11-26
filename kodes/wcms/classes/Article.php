@@ -2052,6 +2052,7 @@ HTML;
 			
 			if (!empty($articleInfo['image']) && is_array($articleInfo['image'])) {
 				$imagePath = $articleInfo['image']['path'] ?? '';
+				$imageId = $articleInfo['image']['id'] ?? '';  // DB에 저장된 이미지 ID (mediaid로 사용)
 				
 
 				if (!empty($imagePath)) {
@@ -2066,6 +2067,7 @@ HTML;
 					$this->debug("이미지 파일 확인", [
 						'original_path' => $imagePath,
 						'full_path' => $imageFullPath,
+						'image_id' => $imageId,
 						'exists' => file_exists($imageFullPath)
 					]);
 					
@@ -2075,11 +2077,16 @@ HTML;
 						
 						// 이미지 복사
 						if (copy($imageFullPath, $newImagePath)) {
+							// mediaid 필드 추가 (한경CMS에서 필수)
 							$images[] = [
 								'path' => 'images/' . $imageFilename,
-								'caption' => $articleInfo['title'] ?? ''
+								'caption' => $articleInfo['title'] ?? '',
+								'mediaid' => $imageId  // DB에 저장된 이미지 ID
 							];
-							$this->debug("이미지 복사 완료", $newImagePath);
+							$this->debug("이미지 복사 완료", [
+								'path' => $newImagePath,
+								'mediaid' => $imageId
+							]);
 						} else {
 							$this->debug("이미지 복사 실패", $newImagePath, 'WARNING');
 						}

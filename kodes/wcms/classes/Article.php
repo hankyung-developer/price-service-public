@@ -2167,74 +2167,77 @@ HTML;
 				}
 			}
 
-			// 5. 본문 HTML 생성 (aiSave의 body 필드 사용)
-			$textContent = '';
+		// 5. 본문 HTML 생성 - 개행 문자를 <br> 태그로 변환
+		$textContent = '';
+		
+		if (!empty($articleInfo['content'])) {
+			// \n을 <br> 태그로 변환하여 한경CMS에서 개행이 표시되도록 처리
+			// 1. 연속된 \n\n은 <br><br>로 변환 (문단 구분)
+			// 2. 단일 \n은 <br>로 변환 (줄바꿈)
+			$textContent = str_replace("\n", "<br>\n", $articleInfo['content']);
 			
-			if (!empty($articleInfo['content'])) {
-				$contentLines = explode("\n", $articleInfo['content']);
-				foreach ($contentLines as $line) {
-					$line = trim($line);
-					if (!empty($line)) {
-						$textContent .= '<p>' . htmlspecialchars($line, ENT_QUOTES, 'UTF-8') . '</p>';
-					}
-				}
-			}
+			$this->debug("본문 개행 처리 완료", [
+				'original_length' => strlen($articleInfo['content']),
+				'converted_length' => strlen($textContent),
+				'br_count' => substr_count($textContent, '<br>')
+			]);
+		}
 
-			// 6. 해시태그 생성 (aiSave의 tags 배열)
-			$hashtag = '';
-			if (!empty($articleInfo['tags']) && is_array($articleInfo['tags'])) {
-				$hashtag = implode(',', $articleInfo['tags']);
-			}
+		// 6. 해시태그 생성 (aiSave의 tags 배열)
+		$hashtag = '';
+		if (!empty($articleInfo['tags']) && is_array($articleInfo['tags'])) {
+			$hashtag = implode(',', $articleInfo['tags']);
+		}
 
-			// 7. PRICE_LIST 생성 (aiSave의 items 배열)
-			$priceList = [];
-			if (!empty($articleInfo['items']) && is_array($articleInfo['items'])) {
-				$sids = implode(',',array_column($articleInfo['items'],'id'));
-				$_GET['sid'] = $sids;
-				$_GET['startDate'] = date('Y-m-d',strtotime('-3 days'));
-				$api = new Api();
-				$rowData = $api->data();
+		// 7. PRICE_LIST 생성 (aiSave의 items 배열)
+		$priceList = [];
+		if (!empty($articleInfo['items']) && is_array($articleInfo['items'])) {
+			$sids = implode(',',array_column($articleInfo['items'],'id'));
+			$_GET['sid'] = $sids;
+			$_GET['startDate'] = date('Y-m-d',strtotime('-3 days'));
+			$api = new Api();
+			$rowData = $api->data();
 
-				// 중복 제거 및 최대 5개 제한
-				$addedIds = []; // 이미 추가된 ID 추적
-				$maxCount = 5;  // 최대 개수
-				
-				foreach($rowData['data'] as $item){
-					// 최대 개수 체크
-					if (count($priceList) >= $maxCount) {
-						break;
-					}
-					
-					// ID 생성 (hkp 제거)
-					$itemId = str_replace("hkp", '', $item['categoryId']);
-					
-					// 중복 체크 - 이미 추가된 ID는 스킵
-					if (in_array($itemId, $addedIds)) {
-						continue;
-					}
-					
-					// priceList에 추가
-					$priceList[] = [
-						'id' => $itemId,
-						'name' => $item['categoryName']
-					];
-					
-					// 추가된 ID 기록
-					$addedIds[] = $itemId;
+			// 중복 제거 및 최대 5개 제한
+			$addedIds = []; // 이미 추가된 ID 추적
+			$maxCount = 5;  // 최대 개수
+			
+			foreach($rowData['data'] as $item){
+				// 최대 개수 체크
+				if (count($priceList) >= $maxCount) {
+					break;
 				}
 				
-				$this->debug("PRICE_LIST 생성 완료", [
-					'count' => count($priceList),
-					'ids' => $addedIds
-				]);
+				// ID 생성 (hkp 제거)
+				$itemId = str_replace("hkp", '', $item['categoryId']);
+				
+				// 중복 체크 - 이미 추가된 ID는 스킵
+				if (in_array($itemId, $addedIds)) {
+					continue;
+				}
+				
+				// priceList에 추가
+				$priceList[] = [
+					'id' => $itemId,
+					'name' => $item['categoryName']
+				];
+				
+				// 추가된 ID 기록
+				$addedIds[] = $itemId;
 			}
+			
+			$this->debug("PRICE_LIST 생성 완료", [
+				'count' => count($priceList),
+				'ids' => $addedIds
+			]);
+		}
 
-			// 8. JSON 데이터 생성 (hkp202510300001.json 포맷)
-			$jsonData = [
-				'ORGARTICLEID' => $articleInfo['aid'],
-				'TITLE' => $articleInfo['title'] ?? '',
-				'SUBTITLE' => $articleInfo['subtitle'] ?? '',
-				'TEXTCONTENT' => $articleInfo['content'],
+		// 8. JSON 데이터 생성 (hkp202510300001.json 포맷)
+		$jsonData = [
+			'ORGARTICLEID' => $articleInfo['aid'],
+			'TITLE' => $articleInfo['title'] ?? '',
+			'SUBTITLE' => $articleInfo['subtitle'] ?? '',
+			'TEXTCONTENT' => $textContent,  // 개행 처리된 본문 사용
 				'CONTENTS_CODE' => '0400',
 				'ISEMBARGO' => 'N',
 				'EMBARGODATE' => '',

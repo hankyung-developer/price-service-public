@@ -659,12 +659,9 @@ class Article
 			$api = new Api();
 			$_GET['sid'] = implode(",", array_column($items,"id"));
 			$_GET['startDate']= date("Y-m-d", strtotime("-7 days"));
-			$_GET['endDate'] = date("Y-m-d");
-			$_GET['sortField'] = 'oneWeekAgoChange';
-			$_GET['sortOrder'] = 'desc';
 			$chartData = $api->data();
 
-			// 카테고리 정보 가져오기
+		// 카테고리 정보 가져오기
 			$category = new Category();
 			$categoryInfo = $category->getHierarchy($categoryId);
 			$categoryName = '';
@@ -698,42 +695,49 @@ class Article
 				} elseif (strpos($firstDepthCategoryId, 'hkp004') === 0) {
 					$categoryType = '원자재';
 					$isAgricultural = false;
-				}
-			}
+		}
+	}
 
-			// 선택된 품목명 추출
-			$itemNames = [];
-			foreach ($items as $item) {
-				if (isset($item['title'])) {
-					$itemNames[] = $item['title'];
-				}
+		// 선택된 품목명 추출
+		$itemNames = [];
+		foreach ($items as $item) {
+			if (isset($item['title'])) {
+				$itemNames[] = $item['title'];
 			}
-			$itemsText = !empty($itemNames) ? implode(', ', $itemNames) . '. ' : '';
-			
-			// 카테고리별 이미지 프롬프트 가이드
-			if ($isAgricultural) {
-				// 농수산물: 시장/식품 이미지
-				$imagePromptGuide = "{$itemsText} Professional photojournalism, Korean market, fresh produce, bright natural lighting, market scene, natural documentary style, professional food photography, Korean style";
-			} else {
-				// 원자재: 전문적인 산업/금융 이미지 (시장/식품 이미지 절대 금지)
-				$imagePromptGuide = "{$itemsText} Commodity materials, professional industrial photography, high quality product shot, studio lighting, metallic surface, raw material, industrial product, commercial photography for financial news, modern industrial aesthetic, clean composition, professional business photography, NOT market NOT vegetables NOT food NOT produce NOT groceries";
-			}
+		}
+		$itemsText = !empty($itemNames) ? implode(', ', $itemNames) . '. ' : '';
 
-			// AI Prompt 생성 (최적화)
-			$chartDataJson = json_encode($chartData, JSON_UNESCAPED_UNICODE);
-			
-			$prompt = "🚨🚨🚨 CRITICAL RULE: You MUST use ONLY the FIRST element (index 0) from each item's 'data' array. DO NOT look at the 'date' field. DO NOT search for the latest date. ONLY use data[0]. 🚨🚨🚨\n\n";
-			$prompt .= "🚨🚨🚨 절대 규칙: 각 품목의 'data' 배열에서 오직 첫 번째 요소(인덱스 0)만 사용하세요. 'date' 필드를 보지 마세요. 최신 날짜를 찾지 마세요. data[0]만 사용하세요. 🚨🚨🚨\n\n";
-			$prompt .= $articlePrompt['content'];
-			$prompt .= "\n\n=== 카테고리 ===\n{$categoryName}\n";
-			$prompt .= "\n=== 선택된 품목 ===\n" . implode(', ', $itemNames) . "\n";
-			$prompt .= "\n=== 템플릿 ===\n제목: {$template['title']}\n본문: {$template['content']}\n";
-			$prompt .= "\n=== 시장 데이터 ===\n{$chartDataJson}\n\n";
-			$prompt .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-			$prompt .= "🚨🚨🚨 CRITICAL: Use ONLY data[0] from each item's data array! 🚨🚨🚨\n";
-			$prompt .= "🚨🚨🚨 절대 규칙: 각 품목 data 배열의 첫 번째(인덱스 0)만 사용! 🚨🚨🚨\n";
-			$prompt .= "🚨🚨🚨 DO NOT look at 'date' field! DO NOT find latest date! 🚨🚨🚨\n";
-			$prompt .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+		// 카테고리별 이미지 프롬프트 가이드
+		if ($isAgricultural) {
+			// 농수산물: 시장/식품 이미지
+			$imagePromptGuide = "{$itemsText} Professional photojournalism, Korean market, fresh produce, bright natural lighting, market scene, natural documentary style, professional food photography, Korean style";
+		} else {
+			// 원자재: 전문적인 산업/금융 이미지 (시장/식품 이미지 절대 금지)
+			$imagePromptGuide = "{$itemsText} Commodity materials, professional industrial photography, high quality product shot, studio lighting, metallic surface, raw material, industrial product, commercial photography for financial news, modern industrial aesthetic, clean composition, professional business photography, NOT market NOT vegetables NOT food NOT produce NOT groceries";
+		}
+
+		// AI Prompt 생성 (최적화)
+		$chartDataJson = json_encode($chartData, JSON_UNESCAPED_UNICODE);
+
+		$this->debug("차트 데이터 JSON 생성 완료", [
+			'data_length' => strlen($chartDataJson),
+			'item_count' => count($chartData['data'] ?? [])
+		]);
+		
+		$prompt = "🚨🚨🚨 중요 알림: 시장 데이터는 이미 필터링되어 각 품목당 data[0] 하나만 제공됩니다! 🚨🚨🚨\n\n";
+		$prompt .= "✅ 제공된 데이터 구조:\n";
+		$prompt .= "- 각 품목의 'data' 배열에는 오직 1개의 요소만 존재합니다.\n";
+		$prompt .= "- 이것이 바로 사용해야 할 최신 데이터입니다.\n";
+		$prompt .= "- data[0]를 그대로 사용하면 됩니다. 다른 인덱스는 존재하지 않습니다.\n\n";
+		$prompt .= $articlePrompt['content'];
+		$prompt .= "\n=== 템플릿 ===\n제목: {$template['title']}\n본문: {$template['content']}\n";
+		$prompt .= "\n=== 시장 데이터 (이미 필터링됨) ===\n{$chartDataJson}\n\n";
+		$prompt .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+		$prompt .= "✅ 데이터 사용 방법:\n";
+		$prompt .= "각 품목의 data[0]만 사용하세요. (이미 data[0] 하나만 제공됨)\n";
+		$prompt .= "data[1], data[2], data[3], data[4], data[5]는 사용하지 마세요.\n";
+		$prompt .= "제공된 숫자를 수정하지 말고 그대로 사용하세요.\n";
+		$prompt .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
 			$prompt .= "\n=== 사용자 요청 ===\n{$userPrompt}\n\n";
 			
 			$prompt .= "=== 작성 요구사항 ===\n";
@@ -744,59 +748,34 @@ class Article
 			$prompt .= "   - 품목명: 좌측정렬 (style=\"text-align: left\")\n";
 			$prompt .= "   - 가격/변동률: 우측정렬 (style=\"text-align: right\")\n";
 			$prompt .= "   - 변동률 색상: 양수 #dc3545(빨강), 음수 #007bff(파랑), 0% #000(검정)\n";
-			$prompt .= "4. \\n\\n으로 문단 구분\n\n";
-			
-			$prompt .= "=== 🚨 데이터 추출 규칙 (절대 준수!) ===\n\n";
-			$prompt .= "**STEP-BY-STEP 표 작성 방법**:\n";
-			$prompt .= "1. 시장 데이터의 첫 번째 품목 선택: 시장데이터.data[0]\n";
-			$prompt .= "2. 그 품목의 data 배열에서 첫 번째 요소만 선택: 시장데이터.data[0].data[0]\n";
-			$prompt .= "3. 필요한 필드 추출: .name, .price, .oneWeekAgoPrice, .oneWeekAgoChange\n";
-			$prompt .= "4. 2-5번째 품목도 동일하게: data[1].data[0], data[2].data[0], data[3].data[0], data[4].data[0]\n\n";
-			$prompt .= "🔒 **절대 금지 사항**:\n";
-			$prompt .= "❌ 'date' 필드를 읽거나 비교하는 행위\n";
-			$prompt .= "❌ 최신 날짜를 찾는 행위\n";
-			$prompt .= "❌ data[1], data[2], data[3] 등 data[0]이 아닌 인덱스 사용\n";
-			$prompt .= "❌ 여러 날짜 데이터를 비교하는 행위\n";
-			$prompt .= "❌ 숫자를 계산하거나 수정하는 행위\n\n";
-			$prompt .= "✅ **허용되는 유일한 방법**:\n";
-			$prompt .= "각 품목의 data 배열에서 **오직 첫 번째 요소(인덱스 0)만** 사용\n\n";
-			$prompt .= "🖼️ **이미지 프롬프트**: 품목명을 간단한 영문 명사로 변환 (예: '깐마늘(국산)' → 'garlic')\n\n";
-			
-			$prompt .= "🚨🚨🚨 표 작성 전 필수 확인 (체크리스트) 🚨🚨🚨\n";
-			$prompt .= "□ 각 품목의 data 배열에서 오직 data[0](첫 번째)만 사용했습니까?\n";
-			$prompt .= "□ date 필드를 전혀 보지 않았습니까?\n";
-			$prompt .= "□ 최신 날짜를 찾거나 비교하지 않았습니까?\n";
-			$prompt .= "□ data[1], data[2] 등을 사용하지 않았습니까?\n";
-			$prompt .= "□ JSON의 정확한 숫자를 수정 없이 그대로 사용했습니까?\n";
-			$prompt .= "□ 위 예시의 '올바름'과 일치합니까?\n\n";
-			$prompt .= "모든 항목에 체크할 수 없다면, 다시 처음부터 작성하세요!\n\n";
+			$prompt .= "4. <br /><br />으로 문단 구분\n\n";
+		$prompt .= "=== 📊 데이터 추출 규칙 (간단해졌습니다!) ===\n\n";
+		$prompt .= "**STEP-BY-STEP 표 작성 방법**:\n";
+		$prompt .= "1. 시장 데이터의 첫 번째 품목 선택: chartData.data[0]\n";
+		$prompt .= "2. 그 품목의 data[0] 선택: chartData.data[0].data[0]\n";
+		$prompt .= "3. 필요한 필드 추출: .name, .price, .oneWeekAgoPrice, .oneWeekAgoChange\n";
+		$prompt .= "4. 2-5번째 품목도 동일: data[1].data[0], data[2].data[0], data[3].data[0], data[4].data[0]\n\n";
+		$prompt .= "✅ **중요**: 각 품목은 이미 data[0] 하나만 가지고 있으므로 선택의 여지가 없습니다!\n";
+		$prompt .= "제공된 데이터의 숫자를 그대로 사용하기만 하면 됩니다.\n\n";
+		$prompt .= "🖼️ **이미지 프롬프트**: 품목명을 간단한 영문 명사로 변환 (예: '깐마늘(국산)' → 'garlic')\n\n";
 			
 			$prompt .= "=== 출력 형식 ===\n```json\n{\n";
 			$prompt .= '  "title": "제목 (10-15자)",'."\n";
 			$prompt .= '  "subtitle": "부제목 (20-30자)",'."\n";
 			$prompt .= '  "content": "본문 (표 포함, 제공된 실제 데이터만 사용)",'."\n";
-			$prompt .= '  "tags": ["태그1", "태그2", "태그3"],'."\n";
+			$prompt .= '  "tags": ["태그1", "태그2", "태그3"],'." // 태그가 중복되지 않도록 해줘 \n";
 			$prompt .= '  "image_prompt": "영문 프롬프트 - 품목명은 반드시 간단한 일반 명사로 변환할 것 (예: 깐마늘(국산) 1kg → garlic, 사과(부사) → apple, 말린 고추 → pepper). 괄호, 단위, 수식어 모두 제거하고 핵심 품목명만 사용. ('.$imagePromptGuide.')"'."\n";
 			$prompt .= "}```\n\n";
 			
-			$prompt .= "⚠️ 주의: JSON 완전히 종료, 중간에 잘리지 않게, 표는 HTML 형식, 모든 수치는 제공된 데이터에서만 가져올 것\n\n";
-			$prompt .= "=== 📝 실제 예시 (매우 중요!) ===\n\n";
-			$prompt .= "예시 1 - 미나리:\n";
-			$prompt .= "{\"name\": \"미나리\", \"data\": [\n";
-			$prompt .= "  {\"date\": \"2025-11-20\", \"price\": 55000, \"oneWeekAgoPrice\": 37000, \"oneWeekAgoChange\": 48.65},  ← data[0] 사용!\n";
-			$prompt .= "  {\"date\": \"2025-11-21\", \"price\": 47100, \"oneWeekAgoPrice\": 37000, \"oneWeekAgoChange\": 27.3}   ← 무시!\n";
-			$prompt .= "]}\n";
-			$prompt .= "✅ 올바름: 미나리 | 55,000원 | 37,000원 | +48.65%\n";
-			$prompt .= "❌ 틀림: 미나리 | 47,100원 | 37,000원 | +27.3%\n\n";
-			$prompt .= "예시 2 - 붉은고추:\n";
-			$prompt .= "{\"name\": \"붉은고추\", \"data\": [\n";
-			$prompt .= "  {\"date\": \"2025-11-20\", \"price\": 176000, \"oneWeekAgoPrice\": 130000, \"oneWeekAgoChange\": 35.38},  ← data[0] 사용!\n";
-			$prompt .= "  {\"date\": \"2025-11-19\", \"price\": 153000, \"oneWeekAgoPrice\": 130000, \"oneWeekAgoChange\": 17.69},   ← 무시!\n";
-			$prompt .= "  {\"date\": \"2025-11-21\", \"price\": 183000, \"oneWeekAgoPrice\": 157000, \"oneWeekAgoChange\": 16.56}    ← 무시!\n";
-			$prompt .= "]}\n";
-			$prompt .= "✅ 올바름: 붉은고추 | 176,000원 | 130,000원 | +35.38%\n";
-			$prompt .= "❌ 틀림: 붉은고추 | 183,000원 | 157,000원 | +16.6% (data[2] 사용 - 절대 금지!)\n";
-			$prompt .= "❌ 틀림: 붉은고추 | 153,000원 | 130,000원 | +17.69% (data[1] 사용 - 절대 금지!)\n\n";
+		$prompt .= "⚠️ 주의: JSON 완전히 종료, 중간에 잘리지 않게, 표는 HTML 형식, 모든 수치는 제공된 데이터에서만 가져올 것\n\n";
+		$prompt .= "=== 📝 데이터 구조 예시 ===\n\n";
+		$prompt .= "제공되는 데이터는 이미 필터링되어 각 품목당 1개의 데이터만 포함:\n\n";
+		$prompt .= "{\"name\": \"미나리\", \"data\": [\n";
+		$prompt .= "  {\"date\": \"2025-11-20\", \"price\": 55000, \"oneWeekAgoPrice\": 37000, \"oneWeekAgoChange\": 48.65}\n";
+		$prompt .= "]}\n\n";
+		$prompt .= "✅ 사용법: data[0]의 값을 그대로 사용\n";
+		$prompt .= "결과: 미나리 | 55,000원 | 37,000원 | +48.65%\n\n";
+		$prompt .= "⚠️ 주의: 제공된 숫자를 절대 수정하거나 계산하지 마세요!\n\n";
 			$prompt .= "=== 표 HTML 예시 ===\n";
 			$prompt .= "<table>\n";
 			$prompt .= "  <thead>\n";
@@ -2175,12 +2154,6 @@ HTML;
 			// 1. 연속된 \n\n은 <br><br>로 변환 (문단 구분)
 			// 2. 단일 \n은 <br>로 변환 (줄바꿈)
 			$textContent = str_replace("\n", "<br>\n", $articleInfo['content']);
-			
-			$this->debug("본문 개행 처리 완료", [
-				'original_length' => strlen($articleInfo['content']),
-				'converted_length' => strlen($textContent),
-				'br_count' => substr_count($textContent, '<br>')
-			]);
 		}
 
 		// 6. 해시태그 생성 (aiSave의 tags 배열)

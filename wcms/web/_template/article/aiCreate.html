@@ -1108,7 +1108,7 @@
                 const startDate = getDateBefore(7);
                 
                 // API URL 구성
-                const url = 'https://price-api.hankyung.com/api/data?categoryId=' + encodeURIComponent(categoryId) + '&startDate=' + startDate + '&sortField=oneWeekAgoChange&sortOrder=desc';
+                const url = 'https://price-api.hankyung.com/api/data?categoryId=' + encodeURIComponent(categoryId) + '&startDate=' + startDate;
                 debug('API 호출:', url);
                 
                 showLoading('품목 데이터 로딩중...', '잠시만 기다려주세요.');
@@ -1131,8 +1131,8 @@
                 
                 debug('추출된 데이터:', rawList.length, '개');
                 
-                // 품목 리스트 구성
-                const items = rawList.map(function(v){
+                // 품목 리스트 구성 (원본 순서 인덱스 추가)
+                const items = rawList.map(function(v, index){
                     return {
                         id: v.sid || v.id || '',
                         title: v.name || v.title || v.sid || '',
@@ -1140,7 +1140,8 @@
                         grade: (v.data && v.data[0] && v.data[0].grade) || '',
                         price: (v.data && v.data[0] && v.data[0].price) || '',
                         oneWeekAgoPrice: (v.data && v.data[0] && v.data[0].oneWeekAgoPrice) || '',
-                        oneWeekAgoChange: (v.data && v.data[0] && v.data[0].oneWeekAgoChange) || ''
+                        oneWeekAgoChange: (v.data && v.data[0] && v.data[0].oneWeekAgoChange) || '',
+                        originalIndex: index  // 원본 순서 저장
                     };
                 }).filter(item => item.id && item.title);
                 
@@ -1704,19 +1705,37 @@
             
             let html = '';
             const body = document.getElementById('articleBody')?.value || state.draft?.body || '';
-            const paragraphs = body.split('\n\n');
+            
+            // 다양한 개행 방식 처리: <br>, <br/>, <br />, \n\n, \n 등
+            // 1. <br> 태그들을 \n\n으로 통일
+            let normalizedBody = body
+                .replace(/<br\s*\/?>/gi, '\n\n')  // <br>, <br/>, <br /> 등을 \n\n으로 변환
+                .replace(/\n{3,}/g, '\n\n');      // 3개 이상의 연속 줄바꿈은 2개로 통일
+            
+            // 2. 단락으로 분리 (빈 단락 제거)
+            const paragraphs = normalizedBody.split('\n\n').filter(p => p.trim());
+            
+            console.log('총 단락 수:', paragraphs.length);  // 디버깅용
+            
+            // 이미지를 본문의 첫 문장 앞에 삽입
+            if(state.chosen.image && state.chosen.image.url) {
+                html += '<div style="text-align:center;margin:20px auto;max-width:100%;"><img src="' + state.chosen.image.url + '" alt="기사 이미지" style="max-width:100%;width:100%;height:auto;border-radius:8px;"/></div>';
+            }
+            
+            // 차트를 삽입할 위치 계산 (전체 단락의 중간, 예: 전체 단락 수가 10개면 4번째 단락 뒤)
+            // 40% 위치로 조정하여 너무 아래쪽에 가지 않도록 함
+            const chartInsertPosition = Math.max(2, Math.floor(paragraphs.length * 0.4)); // 최소 2번째 단락 뒤, 전체의 40% 위치
+            
+            console.log('차트 삽입 위치:', chartInsertPosition);  // 디버깅용
             
             paragraphs.forEach((para, idx) => {
                 if(para.trim()) {
-                    html += '<p style="margin-bottom:15px;line-height:1.8;">' + para.trim() + '</p>';
+                    // 단락 내의 남은 \n을 <br>로 변환 (한 단락 내 줄바꿈)
+                    const formattedPara = para.trim().replace(/\n/g, '<br>');
+                    html += '<p style="margin-bottom:15px;line-height:1.8;">' + formattedPara + '</p>';
                     
-                    // 첫 번째 단락 후에 이미지 삽입 (본문 너비에 맞게)
-                    if(idx === 0 && state.chosen.image && state.chosen.image.url) {
-                        html += '<div style="text-align:center;margin:20px auto;max-width:100%;"><img src="' + state.chosen.image.url + '" alt="기사 이미지" style="max-width:100%;width:100%;height:auto;border-radius:8px;"/></div>';
-                    }
-                    
-                    // 세 번째 단락 후에 차트 삽입 (본문 너비에 맞게, 높이를 충분히 확보)
-                    if(idx === 2 && state.chosen.chart && state.chosen.chart.url) {
+                    // 중간 위치에 차트 삽입 (iframe으로)
+                    if(idx === chartInsertPosition && state.chosen.chart && state.chosen.chart.url) {
                         html += '<div style="margin:20px auto;padding:15px;background:#f8f9fa;border-radius:8px;max-width:100%;">';
                         html += '<iframe id="reviewChartFrame" src="' + state.chosen.chart.url + '" ';
                         html += 'style="max-width:100%;width:100%;height:600px;border:none;border-radius:4px;background:#ffffff;display:block;margin:0 auto;" ';
@@ -1781,12 +1800,20 @@
             if (!textarea || !rendered) return;
             
             const content = textarea.value || '';
-            const paragraphs = content.split('\n\n');
+            
+            // <br> 태그를 \n\n으로 통일
+            let normalizedContent = content
+                .replace(/<br\s*\/?>/gi, '\n\n')
+                .replace(/\n{3,}/g, '\n\n');
+            
+            const paragraphs = normalizedContent.split('\n\n');
             
             let html = '';
             paragraphs.forEach((para) => {
                 if (para.trim()) {
-                    html += '<p style="margin-bottom: 15px; line-height: 1.8; font-size: 16px;">' + para.trim() + '</p>';
+                    // 단락 내의 남은 \n을 <br>로 변환
+                    const formattedPara = para.trim().replace(/\n/g, '<br>');
+                    html += '<p style="margin-bottom: 15px; line-height: 1.8; font-size: 16px;">' + formattedPara + '</p>';
                 }
             });
             
@@ -2104,9 +2131,9 @@
             const table = document.createElement('table');
             table.className = 'item-table';
             
-            // 정렬 상태
-            let sortColumn = 'change'; // 기본: 변동률로 정렬
-            let sortDirection = 'desc'; // desc: 내림차순, asc: 오름차순
+            // 정렬 상태 (기본: 원본 데이터 순서 유지)
+            let sortColumn = 'originalIndex'; // 기본: 원본 순서로 정렬
+            let sortDirection = 'asc'; // desc: 내림차순, asc: 오름차순
             
             // 테이블 헤더
             const thead = document.createElement('thead');
@@ -2193,6 +2220,10 @@
                     if (sortColumn === 'price' || sortColumn === 'oneWeekAgoPrice') {
                         aVal = parseFloat(a[sortColumn]) || 0;
                         bVal = parseFloat(b[sortColumn]) || 0;
+                    } else if (sortColumn === 'originalIndex') {
+                        // 원본 순서로 정렬
+                        aVal = parseInt(a.originalIndex) || 0;
+                        bVal = parseInt(b.originalIndex) || 0;
                     } else if (sortColumn === 'change') {
                         // oneWeekAgoChange 값이 있으면 그대로 사용, 없으면 계산
                         aVal = parseFloat(a.oneWeekAgoChange) || 0;
@@ -2827,7 +2858,7 @@
                     message += '📄 기사 ID: ' + json.aid + '\n\n';
                     alert(message);
                     
-                    //location.href = '/article/list';
+                    location.href = '/article/list';
                 } else { 
                     alert('❌ 저장 실패: ' + (json.msg||'알 수 없는 오류')); 
                 }

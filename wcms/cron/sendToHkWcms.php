@@ -227,8 +227,27 @@ class HkWcmsSender
      */
     private function saveArticle($articleData, $photoList)
     {
-        $this->log("기사 저장 시작: " . ($articleData['ORGARTICLEID'] ?? 'UNKNOWN'));
+        $action = "send";  // "test" 또는 "send"
         
+        $this->log("기사 저장 시작: " . ($articleData['ORGARTICLEID'] ?? 'UNKNOWN') . " (모드: {$action})");
+        
+        // 테스트 모드일 경우 API 전송 없이 저장만 수행
+        if ($action === "test") {
+            $this->log("테스트 모드: API 전송 없이 저장만 수행");
+            
+            // 테스트 결과 구성 (API 응답 시뮬레이션)
+            $result = [
+                'errorCode' => 'test_success',
+                'errorMessage' => '테스트 모드 - 실제 전송 없이 저장만 완료'
+            ];
+            
+            // success 폴더에 저장 (테스트이므로 항상 성공으로 처리)
+            $this->saveArticleToFolder('success', $articleData, $photoList, $result);
+            
+            return ['success' => true, 'message' => '테스트 모드 - 저장 완료 (전송 안함)'];
+        }
+        
+        // 실제 전송 모드 (action !== "test")
         // API URL
         $url = $this->baseUrl . '/api/save';
         
@@ -297,11 +316,21 @@ class HkWcmsSender
         // HTTP 오류 체크
         if ($curlError) {
             $this->log("cURL 오류: {$curlError}", 'ERROR');
+            
+            // 실패 시 error/ 폴더에 저장
+            $errorResult = ['errorCode' => 'curl_error', 'errorMessage' => $curlError];
+            $this->saveArticleToFolder('error', $articleData, $photoList, $errorResult);
+            
             return ['success' => false, 'message' => $curlError];
         }
         
         if ($httpCode !== 200) {
             $this->log("HTTP 오류 코드: {$httpCode}", 'ERROR');
+            
+            // 실패 시 error/ 폴더에 저장
+            $errorResult = ['errorCode' => 'http_error', 'errorMessage' => "HTTP {$httpCode} 오류"];
+            $this->saveArticleToFolder('error', $articleData, $photoList, $errorResult);
+            
             return ['success' => false, 'message' => "HTTP {$httpCode} 오류"];
         }
         
@@ -311,6 +340,11 @@ class HkWcmsSender
         if (json_last_error() !== JSON_ERROR_NONE) {
             $this->log("JSON 파싱 오류: " . json_last_error_msg(), 'ERROR');
             $this->log("응답 내용: {$response}", 'ERROR');
+            
+            // 실패 시 error/ 폴더에 저장
+            $errorResult = ['errorCode' => 'json_error', 'errorMessage' => 'JSON 파싱 실패', 'raw_response' => $response];
+            $this->saveArticleToFolder('error', $articleData, $photoList, $errorResult);
+            
             return ['success' => false, 'message' => 'JSON 파싱 실패'];
         }
         
@@ -320,11 +354,89 @@ class HkWcmsSender
         // 결과 확인
         if (isset($result['errorCode']) && $result['errorCode'] === 'success') {
             $this->log("기사 저장 성공");
+            
+            // 성공 시 success/ 폴더에 저장
+            $this->saveArticleToFolder('success', $articleData, $photoList, $result);
+            
             return ['success' => true, 'message' => $result['errorMessage'] ?? ''];
         } else {
             $message = $result['errorMessage'] ?? '알 수 없는 오류';
             $this->log("기사 저장 실패: {$message}", 'ERROR');
+            
+            // 실패 시 error/ 폴더에 저장
+            $this->saveArticleToFolder('error', $articleData, $photoList, $result);
+            
             return ['success' => false, 'message' => $message];
+        }
+    }
+    
+    /**
+     * 기사 및 이미지를 폴더에 저장
+     * 
+     * @param string $folderType 'success' 또는 'error'
+     * @param array $articleData 기사 데이터
+     * @param array $photoList 사진 목록
+     * @param array $apiResult API 응답 결과
+     */
+    private function saveArticleToFolder($folderType, $articleData, $photoList, $apiResult)
+    {
+        try {
+            // 기본 디렉토리 경로
+            $baseDir = "/webSiteSource/wcms/sendArticle";
+            $targetDir = $baseDir . '/' . $folderType;
+            
+            // 디렉토리 생성 (없으면)
+            if (!is_dir($targetDir)) {
+                mkdir($targetDir, 0755, true);
+            }
+            
+            $orgArticleId = $articleData['ORGARTICLEID'] ?? 'UNKNOWN';
+            
+            // 1. JSON 파일 저장 (기사 데이터 + API 응답)
+            $jsonData = [
+                'saved_at' => date('Y-m-d H:i:s'),
+                'folder_type' => $folderType,
+                'article_data' => $articleData,
+                'photo_list' => $photoList,
+                'api_response' => $apiResult
+            ];
+            
+            $jsonFilePath = $targetDir . '/' . $orgArticleId . '.json';
+            file_put_contents($jsonFilePath, json_encode($jsonData, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+            $this->log("JSON 파일 저장 완료: {$jsonFilePath}");
+            
+            // 2. 이미지 파일 복사 (원본 파일이 있는 경우)
+            if (!empty($articleData['images']) && is_array($articleData['images'])) {
+                $imageDir = $targetDir . '/images';
+                if (!is_dir($imageDir)) {
+                    mkdir($imageDir, 0755, true);
+                }
+                
+                foreach ($articleData['images'] as $index => $image) {
+                    if (isset($image['path'])) {
+                        // 원본 이미지 경로 (sendArticle 디렉토리 기준)
+                        $sourcePath = '/webSiteSource/wcms/sendArticle/' . $image['path'];
+                        
+                        if (file_exists($sourcePath)) {
+                            $filename = basename($image['path']);
+                            $targetPath = $imageDir . '/' . $orgArticleId . '_' . $index . '_' . $filename;
+                            
+                            if (copy($sourcePath, $targetPath)) {
+                                $this->log("이미지 복사 완료: {$filename}");
+                            } else {
+                                $this->log("이미지 복사 실패: {$sourcePath}", 'WARNING');
+                            }
+                        } else {
+                            $this->log("이미지 파일 없음: {$sourcePath}", 'WARNING');
+                        }
+                    }
+                }
+            }
+            
+            $this->log("{$folderType} 폴더에 기사 저장 완료: {$orgArticleId}");
+            
+        } catch (\Exception $e) {
+            $this->log("폴더 저장 중 오류: " . $e->getMessage(), 'ERROR');
         }
     }
     
@@ -478,7 +590,7 @@ class HkWcmsSender
                     ];
 
                     $re = '/["].+'.basename($imagePath).'/';
-                    $subst = '/photo/load/?pid='.$uploadResult['pid'].'&size=1&media=AN';
+                    $subst = '/photo/load/?pid='.$uploadResult['pid'].'&size=1&mediaid=AN';
                     $articleData['TEXTCONTENT'] = preg_replace($re, $subst, $articleData['TEXTCONTENT']);
                 } else {
                     $this->log("이미지 업로드 실패로 기사 전송 중단: {$imagePath}", 'ERROR');

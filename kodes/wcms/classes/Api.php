@@ -219,9 +219,9 @@ class Api{
                 }
             }else{
                 if(!empty($sortField) && !empty($sortDirection)){
-                    $sortOption = [$sortField => $sortDirection, 'date' => -1];
+                    $sortOption = [ 'date' => -1, $sortField => $sortDirection];
                 }else{
-                    $sortOption = ['date' => -1];
+                    $sortOption = ['date' => -1, 'oneWeekAgoChange'=>-1];
                 }    
             }
 
@@ -481,16 +481,17 @@ class Api{
                 $groupedData[$sid]['categoryName'] = $matches[0][2];
             }
 
+            
+
             // 데이터 추가 (필요한 필드만 추출)
             $groupedData[$sid]['data'][] = $item;
         }
-        
-        // 배열 인덱스를 숫자로 변환
-        $result = array_values($groupedData);
-        
-        // 최대 100개까지만 반환
-        return array_slice($result, 0, 10);
-    }
+            
+    // 배열 인덱스를 숫자로 변환
+    $result = array_values($groupedData);
+    
+    return $result;
+}
     
     
     /**

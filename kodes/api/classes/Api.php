@@ -75,6 +75,12 @@ class Api{
         // JSON 헤더 설정
         header('Content-Type: application/json; charset=utf-8');
         
+
+        if($_GET['debug']=="true"){
+            print_r($response);
+        }
+
+
         // JSON 출력
         echo json_encode($response, JSON_UNESCAPED_UNICODE);
         exit;
@@ -85,7 +91,7 @@ class Api{
      * 
      * @return array API 데이터 (코드별로 그룹화)
      */
-    public function data()
+    public function data($returnType="")
     {
         $startTime = microtime(true); // 성능 측정 시작
         
@@ -99,8 +105,8 @@ class Api{
             $endDate = $_GET['endDate'] ?? date('Y-m-d');
             $grade = $_GET['grade'] ?? '';
             $market = $_GET['market'] ?? '';
-            $sortField = $_GET['sortField'] ?? 'date'; // 기본 정렬 필드: date
-            $sortOrder = $_GET['sortOrder'] ?? 'asc';  // 기본 정렬 방향: 오름차순(asc), 내림차순(desc) 가능
+            $sortField = $_GET['sortField']; // 기본 정렬 필드: date
+            $sortOrder = $_GET['sortOrder'];  // 기본 정렬 방향: 오름차순(asc), 내림차순(desc) 가능
             // sortOrder 값을 MongoDB에서 사용하는 1(오름차순), -1(내림차순)으로 변환
             $sortDirection = strtolower($sortOrder) === 'desc' ? -1 : 1;
 
@@ -213,14 +219,14 @@ class Api{
                 if(!empty($sortField) && !empty($sortDirection)){
                     $sortOption = [$sortField => $sortDirection];
                 }else{
-                    $sortOption = ['date' => -1,'grade' => 1,'market' => 1];
+                    $sortOption = ['date' => -1,'oneWeekAgoChange'=>-1];
                 }
             }else{
                 if(!empty($sortField) && !empty($sortDirection)){
-                    $sortOption = [$sortField => $sortDirection, 'date' => -1];
+                    $sortOption = ['date' => -1, $sortField => $sortDirection];
                 }else{
-                    $sortOption = ['date' => -1];
-                }    
+                    $sortOption = ['date' => -1, 'oneWeekAgoChange'=>-1];
+                }
             }
 
             if(preg_match('/Change$/',$sortField)){
@@ -230,7 +236,7 @@ class Api{
             // 정렬 옵션 (날짜 오름차순)
             $options = [
                 'sort' => $sortOption,
-                'projection' => ['_id' => 0,'insert'=>0, 'update'=>0,'coId'=>0]
+                'projection' => ['_id' => 0,'insert'=>0, 'update'=>0,'coId'=>0,'rid'=>0,'id'=>0]
             ];
 
             // 데이터 조회
@@ -249,10 +255,8 @@ class Api{
                 ]
             ];
 
-            if(!empty($codes)){
-                $responseData['meta']['codes'] = $codes;
-            }else if(!empty($names)){
-                $responseData['meta']['names'] = $names;
+            if($_GET['debug']=="true"){
+                print_r($responseData);
             }
 
             $this->outputJsonResponse(true, $responseData, '', $startTime);
@@ -261,7 +265,7 @@ class Api{
             $this->outputJsonResponse(false, [], $e->getMessage(), $startTime);
         }
     }
-    
+
     /**
      * API ID에 포함된 데이터 조회
      * 
@@ -477,11 +481,10 @@ class Api{
                     'data' => []
                 ];
             }
-            
             // 데이터 추가 (필요한 필드만 추출)
             $groupedData[$sid]['data'][] = $item;
         }
-        
+
         // 배열 인덱스를 숫자로 변환
         return array_values($groupedData);
     }

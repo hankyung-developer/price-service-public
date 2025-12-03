@@ -300,14 +300,19 @@ class AllApiDataCollector
         // 수집 범위 설정
         $startDate = $this->startDate ?: $currentDate;
         $endDate = $this->endDate ?: $currentDate;
-        
+
+        // 축산물품질평가원의 경우 2023년 01월 01일부터 수집
+        if ($api['provider'] == '축산물품질평가원') {
+            $startDate = '2023-01-01';
+        }
+
         // 시작일자와 종료일자 사이의 일수 계산
         $startTimestamp = strtotime($startDate);
         $endTimestamp = strtotime($endDate);
         $totalDays = ($endTimestamp - $startTimestamp) / (24 * 60 * 60) + 1;
         
-        $this->log("API 데이터 수집 시작: {$api['title']} (총 {$totalDays}일, 시작일자: {$startDate}, 종료일자: {$endDate}, 처리순서: 과거순)");
-        
+        $this->log("API 데이터 수집 시작: {$api['title']} (총 {$totalDays}일, 시작일자: {$startDate}, 종료일자: {$endDate}, 처리순서: 과거순)","WARNING");
+
         // 시작일자부터 종료일자까지 순회
         for ($dayOffset = 0; $dayOffset < $totalDays; $dayOffset++) {
             // Running 파일이 존재하는지 확인 (파일이 삭제되면 프로세스 종료)

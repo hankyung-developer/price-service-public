@@ -791,40 +791,41 @@ class ScheduleArticleWriter
     {
         $html = '';
         
-        // 본문
-        $content = $articleData['content'] ?? '';
-        $paragraphs = explode("\n\n", $content);
-        
-        // 이미지 HTML 생성 (1개, 사진 스타일)
-        $imageHtml = '';
+        // 이미지 HTML 생성 (1개, 사진 스타일) - 본문 맨 앞에 배치
         if (!empty($imageInfo['data']['image_url'])) {
             $imageUrl = $imageInfo['data']['image_url'];
-            $imageCaption = $articleData['title'] ?? '';
-            $imageHtml = '<div class="article-image" style="margin: 20px 0;">';
-            $imageHtml .= '<img src="' . htmlspecialchars($imageUrl) . '" alt="' . htmlspecialchars($imageCaption) . '" style="max-width: 100%; height: auto; display: block;">';
-            $imageHtml .= '<p class="caption" style="font-size: 0.9em; color: #666; margin-top: 8px; text-align: center;">' . htmlspecialchars($imageCaption) . '</p>';
-            $imageHtml .= '</div>';
+            $imageAlt = $articleData['title'] ?? '';  // alt 속성용으로만 사용
+            $html .= '<img src="' . htmlspecialchars($imageUrl) . '" alt="' . htmlspecialchars($imageAlt) . '" style="max-width: 100%; height: auto; display: block;">';
+            // 이미지 캡션(제목) 출력 제거 - 본문에 제목이 중복으로 들어가는 문제 해결
         }
         
-        // 본문 구성: 첫 번째 단락 → 이미지 → 나머지 단락
-        $paraCount = count($paragraphs);
-        foreach ($paragraphs as $index => $para) {
-            $para = trim($para);
-            if (!empty($para)) {
-                // HTML 태그가 이미 있는 경우 (표 등) 그대로 사용, 없으면 p 태그로 감싸기
-                if (strpos($para, '<table') !== false || strpos($para, '<div') !== false) {
-                    $html .= $para;
-                } else {
-                    $html .= '<p>' . nl2br(htmlspecialchars($para)) . '</p>';
-                }
-                
-                // 첫 번째 단락 뒤에 이미지 삽입 (이미지가 있는 경우)
-                if ($index === 0 && !empty($imageHtml)) {
-                    $html .= $imageHtml;
+        // 본문 구성: 이미지 → 모든 단락
+        $content = $articleData['content'] ?? '';
+        
+        // 본문에 이미 <br> 태그가 있으면 \n 제거, 없으면 nl2br 처리
+        if (strpos($content, '<br') !== false) {
+            // <br> 태그가 있으면 줄바꿈 문자(\n) 제거
+            // 실제 줄바꿈 문자와 literal string '\n' 모두 제거
+            $content = str_replace(["\r\n", "\r", "\n", '\n', '\r\n', '\r'], '', $content);
+            $html .= $content;
+        } else {
+            // <br> 태그가 없으면 기존 방식으로 단락 처리
+            $paragraphs = explode("\n\n", $content);
+            
+            foreach ($paragraphs as $para) {
+                $para = trim($para);
+                if (!empty($para)) {
+                    // HTML 태그가 이미 있는 경우 (표 등) 그대로 사용, 없으면 p 태그로 감싸기
+                    if (strpos($para, '<table') !== false || strpos($para, '<div') !== false) {
+                        $html .= $para;
+                    } else {
+                        $html .= '<p>' . nl2br(htmlspecialchars($para)) . '</p>';
+                    }
                 }
             }
         }
         
+        $chartInfo=null; // 자동생성시 차트 html을 이미지로 변환 불가로 생성되지 않도록
         // 차트
         if (!empty($chartInfo['data']['chart_url'])) {
             $chartUrl = $chartInfo['data']['chart_url'];
@@ -832,6 +833,12 @@ class ScheduleArticleWriter
             $html .= '<iframe id="reviewChartFrame" src="' . htmlspecialchars($chartUrl) . '" style="width: 100%; height: 400px; border: none;"></iframe>';
             $html .= '</div>';
         }
+        
+        // 최종적으로 모든 줄바꿈 문자 제거 (실제 줄바꿈 + literal string 모두)
+        // JSON 출력 시 \n이 남지 않도록 확실하게 처리
+        $html = str_replace(["\r\n", "\r", "\n", '\n', '\r\n', '\r'], '', $html);
+        // 혹시 모를 추가 공백 정리
+        $html = preg_replace('/>\s+</', '><', $html);
         
         return $html;
     }

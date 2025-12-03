@@ -2151,9 +2151,8 @@ HTML;
 		
 		if (!empty($articleInfo['content'])) {
 			// \n을 <br> 태그로 변환하여 한경CMS에서 개행이 표시되도록 처리
-			// 1. 연속된 \n\n은 <br><br>로 변환 (문단 구분)
-			// 2. 단일 \n은 <br>로 변환 (줄바꿈)
-			$textContent = str_replace("\n", "<br>\n", $articleInfo['content']);
+			// \n은 <br>로만 변환 (JSON 출력 시 \n이 남지 않도록)
+			$textContent = str_replace("\n", "<br>", $articleInfo['content']);
 		}
 
 		// 6. 해시태그 생성 (aiSave의 tags 배열)

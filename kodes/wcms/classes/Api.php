@@ -213,7 +213,7 @@ class Api{
                     $filter[$sortField] = ['$nin' => ["", null]];
                 }
                 if(!empty($sortField) && !empty($sortDirection)){
-                    $sortOption = [$sortField => $sortDirection];
+                    $sortOption = [ 'date' => -1, $sortField => $sortDirection];
                 }else{
                     $sortOption = ['date' => -1,'grade' => 1,'market' => 1];
                 }
@@ -244,7 +244,8 @@ class Api{
                     'endDate' => $endDate,
                     'totalRecords' => count($rawData),
                     'groupCount' => count($groupedData)
-                ]
+                ],
+                'sort'=>$sortOption
             ];
 
             if(!empty($codes)){

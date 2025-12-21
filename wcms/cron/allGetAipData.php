@@ -303,22 +303,50 @@ class AllApiDataCollector
 
         // 축산물품질평가원의 경우 2023년 01월 01일부터 수집
         if ($api['provider'] == '축산물품질평가원') {
-            $startDate = '2023-01-01';
+            $startDate = '2024-01-01';
         }
 
-        // 시작일자와 종료일자 사이의 일수 계산
+        // dateChar 확인 (월별 데이터인지 확인)
+        // Y-m, Ym, Y/m 모두 월별 데이터로 인식
+        $dateChar = $api['dateChar'] ?? 'Y-m-d';
+        $isMonthlyData = in_array($dateChar, ['Y-m', 'Ym', 'Y/m']);
+        
+        // 시작일자와 종료일자 사이의 기간 계산 (월별 또는 일별)
         $startTimestamp = strtotime($startDate);
         $endTimestamp = strtotime($endDate);
-        $totalDays = ($endTimestamp - $startTimestamp) / (24 * 60 * 60) + 1;
         
-        $this->log("API 데이터 수집 시작: {$api['title']} (총 {$totalDays}일, 시작일자: {$startDate}, 종료일자: {$endDate}, 처리순서: 과거순)","WARNING");
+        if ($isMonthlyData) {
+            // 월별 데이터: 월 단위로 계산
+            $startYear = (int)date('Y', $startTimestamp);
+            $startMonth = (int)date('m', $startTimestamp);
+            $endYear = (int)date('Y', $endTimestamp);
+            $endMonth = (int)date('m', $endTimestamp);
+            
+            $totalPeriods = ($endYear - $startYear) * 12 + ($endMonth - $startMonth) + 1;
+            $periodUnit = '월';
+            
+            // 시작일을 월의 첫째 날로 정규화
+            $startDate = date('Y-m-01', $startTimestamp);
+        } else {
+            // 일별 데이터: 일 단위로 계산
+            $totalPeriods = ($endTimestamp - $startTimestamp) / (24 * 60 * 60) + 1;
+            $periodUnit = '일';
+        }
+        
+        $this->log("API 데이터 수집 시작: {$api['title']} (총 {$totalPeriods}{$periodUnit}, 시작일자: {$startDate}, 종료일자: {$endDate}, 처리순서: 과거순)","WARNING");
 
-        // 시작일자부터 종료일자까지 순회
-        for ($dayOffset = 0; $dayOffset < $totalDays; $dayOffset++) {
+        // 시작일자부터 종료일자까지 순회 (월별 또는 일별)
+        for ($offset = 0; $offset < $totalPeriods; $offset++) {
             // Running 파일이 존재하는지 확인 (파일이 삭제되면 프로세스 종료)
             $this->checkRunningFile();
             
-            $targetDate = date('Y-m-d', strtotime($startDate . " +{$dayOffset} days"));
+            if ($isMonthlyData) {
+                // 월별 데이터: 월 단위로 증감, 월의 첫째 날로 설정
+                $targetDate = date('Y-m-01', strtotime($startDate . " +{$offset} months"));
+            } else {
+                // 일별 데이터: 일 단위로 증감
+                $targetDate = date('Y-m-d', strtotime($startDate . " +{$offset} days"));
+            }
             
             // 종료일자를 초과하면 중단
             if ($targetDate > $endDate) {
@@ -327,11 +355,11 @@ class AllApiDataCollector
             }
             
             // Migration 상태 업데이트
-            $this->updateMigrationStatus($targetDate, $dayOffset + 1, $totalDays);
+            $this->updateMigrationStatus($targetDate, $offset + 1, $totalPeriods);
             
             $dateFormatted = $this->formatDate($targetDate, $api['dateChar']);
             
-            $this->log("API 호출 시도: {$api['title']} (날짜: {$targetDate}, 오프셋: {$dayOffset})");
+            $this->log("API 호출 시도: {$api['title']} (날짜: {$targetDate}, 오프셋: {$offset}, isMonthlyData: " . ($isMonthlyData ? 'YES' : 'NO') . ", dateChar: {$dateChar})", 'WARNING');
             $this->currentDate = $targetDate;
 
             try {
@@ -386,12 +414,12 @@ class AllApiDataCollector
             }
             
             // API 호출 간격 대기 (서버 부하 방지)
-            if ($dayOffset < $totalDays - 1) {
+            if ($offset < $totalPeriods - 1) {
                 sleep(1);
             }
         }
 
-        $this->log("API 데이터 수집 완료: {$api['title']} (성공: {$totalSuccessCount}일, 총오류: {$totalErrorCount}일, 최대연속오류: {$consecutiveErrors}회)");
+        $this->log("API 데이터 수집 완료: {$api['title']} (성공: {$totalSuccessCount}{$periodUnit}, 총오류: {$totalErrorCount}{$periodUnit}, 최대연속오류: {$consecutiveErrors}회)");
     }
 
     /**
@@ -604,6 +632,9 @@ class AllApiDataCollector
         $items = $this->getNestedValue($responseData, $listPath);
 
         if (empty($items) || !is_array($items)) {
+            // 디버깅: 리스트 데이터를 찾지 못한 경우 응답 데이터 로그 기록
+            $this->log("리스트 데이터 파싱 실패 - listTag: {$listTag}", 'WARNING');
+            $this->log("응답 데이터: " . json_encode($responseData, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), 'WARNING');
             throw new Exception("리스트 데이터를 찾을 수 없습니다.");
         }
         
@@ -724,6 +755,12 @@ class AllApiDataCollector
             $field = $itemConfig['field'];
             $defaultValue = $itemConfig['value'] ?? '';
 
+            // date 필드는 이미 $targetDate로 설정되어 있으므로 건너뛰기
+            // (items 설정의 date value가 targetDate를 덮어쓰는 것을 방지)
+            if ($field === 'date') {
+                continue;
+            }
+
             // 원본 데이터 우선
             $value = '';
             if ($tag !== '' && isset($item[$tag])) {
@@ -732,49 +769,12 @@ class AllApiDataCollector
 
             // 값이 없고 기본값이 있으면 기본값 사용
             if (($value === '' || $value === null) && $defaultValue !== '') {
-                if ($field === 'date') {
-                    // date 필드는 기존의 eval/date 처리 로직 적용
-                    if (strpos($defaultValue, 'date(') !== false || strpos($defaultValue, 'strtotime(') !== false) {
-                        try {
-                            // 날짜 형식이 Ym, Y-m, Y/m 인 경우 01일을 붙여서 완전한 날짜로 보정하여 오류 방지
-                            $tempDate = isset($this->currentDate) ? $this->currentDate : '';
-                            
-                            if ($tempDate !== '') {
-                                if (preg_match('/^\d{6}$/', $tempDate)) {
-                                    $tempDate .= '01'; // 202510 -> 20251001
-                                } elseif (preg_match('/^\d{4}-\d{2}$/', $tempDate)) {
-                                    $tempDate .= '-01'; // 2025-10 -> 2025-10-01
-                                } elseif (preg_match('/^\d{4}\/\d{2}$/', $tempDate)) {
-                                    $tempDate .= '/01'; // 2025/10 -> 2025/10/01
-                                }
-                                $curDate = strtotime($tempDate);
-                            } else {
-                                $curDate = time();
-                            }
-                            
-                            $evalCode = $defaultValue;
-                            $evalCode = str_replace('$curDate', "'{$curDate}'", $evalCode);
-                            $value = eval("return {$evalCode};");
-                        } catch (Exception $e) {
-                            $this->log("PHP 코드 실행 오류: {$defaultValue} - " . $e->getMessage(), 'WARNING');
-                            $value = date("Y-m-d");
-                        }
-                    } else {
-                        $value = $defaultValue;
-                    }
-                } else {
-                    $value = $defaultValue;
-                }
+                $value = $defaultValue;
             }
 
             // 기본값 적용 이후에도 여전히 값이 없으면 스킵 (단, '0' 또는 '-'는 허용)
             if (($value === '' || $value === null) && $value !== '0' && $value !== '-') {
                 continue;
-            }
-
-            if ($field === 'date' && $value !== '' && $value !== null) {
-                // date 필드 최종 정규화
-                $value = date("Y-m-d", strtotime($value));
             }
 
             // 숫자 데이터 검증 및 정리
@@ -788,6 +788,28 @@ class AllApiDataCollector
             }
 
             $parsedItem[$field] = $value;
+        }
+        
+        // date 필드 최종 정규화 (targetDate 기반)
+        if (isset($parsedItem['date'])) {
+            $dateChar = $api['dateChar'] ?? 'Y-m-d';
+            $isMonthlyData = in_array($dateChar, ['Y-m', 'Ym', 'Y/m']);
+            $this->log("date 필드 정규화: targetDate={$parsedItem['date']}, dateChar={$dateChar}, isMonthlyData=" . ($isMonthlyData ? 'YES' : 'NO'), 'WARNING');
+            
+            // targetDate가 Y-m 형식인지 체크
+            if (preg_match('/^\d{4}-\d{2}$/', $parsedItem['date'])) {
+                // Y-m 형식을 Y-m-01로 변환
+                $parsedItem['date'] = $parsedItem['date'] . '-01';
+                $this->log("Y-m 형식 감지: {$parsedItem['date']}", 'WARNING');
+            }
+            
+            // 월별 데이터(Y-m, Ym, Y/m)인 경우 항상 월의 첫째 날로 저장
+            if ($isMonthlyData) {
+                $parsedItem['date'] = date("Y-m-01", strtotime($parsedItem['date']));
+                $this->log("월별 데이터 최종 정규화: {$parsedItem['date']}", 'WARNING');
+            } else {
+                $parsedItem['date'] = date("Y-m-d", strtotime($parsedItem['date']));
+            }
         }
         
         return $parsedItem;
@@ -1019,7 +1041,15 @@ class AllApiDataCollector
                 return;
             }
             
+            // dateChar 확인 (월별 데이터인지 확인)
+            // Y-m, Ym, Y/m 모두 월별 데이터로 인식
+            $dateChar = $api['dateChar'] ?? 'Y-m-d';
+            $isMonthlyData = in_array($dateChar, ['Y-m', 'Ym', 'Y/m']);
+            
+            $this->log("과거 가격 계산: dateChar={$dateChar}, isMonthlyData=" . ($isMonthlyData ? 'YES' : 'NO'), 'WARNING');
+            
             // 과거 날짜별 가격 조회 및 등락률 계산
+            // 월별 데이터(Y-m)인 경우: 전일, 1주일 전 가격은 의미가 없으므로 제외
             $periods = [
                 'prevDayPrice' => ['type' => 'days', 'value' => 1, 'changeField' => 'prevDayChange'],
                 'oneWeekAgoPrice' => ['type' => 'days', 'value' => 7, 'changeField' => 'oneWeekAgoChange'],
@@ -1028,6 +1058,13 @@ class AllApiDataCollector
                 'sixMonthsAgoPrice' => ['type' => 'months', 'value' => 6, 'changeField' => 'sixMonthsAgoChange'],
                 'oneYearAgoPrice' => ['type' => 'years', 'value' => 1, 'changeField' => 'oneYearAgoChange']
             ];
+            
+            // 월별 데이터인 경우 전일, 1주일 전 데이터 제외
+            if ($isMonthlyData) {
+                unset($periods['prevDayPrice']);
+                unset($periods['oneWeekAgoPrice']);
+                $this->log("월별 데이터(dateChar: Y-m): 전일/1주일 전 가격 계산 건너뜀", 'WARNING');
+            }
             
             foreach ($periods as $priceField => $config) {
                 $type = $config['type'];

@@ -657,11 +657,24 @@ class ApiDataScheduler
      */
     private function tryCollectForDate($api, $baseDate, $dayOffset, $scheduleType, $isExtendedSearch = false)
     {
-        $targetDate = date('Y-m-d', strtotime($baseDate . " -{$dayOffset} days"));
+        // dateChar 확인 (월별 데이터인지 확인)
+        $dateChar = $api['dateChar'] ?? 'Y-m-d';
+        $isMonthlyData = in_array($dateChar, ['Y-m', 'Ym', 'Y/m']);
+        
+        if ($isMonthlyData) {
+            // 월별 데이터: 월 단위로 증감
+            // baseDate를 월의 첫째 날로 정규화
+            $baseDate = date('Y-m-01', strtotime($baseDate));
+            $targetDate = date('Y-m-01', strtotime($baseDate . " -{$dayOffset} months"));
+        } else {
+            // 일별 데이터: 일 단위로 증감
+            $targetDate = date('Y-m-d', strtotime($baseDate . " -{$dayOffset} days"));
+        }
+        
         $dateFormatted = $this->formatDate($targetDate, $api['dateChar']);
         $prefix = $isExtendedSearch ? '추가 검색 - ' : '';
         
-        $this->log("{$prefix}API 호출 시도: {$api['title']} (날짜: {$targetDate}, 오프셋: {$dayOffset})");
+        $this->log("{$prefix}API 호출 시도: {$api['title']} (날짜: {$targetDate}, 오프셋: {$dayOffset}, isMonthlyData: " . ($isMonthlyData ? 'YES' : 'NO') . ")", 'DEBUG');
         $this->currentDate = $targetDate;
         
         try {
@@ -967,6 +980,12 @@ class ApiDataScheduler
             $field = $itemConfig['field'];
             $defaultValue = $itemConfig['value'] ?? '';
 
+            // date 필드는 이미 $targetDate로 설정되어 있으므로 건너뛰기
+            // (items 설정의 date value가 targetDate를 덮어쓰는 것을 방지)
+            if ($field === 'date') {
+                continue;
+            }
+
             // 원본 데이터 우선
             $value = '';
             if ($tag !== '' && isset($item[$tag])) {
@@ -975,34 +994,12 @@ class ApiDataScheduler
 
             // 값이 없고 기본값이 있으면 기본값 사용
             if (($value === '' || $value === null) && $defaultValue !== '') {
-                if ($field === 'date') {
-                    // date 필드는 기존의 eval/date 처리 로직 적용
-                    if (strpos($defaultValue, 'date(') !== false || strpos($defaultValue, 'strtotime(') !== false) {
-                        try {
-                            $curDate = isset($this->currentDate) && $this->currentDate !== '' ? strtotime($this->currentDate) : time();
-                            $evalCode = $defaultValue;
-                            $evalCode = str_replace('$curDate', "'{$curDate}'", $evalCode);
-                            $value = eval("return {$evalCode};");
-                        } catch (Exception $e) {
-                            $this->log("PHP 코드 실행 오류: {$defaultValue} - " . $e->getMessage(), 'WARNING');
-                            $value = date("Y-m-d");
-                        }
-                    } else {
-                        $value = $defaultValue;
-                    }
-                } else {
-                    $value = $defaultValue;
-                }
+                $value = $defaultValue;
             }
 
             // 기본값 적용 이후에도 여전히 값이 없으면 스킵 (단, '0' 또는 '-'는 허용)
             if (($value === '' || $value === null) && $value !== '0' && $value !== '-') {
                 continue;
-            }
-
-            if ($field === 'date' && $value !== '' && $value !== null) {
-                // date 필드 최종 정규화
-                $value = date("Y-m-d", strtotime($value));
             }
 
             // 숫자 데이터 검증 및 정리
@@ -1016,6 +1013,25 @@ class ApiDataScheduler
             }
 
             $parsedItem[$field] = $value;
+        }
+        
+        // date 필드 최종 정규화 (targetDate 기반)
+        if (isset($parsedItem['date'])) {
+            $dateChar = $api['dateChar'] ?? 'Y-m-d';
+            $isMonthlyData = in_array($dateChar, ['Y-m', 'Ym', 'Y/m']);
+            
+            // targetDate가 Y-m 형식인지 체크
+            if (preg_match('/^\d{4}-\d{2}$/', $parsedItem['date'])) {
+                // Y-m 형식을 Y-m-01로 변환
+                $parsedItem['date'] = $parsedItem['date'] . '-01';
+            }
+            
+            // 월별 데이터(Y-m, Ym, Y/m)인 경우 항상 월의 첫째 날로 저장
+            if ($isMonthlyData) {
+                $parsedItem['date'] = date("Y-m-01", strtotime($parsedItem['date']));
+            } else {
+                $parsedItem['date'] = date("Y-m-d", strtotime($parsedItem['date']));
+            }
         }
         
         return $parsedItem;
@@ -1248,7 +1264,13 @@ class ApiDataScheduler
             return;
         }
         
+        // dateChar 확인 (월별 데이터인지 확인)
+        // Y-m, Ym, Y/m 모두 월별 데이터로 인식
+        $dateChar = $api['dateChar'] ?? 'Y-m-d';
+        $isMonthlyData = in_array($dateChar, ['Y-m', 'Ym', 'Y/m']);
+        
         // 과거 날짜별 가격 조회 및 등락률 계산
+        // 월별 데이터(Y-m)인 경우: 전일, 1주일 전 가격은 의미가 없으므로 제외
         $periods = [
             'prevDayPrice' => ['type' => 'days', 'value' => 1, 'changeField' => 'prevDayChange'],
             'oneWeekAgoPrice' => ['type' => 'days', 'value' => 7, 'changeField' => 'oneWeekAgoChange'],
@@ -1257,6 +1279,13 @@ class ApiDataScheduler
             'sixMonthsAgoPrice' => ['type' => 'months', 'value' => 6, 'changeField' => 'sixMonthsAgoChange'],
             'oneYearAgoPrice' => ['type' => 'years', 'value' => 1, 'changeField' => 'oneYearAgoChange']
         ];
+        
+        // 월별 데이터인 경우 전일, 1주일 전 데이터 제외
+        if ($isMonthlyData) {
+            unset($periods['prevDayPrice']);
+            unset($periods['oneWeekAgoPrice']);
+            $this->log("월별 데이터(dateChar: Y-m): 전일/1주일 전 가격 계산 건너뜀", 'DEBUG');
+        }
         
         foreach ($periods as $priceField => $config) {
             $type = $config['type'];
@@ -1361,13 +1390,24 @@ class ApiDataScheduler
      */
     private function updatePastDaysData($api, $baseDate, $days)
     {
-        $this->log("과거 {$days}일 데이터 업데이트/수집 시작: {$api['title']} (기준일: {$baseDate}) [설정: PAST_DAYS_UPDATE={$days}]");
+        // dateChar 확인 (월별 데이터인지 확인)
+        $dateChar = $api['dateChar'] ?? 'Y-m-d';
+        $isMonthlyData = in_array($dateChar, ['Y-m', 'Ym', 'Y/m']);
+        $periodUnit = $isMonthlyData ? '월' : '일';
+        
+        $this->log("과거 {$days}{$periodUnit} 데이터 업데이트/수집 시작: {$api['title']} (기준일: {$baseDate}, isMonthlyData: " . ($isMonthlyData ? 'YES' : 'NO') . ") [설정: PAST_DAYS_UPDATE={$days}]");
         
         $updateCount = 0;
         $insertCount = 0;
         
         for ($i = 1; $i <= $days; $i++) {
-            $pastDate = date('Y-m-d', strtotime($baseDate . " -{$i} days"));
+            if ($isMonthlyData) {
+                // 월별 데이터: 월 단위로 증감
+                $pastDate = date('Y-m-01', strtotime($baseDate . " -{$i} months"));
+            } else {
+                // 일별 데이터: 일 단위로 증감
+                $pastDate = date('Y-m-d', strtotime($baseDate . " -{$i} days"));
+            }
             
             try {
                 // 해당 날짜의 기존 데이터 조회
@@ -1477,7 +1517,7 @@ class ApiDataScheduler
             }
         }
         
-        $this->log("과거 {$days}일 데이터 처리 완료: 업데이트 {$updateCount}건, 신규 수집 {$insertCount}건");
+        $this->log("과거 {$days}{$periodUnit} 데이터 처리 완료: 업데이트 {$updateCount}건, 신규 수집 {$insertCount}건");
     }
 
     // =========================================================================

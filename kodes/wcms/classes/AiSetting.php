@@ -19,6 +19,7 @@ class AiSetting
     const AI_SCHEDULE_COLLECTION = 'aiSchedule';    // AI 스케줄 컬렉션
     const AI_LOG_COLLECTION = 'aiLog';              // AI 로그 컬렉션
     const AI_MODEL_COLLECTION = 'aiModel';          // AI 모델 컬렉션
+    const AI_IMAGE_PROMPT_COLLECTION = 'aiImagePrompt'; // AI 이미지 프롬프트 컬렉션
 
     /** @var Class 공통 */
     protected $common;
@@ -817,4 +818,33 @@ class AiSetting
     }
 
 
+    public function imagePromptList(){
+        $this->collection = self::AI_IMAGE_PROMPT_COLLECTION;
+        if(!empty($_GET['isUse']) && $_GET['isUse'] == 'Y'){
+            $filter['isUse'] = true;
+        }
+        $return = $this->list($filter);
+        return $return;
+    }
+
+    public function imagePromptEdit(){
+        $this->collection = self::AI_IMAGE_PROMPT_COLLECTION;
+        $return = $this->view();
+        return $return;
+    }
+
+    public function imagePromptInsert(){
+        $this->collection = self::AI_IMAGE_PROMPT_COLLECTION;
+        $request = $_POST;
+        $request['isUse'] = $_POST['isUse']=='Y'?true:false;
+        unset($request['action']);
+        return $this->insert($request);
+    }
+    
+    public function imagePromptModify(){
+        $this->collection = self::AI_IMAGE_PROMPT_COLLECTION;
+        $request = $_POST;
+        $request['isUse'] = $_POST['isUse']=='Y'?true:false;
+        return $this->update($request);
+    }   
 }

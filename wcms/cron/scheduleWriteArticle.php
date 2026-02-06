@@ -751,10 +751,10 @@ class ScheduleArticleWriter
         try {
             $_POST = [
                 'imagePrompt' => $imagePrompt,
-                'imageModel' => 'dall-e-3',
-                'imageSize' => '1792x1024',
-                'imageQuality' => 'hd',      // 고품질 이미지
-                'imageStyle' => 'natural'     // 사진 스타일 (자연스럽고 사실적)
+                'imageModel' => 'gpt-image-1.5',
+                'imageSize' => '1536x1024',
+                'imageQuality' => 'high',      // 고품질 이미지 (low, medium, high)
+                'imageStyle' => 'natural'      // DALL-E 전용 (GPT Image에서는 무시됨)
             ];
             
             $this->writeLog("    이미지 프롬프트: " . substr($imagePrompt, 0, 100) . "...");

@@ -89,7 +89,11 @@ class AIManager
     {
         $lower = strtolower($identifier);
         
-        if (strpos($lower, 'openai') !== false || strpos($lower, 'gpt') !== false || strpos($lower, 'dall-e') !== false) {
+        // OpenAI 서비스: GPT 모델, GPT Image 모델, DALL-E 모델
+        if (strpos($lower, 'openai') !== false || 
+            strpos($lower, 'gpt') !== false || 
+            strpos($lower, 'dall-e') !== false ||
+            strpos($lower, 'gpt-image') !== false) {
             return 'gpt';
         }
         

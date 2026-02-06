@@ -8,7 +8,7 @@
     {# header}
     <main class="container">
         <div role="document">
-			<div role="heading">AI 프롬프트</div>
+			<div role="heading">AI 이미지 프롬프트</div>
 			<section>
 				<input type="hidden" name="referer" id="referer" value="{ _SERVER['HTTP_REFERER']}"/>
 				<form id="inputForm" method="post" role="form" class="spacing">
@@ -76,7 +76,7 @@ $("#saveBtn").click(function (){
     }
 
     $.ajax({
-        url: '/aiSetting/prompt'+action+'/ajax',
+        url: '/aiSetting/imagePrompt'+action+'/ajax',
         method : 'POST',
         data : $('#inputForm').serialize()
     }).done(function() {
@@ -91,7 +91,7 @@ $("#listBtn").click(()=>{
 
 // 리스트 함수
 let goList = ()=>{
-	location.href = '/aiSetting/promptList';
+	location.href = '/aiSetting/imagePromptList';
 }
 </script>
 </body>

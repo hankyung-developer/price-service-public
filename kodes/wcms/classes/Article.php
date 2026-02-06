@@ -12,6 +12,68 @@ use MongoDB\BSON\Regex;
  * @version 1.0
  *
  * @license 해당 프로그램은 kodes에서 제작된 프로그램으로 저작원은 코드스(https://www.kode.co.kr)
+ * 
+ * ====================================================================================================
+ * 디버그 모드 사용법
+ * ====================================================================================================
+ * 
+ * 1. 디버그 모드 활성화 방법 (다음 중 하나):
+ *    - URL 파라미터: ?dev=1 또는 ?debug=1
+ *    - 환경 변수: APP_DEBUG=true
+ *    - 쿠키: debug=1
+ * 
+ * 2. 파일 로깅 활성화 (선택):
+ *    - URL 파라미터: ?debug_log=1
+ *    - 쿠키: debug_log=1
+ *    - 로그 파일 위치: /data/coId/logs/debug/article_debug_YYYY-MM-DD.log
+ * 
+ * 3. 디버그 로그 레벨:
+ *    - TRACE: 매우 상세한 추적 정보
+ *    - DEBUG: 디버깅 정보
+ *    - INFO: 일반 정보 (기본)
+ *    - WARNING: 경고
+ *    - ERROR: 오류
+ *    - FATAL: 치명적 오류
+ *    - TIMER: 실행 시간 측정
+ *    - MEMORY: 메모리 사용량
+ *    - INIT: 초기화
+ * 
+ * 4. 제공되는 디버그 기능:
+ *    - 실행 시간 측정 (debugTimerStart/End)
+ *    - 메모리 사용량 추적 (debugMemorySnapshot)
+ *    - 스택 트레이스 (debugStackTrace)
+ *    - 변수 덤프 (debugDump)
+ *    - 실행 요약 (debugSummary)
+ *    - 컬러 코딩된 로그 (CLI 환경)
+ * 
+ * 5. 사용 예제:
+ *    ```
+ *    // 타이머 시작
+ *    $this->debugTimerStart('my_operation');
+ *    
+ *    // 작업 수행
+ *    // ...
+ *    
+ *    // 타이머 종료
+ *    $this->debugTimerEnd('my_operation');
+ *    
+ *    // 메모리 스냅샷
+ *    $this->debugMemorySnapshot('operation_complete');
+ *    
+ *    // 디버그 로그 출력
+ *    $this->debug("작업 완료", ['result' => $data], 'INFO');
+ *    ```
+ * 
+ * 6. 로그 확인:
+ *    - CLI: tail -f /data/coId/logs/debug/article_debug_YYYY-MM-DD.log
+ *    - PHP error_log: /var/log/php-fpm/error.log (또는 설정에 따라 다름)
+ * 
+ * 7. 프로덕션 환경 주의사항:
+ *    - 디버그 모드는 성능에 영향을 줄 수 있으므로 개발/테스트 환경에서만 사용
+ *    - 민감한 정보가 로그에 기록될 수 있으므로 주의
+ *    - 파일 로깅 시 디스크 공간 관리 필요
+ * 
+ * ====================================================================================================
  */
 class Article
 {
@@ -58,6 +120,11 @@ class Article
 	
 	/** @var bool 디버그 모드 */
 	protected $debugMode = false;
+	protected $debugLogToFile = false;
+	protected $debugLogFile = null;
+	protected $debugStartTime = null;
+	protected $debugTimers = [];
+	protected $debugMemorySnapshots = [];
 
 	/**
 	 * 생성자
@@ -73,25 +140,277 @@ class Article
 		// variable
 		$this->coId = $this->common->coId;
 		$this->siteDocPath = $this->common->config['path']['data'].'/'.$this->coId;
-		$this->debugMode = !empty($_GET['dev']);
+		
+		// 디버그 모드 활성화 방법:
+		// 1. URL 파라미터: ?dev=1 또는 ?debug=1
+		// 2. 환경 변수: APP_DEBUG=true
+		// 3. 쿠키: debug=1
+		$this->debugMode = !empty($_GET['dev']) 
+			|| !empty($_GET['debug']) 
+			|| getenv('APP_DEBUG') === 'true'
+			|| (!empty($_COOKIE['debug']) && $_COOKIE['debug'] == '1');
+		
+		// 파일 로깅 활성화: ?debug_log=1
+		$this->debugLogToFile = !empty($_GET['debug_log']) || !empty($_COOKIE['debug_log']);
+		
+		if ($this->debugMode) {
+			$this->debugStartTime = microtime(true);
+			$this->debugMemorySnapshots['start'] = memory_get_usage();
+			$this->debug("=== Article 클래스 초기화 ===", [
+				'timestamp' => date('Y-m-d H:i:s'),
+				'memory' => $this->formatBytes(memory_get_usage()),
+				'peak_memory' => $this->formatBytes(memory_get_peak_usage())
+			], 'INIT');
+		}
+		
+		if ($this->debugLogToFile) {
+			$logDir = $this->siteDocPath . '/logs/debug';
+			if (!is_dir($logDir)) {
+				@mkdir($logDir, 0755, true);
+			}
+			$this->debugLogFile = $logDir . '/article_debug_' . date('Y-m-d') . '.log';
+		}
 	}
 	
 	/**
-	 * 디버그 로그 출력 (조건부)
+	 * 바이트를 읽기 쉬운 형식으로 변환
+	 */
+	protected function formatBytes($bytes, $precision = 2)
+	{
+		$units = ['B', 'KB', 'MB', 'GB'];
+		$bytes = max($bytes, 0);
+		$pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+		$pow = min($pow, count($units) - 1);
+		$bytes /= (1 << (10 * $pow));
+		return round($bytes, $precision) . ' ' . $units[$pow];
+	}
+	
+	/**
+	 * 실행 시간 측정 시작
+	 * 
+	 * @param string $timerName 타이머 이름
+	 */
+	protected function debugTimerStart($timerName)
+	{
+		if ($this->debugMode) {
+			$this->debugTimers[$timerName] = microtime(true);
+			$this->debug("⏱️  타이머 시작", ['timer' => $timerName], 'TIMER');
+		}
+	}
+	
+	/**
+	 * 실행 시간 측정 종료
+	 * 
+	 * @param string $timerName 타이머 이름
+	 * @return float 경과 시간 (초)
+	 */
+	protected function debugTimerEnd($timerName)
+	{
+		if ($this->debugMode && isset($this->debugTimers[$timerName])) {
+			$elapsed = microtime(true) - $this->debugTimers[$timerName];
+			$this->debug("⏱️  타이머 종료", [
+				'timer' => $timerName,
+				'elapsed' => round($elapsed, 4) . '초'
+			], 'TIMER');
+			unset($this->debugTimers[$timerName]);
+			return $elapsed;
+		}
+		return 0;
+	}
+	
+	/**
+	 * 메모리 사용량 스냅샷
+	 * 
+	 * @param string $label 스냅샷 라벨
+	 */
+	protected function debugMemorySnapshot($label)
+	{
+		if ($this->debugMode) {
+			$current = memory_get_usage();
+			$peak = memory_get_peak_usage();
+			$this->debugMemorySnapshots[$label] = $current;
+			
+			$this->debug("💾 메모리 스냅샷", [
+				'label' => $label,
+				'current' => $this->formatBytes($current),
+				'peak' => $this->formatBytes($peak)
+			], 'MEMORY');
+		}
+	}
+	
+	/**
+	 * 향상된 디버그 로그 출력
+	 * 
+	 * 로그 레벨:
+	 * - TRACE: 매우 상세한 추적 정보
+	 * - DEBUG: 디버깅 정보
+	 * - INFO: 일반 정보
+	 * - WARNING: 경고 (주의 필요)
+	 * - ERROR: 오류 (기능 동작하나 문제 있음)
+	 * - FATAL: 치명적 오류 (기능 중단)
+	 * - TIMER: 실행 시간 측정
+	 * - MEMORY: 메모리 사용량
+	 * - INIT: 초기화
 	 * 
 	 * @param string $message 로그 메시지
 	 * @param mixed $data 추가 데이터 (선택)
-	 * @param string $level 로그 레벨 (INFO, ERROR, WARNING)
+	 * @param string $level 로그 레벨
 	 */
 	protected function debug($message, $data = null, $level = 'INFO')
 	{
-		if ($this->debugMode) {
-			$logMessage = "[{$level}] {$message}";
-			if ($data !== null) {
-				$logMessage .= " | Data: " . (is_string($data) ? $data : json_encode($data, JSON_UNESCAPED_UNICODE));
-			}
+		if (!$this->debugMode) {
+			return;
+		}
+		
+		// 로그 레벨별 이모지 및 색상 코드
+		$levelConfig = [
+			'TRACE'   => ['icon' => '🔍', 'color' => '90'],  // 회색
+			'DEBUG'   => ['icon' => '🐛', 'color' => '36'],  // 청록색
+			'INFO'    => ['icon' => 'ℹ️ ', 'color' => '32'],  // 녹색
+			'WARNING' => ['icon' => '⚠️ ', 'color' => '33'],  // 노란색
+			'ERROR'   => ['icon' => '❌', 'color' => '31'],  // 빨간색
+			'FATAL'   => ['icon' => '💀', 'color' => '35'],  // 마젠타
+			'TIMER'   => ['icon' => '⏱️ ', 'color' => '96'],  // 밝은 청록색
+			'MEMORY'  => ['icon' => '💾', 'color' => '94'],  // 밝은 파란색
+			'INIT'    => ['icon' => '🚀', 'color' => '92'],  // 밝은 녹색
+		];
+		
+		$config = $levelConfig[$level] ?? $levelConfig['INFO'];
+		$icon = $config['icon'];
+		$colorCode = $config['color'];
+		
+		// 타임스탬프 및 경과 시간
+		$timestamp = date('H:i:s');
+		$elapsed = $this->debugStartTime ? round(microtime(true) - $this->debugStartTime, 4) : 0;
+		
+		// 호출 위치 추적 (백트레이스)
+		$trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3);
+		$caller = isset($trace[1]) ? $trace[1] : $trace[0];
+		$callerInfo = '';
+		if (isset($caller['class'])) {
+			$callerInfo = basename($caller['class']) . $caller['type'] . $caller['function'];
+		} elseif (isset($caller['function'])) {
+			$callerInfo = $caller['function'];
+		}
+		$callerInfo .= isset($caller['line']) ? ':' . $caller['line'] : '';
+		
+		// 로그 메시지 구성
+		$logMessage = sprintf(
+			"[%s] [+%.4fs] [%s] %s %s",
+			$timestamp,
+			$elapsed,
+			str_pad($level, 7),
+			$icon,
+			$message
+		);
+		
+		// 데이터 추가
+		if ($data !== null) {
+			$dataStr = is_string($data) ? $data : json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+			$logMessage .= "\n    📦 Data: " . str_replace("\n", "\n    ", $dataStr);
+		}
+		
+		// 호출 위치 추가
+		if ($callerInfo) {
+			$logMessage .= "\n    📍 Called from: " . $callerInfo;
+		}
+		
+		// 콘솔 출력 (컬러)
+		if (PHP_SAPI === 'cli') {
+			// CLI 환경: ANSI 컬러 코드 사용
+			$coloredMessage = "\033[{$colorCode}m{$logMessage}\033[0m";
+			error_log($coloredMessage);
+		} else {
+			// 웹 환경: 일반 로그
 			error_log($logMessage);
 		}
+		
+		// 파일 로깅
+		if ($this->debugLogToFile && $this->debugLogFile) {
+			$fileMessage = "[" . date('Y-m-d H:i:s') . "] " . $logMessage . "\n";
+			@file_put_contents($this->debugLogFile, $fileMessage, FILE_APPEND);
+		}
+	}
+	
+	/**
+	 * 스택 트레이스 출력
+	 * 
+	 * @param int $limit 출력할 스택 깊이 (기본: 10)
+	 */
+	protected function debugStackTrace($limit = 10)
+	{
+		if (!$this->debugMode) {
+			return;
+		}
+		
+		$trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, $limit);
+		$traceStr = "\n=== Stack Trace ===\n";
+		
+		foreach ($trace as $i => $t) {
+			$file = isset($t['file']) ? basename($t['file']) : 'unknown';
+			$line = isset($t['line']) ? $t['line'] : '?';
+			$function = isset($t['function']) ? $t['function'] : 'unknown';
+			$class = isset($t['class']) ? basename($t['class']) : '';
+			$type = isset($t['type']) ? $t['type'] : '';
+			
+			$traceStr .= sprintf(
+				"  #%d %s%s%s() at %s:%s\n",
+				$i,
+				$class,
+				$type,
+				$function,
+				$file,
+				$line
+			);
+		}
+		
+		$this->debug("스택 트레이스", $traceStr, 'TRACE');
+	}
+	
+	/**
+	 * 디버그 요약 정보 출력
+	 */
+	protected function debugSummary()
+	{
+		if (!$this->debugMode) {
+			return;
+		}
+		
+		$totalTime = microtime(true) - $this->debugStartTime;
+		$memoryUsed = memory_get_usage() - $this->debugMemorySnapshots['start'];
+		$peakMemory = memory_get_peak_usage();
+		
+		$summary = [
+			'total_execution_time' => round($totalTime, 4) . '초',
+			'memory_used' => $this->formatBytes($memoryUsed),
+			'peak_memory' => $this->formatBytes($peakMemory),
+			'final_memory' => $this->formatBytes(memory_get_usage())
+		];
+		
+		if (!empty($this->debugTimers)) {
+			$summary['active_timers'] = array_keys($this->debugTimers);
+		}
+		
+		$this->debug("=== 실행 요약 ===", $summary, 'INIT');
+	}
+	
+	/**
+	 * 변수 덤프 (상세 출력)
+	 * 
+	 * @param mixed $var 출력할 변수
+	 * @param string $label 변수 라벨
+	 */
+	protected function debugDump($var, $label = 'Variable Dump')
+	{
+		if (!$this->debugMode) {
+			return;
+		}
+		
+		ob_start();
+		var_dump($var);
+		$dump = ob_get_clean();
+		
+		$this->debug($label, $dump, 'DEBUG');
 	}
 	
 	/**
@@ -207,7 +526,7 @@ class Article
      */
 	public function list()
 	{
-        $return = [];
+		$return = [];
 		try {
 			$filter = [];
 			$options = [];
@@ -503,25 +822,25 @@ class Article
      * @param String $date
      * @return String 기사 ID
      */
-    public function generateId($coId, $date=null)
+	public function generateId($coId, $date=null)
 	{
-        $findKey = $coId.(empty($date)?date('Ymd'):date('Ymd', strtotime($date)));
-        $filter = ['aid' => new Regex('^'.$findKey, '')];
-        $options = ['sort' => ['aid' => -1], 'limit' => 1];
+		$findKey = $coId.(empty($date)?date('Ymd'):date('Ymd', strtotime($date)));
+		$filter = ['aid' => new Regex('^'.$findKey, '')];
+		$options = ['sort' => ['aid' => -1], 'limit' => 1];
 		$cursor = $this->db->item(self::COLLECTION, $filter, $options);
 		$lastAid = $cursor['aid'];
-        if (empty($lastAid)) {
-            $lastAid = $findKey.'0000';
-        }
+		if (empty($lastAid)) {
+			$lastAid = $findKey.'0000';
+		}
 		$data['aid'] = ++$lastAid;
 		$result = $this->db->insert(self::COLLECTION, $data);
 		if ($result->getInsertedCount() == 0) {
 			// 재귀호출
 			return $this->generateId($coId, $date);
 		}
-        
-        return $data['aid'];
-    }
+		
+		return $data['aid'];
+	}
 
 	/**
 	 * 카테고리ID로 카테고리 조회
@@ -554,8 +873,8 @@ class Article
 			'managerName' => $_SESSION['managerName'],
 		];
 		$filter = ['aid'=>$data['aid'], 'saveTemp.managerId'=>$_SESSION['managerId']];
-        return $this->db->upsert(self::TEMP_COLLECTION, $filter, $data);
-    }
+		return $this->db->upsert(self::TEMP_COLLECTION, $filter, $data);
+	}
 
 	/**
 	 * 임시저장 조회
@@ -564,8 +883,8 @@ class Article
 	{
 		$filter = ['aid'=>$aid, 'saveTemp.managerId'=>$_SESSION['managerId']];
 		$options = ['projection'=>['_id'=>0]];
-        return $this->db->item(self::TEMP_COLLECTION, $filter, $options);
-    }
+		return $this->db->item(self::TEMP_COLLECTION, $filter, $options);
+	}
 
 	/**
 	 * 임시저장 삭제
@@ -575,8 +894,8 @@ class Article
 		$filter = [];
 		$filter['aid'] = $aid;
 		$filter['saveTemp.managerId'] = $_SESSION['managerId'];
-        return $this->db->delete(self::TEMP_COLLECTION, $filter, false);
-    }
+		return $this->db->delete(self::TEMP_COLLECTION, $filter, false);
+	}
 
 	/**
 	 * 기사 편집중 정보 조회
@@ -593,29 +912,30 @@ class Article
 
 	public function aiCreate()
 	{
-			$result = [];
-			$ais = new AiSetting();
-			$_GET['isUse'] = 'Y';
-			$_GET['noapp'] = 1000000;
-			
-			// 기본 데이터
-			$category = new Category();
-			$result['category'] = $category->popup();
-			$result['prompt'] = $ais->promptList()['items'];
-			$result['template'] = $ais->templateList()['items'];
-			
-			// AI 모델 목록 (에디터의 동작과 유사하게 제공)
-			$modelList = $ais->modelList();
-			if (!empty($modelList) && !empty($modelList['0'])) {
-				// modelList가 배열 형태로 반환되는 경우
-				$result['aiModel'] = $modelList;
-			} elseif (!empty($modelList['items'])) {
-				$result['aiModel'] = $modelList['items'];
-			} else {
-				$result['aiModel'] = [];
-			}
-			
-			return $result;
+		$result = [];
+		$ais = new AiSetting();
+		$_GET['isUse'] = 'Y';
+		$_GET['noapp'] = 1000000;
+		
+		// 기본 데이터
+		$category = new Category();
+		$result['category'] = $category->popup();
+		$result['prompt'] = $ais->promptList()['items'];
+		$result['template'] = $ais->templateList()['items'];
+		$result['imagePrompt'] = $ais->imagePromptList()['items'];  // 이미지 프롬프트 목록 추가
+		
+		// AI 모델 목록 (에디터의 동작과 유사하게 제공)
+		$modelList = $ais->modelList();
+		if (!empty($modelList) && !empty($modelList['0'])) {
+			// modelList가 배열 형태로 반환되는 경우
+			$result['aiModel'] = $modelList;
+		} elseif (!empty($modelList['items'])) {
+			$result['aiModel'] = $modelList['items'];
+		} else {
+			$result['aiModel'] = [];
+		}
+		
+		return $result;
 	}
 
 	/**
@@ -638,6 +958,14 @@ class Article
 		$aiModel = 4; //gpt-4o
 
 		try {
+			// 디버깅: 함수 시작
+			$this->debugTimerStart('aiDraft');
+			$this->debugMemorySnapshot('aiDraft_start');
+			$this->debug("AI 기사 초안 생성 시작", [
+				'method' => 'aiDraft',
+				'request_method' => $_SERVER['REQUEST_METHOD'] ?? 'UNKNOWN'
+			], 'INFO');
+			
 			$this->common->checkRequestMethod('POST');
 			$items = !empty($_POST['items']) ? (is_array($_POST['items'])? $_POST['items'] : json_decode($_POST['items'], true)) : [];
 			$categoryId = $_POST['categoryId'] ?? '';
@@ -647,21 +975,47 @@ class Article
 			$userPrompt = trim($_POST['articlePrompt'] ?? '');
 			$makeImage = $_POST['makeImage'] ?? 'no-generate';
 			$makeChart = $_POST['makeChart'] ?? 'no-generate';
-            $part = $_POST['part'] ?? '';
+			$imagePromptIdx = (int)($_POST['imagePromptIdx'] ?? 0);
+			$part = $_POST['part'] ?? '';
 
+			// 디버깅: 입력 파라미터
+			$this->debug("입력 파라미터", [
+				'items_count' => count($items),
+				'categoryId' => $categoryId,
+				'templateIdx' => $templateIdx,
+				'promptIdx' => $promptIdx,
+				'modelIdx' => $modelIdx,
+				'userPrompt' => $userPrompt ? substr($userPrompt, 0, 50) . '...' : 'empty',
+				'makeImage' => $makeImage,
+				'makeChart' => $makeChart,
+				'imagePromptIdx' => $imagePromptIdx,
+				'part' => $part
+			], 'DEBUG');
+
+			$this->debugTimerStart('load_settings');
 			$ais = new AiSetting();
 			$_GET['idx'] = $promptIdx;
 			$articlePrompt = $ais->promptEdit()['item'];
 
+			$_GET['idx'] = $imagePromptIdx;
+			$imagePrompt = $ais->imagePromptEdit()['item'];
+
 			$_GET['idx'] = $templateIdx;
 			$template = $ais->templateEdit($templateIdx)['item'];
+			$this->debugTimerEnd('load_settings');
 
+			$this->debugTimerStart('fetch_api_data');
 			$api = new Api();
 			$_GET['sid'] = implode(",", array_column($items,"id"));
 			$_GET['startDate']= date("Y-m-d", strtotime("-7 days"));
 			$chartData = $api->data();
+			$this->debugTimerEnd('fetch_api_data');
+			
+			$this->debug("API 데이터 로드 완료", [
+				'data_count' => isset($chartData['data']) ? count($chartData['data']) : 0
+			], 'DEBUG');
 
-		// 카테고리 정보 가져오기
+			// 카테고리 정보 가져오기
 			$category = new Category();
 			$categoryInfo = $category->getHierarchy($categoryId);
 			$categoryName = '';
@@ -695,49 +1049,51 @@ class Article
 				} elseif (strpos($firstDepthCategoryId, 'hkp004') === 0) {
 					$categoryType = '원자재';
 					$isAgricultural = false;
-		}
-	}
-
-		// 선택된 품목명 추출
-		$itemNames = [];
-		foreach ($items as $item) {
-			if (isset($item['title'])) {
-				$itemNames[] = $item['title'];
+				}
 			}
-		}
-		$itemsText = !empty($itemNames) ? implode(', ', $itemNames) . '. ' : '';
 
-		// 카테고리별 이미지 프롬프트 가이드
-		if ($isAgricultural) {
-			// 농수산물: 시장/식품 이미지
-			$imagePromptGuide = "{$itemsText} Professional photojournalism, Korean market, fresh produce, bright natural lighting, market scene, natural documentary style, professional food photography, Korean style";
-		} else {
-			// 원자재: 전문적인 산업/금융 이미지 (시장/식품 이미지 절대 금지)
-			$imagePromptGuide = "{$itemsText} Commodity materials, professional industrial photography, high quality product shot, studio lighting, metallic surface, raw material, industrial product, commercial photography for financial news, modern industrial aesthetic, clean composition, professional business photography, NOT market NOT vegetables NOT food NOT produce NOT groceries";
-		}
+			// 선택된 품목명 추출
+			$itemNames = [];
+			foreach ($items as $item) {
+				if (isset($item['title'])) {
+					$itemNames[] = $item['title'];
+				}
+			}
+			$itemsText = !empty($itemNames) ? implode(', ', $itemNames) . '. ' : '';
 
-		// AI Prompt 생성 (최적화)
-		$chartDataJson = json_encode($chartData, JSON_UNESCAPED_UNICODE);
+			// 카테고리별 이미지 프롬프트 가이드
+			if ($isAgricultural) {
+				// 농수산물: 시장/식품 이미지
+				$imagePromptGuide = "{$itemsText} Professional photojournalism, Korean market, fresh produce, bright natural lighting, market scene, natural documentary style, professional food photography, Korean style";
+			} else {
+				// 원자재: 전문적인 산업/금융 이미지 (시장/식품 이미지 절대 금지)
+				$imagePromptGuide = "{$itemsText} Commodity materials, professional industrial photography, high quality product shot, studio lighting, metallic surface, raw material, industrial product, commercial photography for financial news, modern industrial aesthetic, clean composition, professional business photography, NOT market NOT vegetables NOT food NOT produce NOT groceries";
+			}
 
-		$this->debug("차트 데이터 JSON 생성 완료", [
-			'data_length' => strlen($chartDataJson),
-			'item_count' => count($chartData['data'] ?? [])
-		]);
-		
-		$prompt = "🚨🚨🚨 중요 알림: 시장 데이터는 이미 필터링되어 각 품목당 data[0] 하나만 제공됩니다! 🚨🚨🚨\n\n";
-		$prompt .= "✅ 제공된 데이터 구조:\n";
-		$prompt .= "- 각 품목의 'data' 배열에는 오직 1개의 요소만 존재합니다.\n";
-		$prompt .= "- 이것이 바로 사용해야 할 최신 데이터입니다.\n";
-		$prompt .= "- data[0]를 그대로 사용하면 됩니다. 다른 인덱스는 존재하지 않습니다.\n\n";
-		$prompt .= $articlePrompt['content'];
-		$prompt .= "\n=== 템플릿 ===\n제목: {$template['title']}\n본문: {$template['content']}\n";
-		$prompt .= "\n=== 시장 데이터 (이미 필터링됨) ===\n{$chartDataJson}\n\n";
-		$prompt .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-		$prompt .= "✅ 데이터 사용 방법:\n";
-		$prompt .= "각 품목의 data[0]만 사용하세요. (이미 data[0] 하나만 제공됨)\n";
-		$prompt .= "data[1], data[2], data[3], data[4], data[5]는 사용하지 마세요.\n";
-		$prompt .= "제공된 숫자를 수정하지 말고 그대로 사용하세요.\n";
-		$prompt .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+			$imagePromptGuide = str_replace("\n", ' ', ($imagePrompt['content'] ?? $imagePromptGuide));
+
+			// AI Prompt 생성 (최적화)
+			$chartDataJson = json_encode($chartData, JSON_UNESCAPED_UNICODE);
+
+			$this->debug("차트 데이터 JSON 생성 완료", [
+				'data_length' => strlen($chartDataJson),
+				'item_count' => count($chartData['data'] ?? [])
+			]);
+			
+			$prompt = "🚨🚨🚨 중요 알림: 시장 데이터는 이미 필터링되어 각 품목당 data[0] 하나만 제공됩니다! 🚨🚨🚨\n\n";
+			$prompt .= "✅ 제공된 데이터 구조:\n";
+			$prompt .= "- 각 품목의 'data' 배열에는 오직 1개의 요소만 존재합니다.\n";
+			$prompt .= "- 이것이 바로 사용해야 할 최신 데이터입니다.\n";
+			$prompt .= "- data[0]를 그대로 사용하면 됩니다. 다른 인덱스는 존재하지 않습니다.\n\n";
+			$prompt .= $articlePrompt['content'];
+			$prompt .= "\n=== 템플릿 ===\n제목: {$template['title']}\n본문: {$template['content']}\n";
+			$prompt .= "\n=== 시장 데이터 (이미 필터링됨) ===\n{$chartDataJson}\n\n";
+			$prompt .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+			$prompt .= "✅ 데이터 사용 방법:\n";
+			$prompt .= "각 품목의 data[0]만 사용하세요. (이미 data[0] 하나만 제공됨)\n";
+			$prompt .= "data[1], data[2], data[3], data[4], data[5]는 사용하지 마세요.\n";
+			$prompt .= "제공된 숫자를 수정하지 말고 그대로 사용하세요.\n";
+			$prompt .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
 			$prompt .= "\n=== 사용자 요청 ===\n{$userPrompt}\n\n";
 			
 			$prompt .= "=== 작성 요구사항 ===\n";
@@ -749,33 +1105,33 @@ class Article
 			$prompt .= "   - 가격/변동률: 우측정렬 (style=\"text-align: right\")\n";
 			$prompt .= "   - 변동률 색상: 양수 #dc3545(빨강), 음수 #007bff(파랑), 0% #000(검정)\n";
 			$prompt .= "4. <br /><br />으로 문단 구분\n\n";
-		$prompt .= "=== 📊 데이터 추출 규칙 (간단해졌습니다!) ===\n\n";
-		$prompt .= "**STEP-BY-STEP 표 작성 방법**:\n";
-		$prompt .= "1. 시장 데이터의 첫 번째 품목 선택: chartData.data[0]\n";
-		$prompt .= "2. 그 품목의 data[0] 선택: chartData.data[0].data[0]\n";
-		$prompt .= "3. 필요한 필드 추출: .name, .price, .oneWeekAgoPrice, .oneWeekAgoChange\n";
-		$prompt .= "4. 2-5번째 품목도 동일: data[1].data[0], data[2].data[0], data[3].data[0], data[4].data[0]\n\n";
-		$prompt .= "✅ **중요**: 각 품목은 이미 data[0] 하나만 가지고 있으므로 선택의 여지가 없습니다!\n";
-		$prompt .= "제공된 데이터의 숫자를 그대로 사용하기만 하면 됩니다.\n\n";
-		$prompt .= "🖼️ **이미지 프롬프트**: 품목명을 간단한 영문 명사로 변환 (예: '깐마늘(국산)' → 'garlic')\n\n";
+			$prompt .= "=== 📊 데이터 추출 규칙 (간단해졌습니다!) ===\n\n";
+			$prompt .= "**STEP-BY-STEP 표 작성 방법**:\n";
+			$prompt .= "1. 시장 데이터의 첫 번째 품목 선택: chartData.data[0]\n";
+			$prompt .= "2. 그 품목의 data[0] 선택: chartData.data[0].data[0]\n";
+			$prompt .= "3. 필요한 필드 추출: .name, .price, .oneWeekAgoPrice, .oneWeekAgoChange\n";
+			$prompt .= "4. 2-5번째 품목도 동일: data[1].data[0], data[2].data[0], data[3].data[0], data[4].data[0]\n\n";
+			$prompt .= "✅ **중요**: 각 품목은 이미 data[0] 하나만 가지고 있으므로 선택의 여지가 없습니다!\n";
+			$prompt .= "제공된 데이터의 숫자를 그대로 사용하기만 하면 됩니다.\n\n";
+			$prompt .= "🖼️ **이미지 프롬프트**: ".$imagePromptGuide."\n\n";
 			
 			$prompt .= "=== 출력 형식 ===\n```json\n{\n";
 			$prompt .= '  "title": "제목 (10-15자)",'."\n";
 			$prompt .= '  "subtitle": "부제목 (20-30자)",'."\n";
 			$prompt .= '  "content": "본문 (표 포함, 제공된 실제 데이터만 사용)",'."\n";
 			$prompt .= '  "tags": ["태그1", "태그2", "태그3"],'." // 태그가 중복되지 않도록 해줘 \n";
-			$prompt .= '  "image_prompt": "영문 프롬프트 - 품목명은 반드시 간단한 일반 명사로 변환할 것 (예: 깐마늘(국산) 1kg → garlic, 사과(부사) → apple, 말린 고추 → pepper). 괄호, 단위, 수식어 모두 제거하고 핵심 품목명만 사용. ('.$imagePromptGuide.')"'."\n";
+			$prompt .= '  "image_prompt": "추천된 이미지 프롬프트"';
 			$prompt .= "}```\n\n";
 			
-		$prompt .= "⚠️ 주의: JSON 완전히 종료, 중간에 잘리지 않게, 표는 HTML 형식, 모든 수치는 제공된 데이터에서만 가져올 것\n\n";
-		$prompt .= "=== 📝 데이터 구조 예시 ===\n\n";
-		$prompt .= "제공되는 데이터는 이미 필터링되어 각 품목당 1개의 데이터만 포함:\n\n";
-		$prompt .= "{\"name\": \"미나리\", \"data\": [\n";
-		$prompt .= "  {\"date\": \"2025-11-20\", \"price\": 55000, \"oneWeekAgoPrice\": 37000, \"oneWeekAgoChange\": 48.65}\n";
-		$prompt .= "]}\n\n";
-		$prompt .= "✅ 사용법: data[0]의 값을 그대로 사용\n";
-		$prompt .= "결과: 미나리 | 55,000원 | 37,000원 | +48.65%\n\n";
-		$prompt .= "⚠️ 주의: 제공된 숫자를 절대 수정하거나 계산하지 마세요!\n\n";
+			$prompt .= "⚠️ 주의: JSON 완전히 종료, 중간에 잘리지 않게, 표는 HTML 형식, 모든 수치는 제공된 데이터에서만 가져올 것\n\n";
+			$prompt .= "=== 📝 데이터 구조 예시 ===\n\n";
+			$prompt .= "제공되는 데이터는 이미 필터링되어 각 품목당 1개의 데이터만 포함:\n\n";
+			$prompt .= "{\"name\": \"미나리\", \"data\": [\n";
+			$prompt .= "  {\"date\": \"2025-11-20\", \"price\": 55000, \"oneWeekAgoPrice\": 37000, \"oneWeekAgoChange\": 48.65}\n";
+			$prompt .= "]}\n\n";
+			$prompt .= "✅ 사용법: data[0]의 값을 그대로 사용\n";
+			$prompt .= "결과: 미나리 | 55,000원 | 37,000원 | +48.65%\n\n";
+			$prompt .= "⚠️ 주의: 제공된 숫자를 절대 수정하거나 계산하지 마세요!\n\n";
 			$prompt .= "=== 표 HTML 예시 ===\n";
 			$prompt .= "<table>\n";
 			$prompt .= "  <thead>\n";
@@ -823,27 +1179,52 @@ class Article
 				return ['success' => false, 'msg' => '모델명을 찾을 수 없습니다: ' . $aiModel];
 			}
 
+			$this->debugTimerStart('ai_request');
+			$this->debugMemorySnapshot('before_ai_request');
+			$this->debug("AI 프롬프트 전송 시작", [
+				'model' => 'gpt-4o',
+				'max_tokens' => self::ARTICLE_MAX_TOKENS,
+				'prompt_length' => strlen($prompt)
+			], 'INFO');
+			
 			$aiManager = new AIManager();
-            $response = $aiManager->sendPrompt($prompt, [
-                'model' => 'gpt-4o',
-                'max_tokens' => self::ARTICLE_MAX_TOKENS
-            ]);
-            
-            // AI 응답 실패 시 에러 반환
-            if (!$response['success']) {
-                $errorMsg = $response['msg'] ?? $response['error'] ?? 'AI 응답 실패';
-                throw new \Exception($errorMsg);
-            }
-            
-            // 응답 데이터 확인
-            if (empty($response['data'])) {
-                throw new \Exception('AI 응답 데이터가 비어있습니다.');
-            }
-            
-            // 응답 데이터에 chart_data 추가
-            $response['data']['chart_data'] = $chartData;
-            
-            $result = [ 'success' => true, 'data' => $response['data'] ];
+			$response = $aiManager->sendPrompt($prompt, [
+				'model' => 'gpt-4o',
+				'max_tokens' => self::ARTICLE_MAX_TOKENS
+			]);
+			
+			$this->debugTimerEnd('ai_request');
+			$this->debugMemorySnapshot('after_ai_request');
+			
+			// AI 응답 실패 시 에러 반환
+			if (!$response['success']) {
+				$errorMsg = $response['msg'] ?? $response['error'] ?? 'AI 응답 실패';
+				$this->debug("AI 응답 실패", ['error' => $errorMsg], 'ERROR');
+				throw new \Exception($errorMsg);
+			}
+			
+			// 응답 데이터 확인
+			if (empty($response['data'])) {
+				$this->debug("AI 응답 데이터 없음", null, 'ERROR');
+				throw new \Exception('AI 응답 데이터가 비어있습니다.');
+			}
+			
+			$this->debug("AI 응답 성공", [
+				'title' => $response['data']['title'] ?? 'N/A',
+				'subtitle' => isset($response['data']['subtitle']) ? substr($response['data']['subtitle'], 0, 30) . '...' : 'N/A',
+				'content_length' => isset($response['data']['content']) ? strlen($response['data']['content']) : 0,
+				'tags_count' => isset($response['data']['tags']) ? count($response['data']['tags']) : 0
+			], 'INFO');
+			
+			// 응답 데이터에 chart_data 추가
+			$response['data']['chart_data'] = $chartData;
+			
+			$result = [ 'success' => true, 'data' => $response['data'] ];
+			
+			// 디버깅: 최종 결과 및 실행 요약
+			$this->debugMemorySnapshot('aiDraft_end');
+			$this->debugTimerEnd('aiDraft');
+			$this->debugSummary();
 			
 			// CLI 환경에서는 exit 건너뛰기 (cron job 지원)
 			if (php_sapi_name() === 'cli' || defined('CRON_EXECUTION')) {
@@ -854,6 +1235,13 @@ class Article
 			echo json_encode($result);
 			exit;
 		} catch (\Exception $e) {
+			$this->debug("aiDraft 예외 발생", [
+				'error' => $e->getMessage(),
+				'file' => $e->getFile(),
+				'line' => $e->getLine()
+			], 'FATAL');
+			$this->debugStackTrace();
+			
 			$errorResult = ['success'=>false, 'msg'=>$this->common->getExceptionMessage($e)];
 			
 			// CLI 환경에서는 exit 건너뛰기 (cron job 지원)
@@ -890,6 +1278,10 @@ class Article
 	public function aiGenerateChartCode()
 	{
 		try {
+			$this->debugTimerStart('aiGenerateChartCode');
+			$this->debugMemorySnapshot('chart_start');
+			$this->debug("차트 생성 시작", ['method' => 'aiGenerateChartCode'], 'INFO');
+			
 			$this->common->checkRequestMethod('POST');
 			
 			// 차트 데이터 (필수)
@@ -908,37 +1300,69 @@ class Article
 			$maxItems = (int)($_POST['maxItems'] ?? self::CHART_MAX_ITEMS_DEFAULT);
 			$multiSeries = ($_POST['multiSeries'] ?? 'false') === 'true';
 			
+			$this->debug("차트 옵션", [
+				'type' => $chartType,
+				'title' => $chartTitle,
+				'maxItems' => $maxItems,
+				'multiSeries' => $multiSeries,
+				'data_count' => count($chartData['data'] ?? [])
+			], 'DEBUG');
+			
 			// 차트 타입별로 데이터 최적화
+			$this->debugTimerStart('optimize_chart_data');
 			$optimizedData = $this->optimizeChartData($chartData, $chartType, $maxItems, $multiSeries);
+			$this->debugTimerEnd('optimize_chart_data');
 			
 			// AIManager 인스턴스 생성
 			$aiManager = new AIManager();
 			
 			// AI 프롬프트 생성 (최적화된 데이터 사용)
+			$this->debugTimerStart('build_chart_prompt');
 			$prompt = $this->buildChartPrompt($optimizedData, $chartType, $chartTitle, $maxItems, $multiSeries);
+			$this->debugTimerEnd('build_chart_prompt');
+			
+			$this->debug("차트 프롬프트 생성 완료", [
+				'prompt_length' => strlen($prompt)
+			], 'DEBUG');
 			
 			// AI 호출 (충분한 토큰 확보)
+			$this->debugTimerStart('ai_chart_request');
+			$this->debugMemorySnapshot('before_chart_ai');
+			
 			$response = $aiManager->sendPrompt($prompt, [
 				'model' => 'gpt-4o',
 				'max_tokens' => self::CHART_MAX_TOKENS
 			]);
 			
+			$this->debugTimerEnd('ai_chart_request');
+			$this->debugMemorySnapshot('after_chart_ai');
+			
 			// 응답 확인
 			if (!$response['success'] || empty($response['data'])) {
+				$this->debug("AI 차트 생성 실패", $response, 'ERROR');
 				throw new \Exception('AI 차트 코드 생성에 실패했습니다.');
 			}
 			
 			// 차트 코드 추출
 			$chartCode = $response['data']['chart_code'] ?? '';
 			if (empty($chartCode)) {
+				$this->debug("차트 코드 없음", null, 'ERROR');
 				throw new \Exception('생성된 차트 코드가 비어있습니다.');
 			}
 			
+			$this->debug("차트 코드 생성 성공", [
+				'code_length' => strlen($chartCode)
+			], 'INFO');
+			
 		// 차트 코드 검증
+		$this->debugTimerStart('validate_chart_code');
 		$this->validateChartCode($chartCode);
+		$this->debugTimerEnd('validate_chart_code');
 		
 		// HTML 파일 생성 및 저장 (최적화된 데이터 사용!)
+		$this->debugTimerStart('create_chart_html');
 		$htmlResult = $this->createChartHtmlFile($chartCode, $chartTitle, $optimizedData);
+		$this->debugTimerEnd('create_chart_html');
 			
 			// 성공 응답 구성
 			$result = [
@@ -958,6 +1382,15 @@ class Article
 				]
 			];
 			
+			$this->debug("차트 생성 완료", [
+				'chart_url' => $htmlResult['url'],
+				'chart_type' => $chartType
+			], 'INFO');
+			
+			$this->debugMemorySnapshot('chart_end');
+			$this->debugTimerEnd('aiGenerateChartCode');
+			$this->debugSummary();
+			
 			// CLI 환경에서는 exit 건너뛰기 (cron job 지원)
 			if (php_sapi_name() === 'cli' || defined('CRON_EXECUTION')) {
 				return $result;
@@ -968,6 +1401,13 @@ class Article
 			exit;
 			
 		} catch (\Exception $e) {
+			$this->debug("aiGenerateChartCode 예외 발생", [
+				'error' => $e->getMessage(),
+				'file' => $e->getFile(),
+				'line' => $e->getLine()
+			], 'FATAL');
+			$this->debugStackTrace();
+			
 			$errorResult = [
 				'success' => false,
 				'msg' => $this->common->getExceptionMessage($e)
@@ -1469,6 +1909,10 @@ HTML;
 	public function aiSave()
 	{
 		try {
+			$this->debugTimerStart('aiSave');
+			$this->debugMemorySnapshot('save_start');
+			$this->debug("기사 저장 시작", ['method' => 'aiSave'], 'INFO');
+			
 			$this->common->checkRequestMethod('POST');
 			
 			// 전달받은 데이터 파싱
@@ -1477,10 +1921,18 @@ HTML;
 				throw new \Exception('저장할 데이터가 없습니다.');
 			}
 			
+			$this->debug("수신한 데이터 크기", [
+				'json_length' => strlen($jsonData)
+			], 'DEBUG');
+			
 			$data = json_decode($jsonData, true);
 			if (json_last_error() !== JSON_ERROR_NONE) {
 				throw new \Exception('잘못된 JSON 형식입니다: ' . json_last_error_msg());
 			}
+			
+			$this->debug("데이터 파싱 완료", [
+				'keys' => array_keys($data)
+			], 'DEBUG');
 			
 			// 필수 데이터 검증
 			if (empty($data['title']) || empty($data['body'])) {
@@ -1489,7 +1941,7 @@ HTML;
 
 			// 기사 ID 생성 (회사ID + 날짜 + 시간 + 랜덤)
 			$aid = $this->generateId($this->coId);
-			$this->debug("기사 ID 생성", $aid);
+			$this->debug("기사 ID 생성", ['aid' => $aid], 'INFO');
 			
 			// 날짜별 디렉토리 경로
 			$dateDir = date('Y/m/d');
@@ -1876,6 +2328,10 @@ HTML;
 	public function aiGenerateArticleImage()
 	{
 		try {
+			$this->debugTimerStart('aiGenerateArticleImage');
+			$this->debugMemorySnapshot('image_start');
+			$this->debug("이미지 생성 시작", ['method' => 'aiGenerateArticleImage'], 'INFO');
+			
 			$this->common->checkRequestMethod('POST');
 			
 			// 이미지 프롬프트 (필수)
@@ -1886,10 +2342,19 @@ HTML;
 			}
 			
 			// 이미지 옵션
-			$imageModel = $_POST['imageModel'] ?? 'dall-e-3';
-			$imageSize = $_POST['imageSize'] ?? '1792x1024';  // 625px width에 최적화된 가로형 이미지
-			$imageQuality = $_POST['imageQuality'] ?? 'standard';
-			$imageStyle = $_POST['imageStyle'] ?? 'vivid';  // vivid | natural
+			$imageModel = $_POST['imageModel'] ?? 'gpt-image-1.5';  // 최신 GPT Image 1.5 모델 사용
+			$imageSize = $_POST['imageSize'] ?? '1536x1024';  // GPT Image 지원 가로형 이미지 (1024x1024, 1024x1536, 1536x1024, auto)
+			$imageQuality = $_POST['imageQuality'] ?? 'medium';  // low | medium | high
+			$imageStyle = $_POST['imageStyle'] ?? 'vivid';  // vivid | natural (DALL-E 전용)
+			
+			$this->debug("이미지 생성 파라미터", [
+				'prompt_length' => strlen($imagePrompt),
+				'prompt_preview' => substr($imagePrompt, 0, 100) . '...',
+				'model' => $imageModel,
+				'size' => $imageSize,
+				'quality' => $imageQuality,
+				'style' => $imageStyle
+			], 'DEBUG');
 			
 			// AIManager 인스턴스 생성
 			$aiManager = new AIManager();
@@ -1900,18 +2365,29 @@ HTML;
 				'size' => $imageSize
 			];
 			
-			// DALL-E-3 전용 옵션
-			if ($imageModel === 'dall-e-3') {
+			// 모델별 옵션 설정
+			if (in_array($imageModel, ['gpt-image-1.5', 'gpt-image-1', 'gpt-image-1-mini'])) {
+				// GPT Image 모델: quality만 지원 (low, medium, high)
 				$imageOptions['quality'] = $imageQuality;
-				$imageOptions['style'] = $imageStyle;  // 프론트엔드에서 전달받은 스타일 사용
+			} elseif ($imageModel === 'dall-e-3') {
+				// DALL-E-3: quality와 style 모두 지원
+				$imageOptions['quality'] = $imageQuality;
+				$imageOptions['style'] = $imageStyle;
 			}
 			
 			// 이미지 저장 경로 설정 (Step 2에서는 temp에 저장)
 			$savePath = $this->getDirectoryPath('temp_image');
 			$filePrefix = 'article_' . date('YmdHis');
-			$this->debug("이미지 생성 요청", ['prompt' => $imagePrompt, 'model' => $imageModel]);
+			
+			$this->debug("이미지 저장 경로 설정", [
+				'savePath' => $savePath,
+				'filePrefix' => $filePrefix
+			], 'DEBUG');
 			
 			// 이미지 생성 및 저장
+			$this->debugTimerStart('ai_image_generation');
+			$this->debugMemorySnapshot('before_image_gen');
+			
 			$imageResult = $aiManager->generateAndSaveImage(
 				$imagePrompt,
 				$savePath,
@@ -1919,9 +2395,23 @@ HTML;
 				$imageOptions
 			);
 			
+			$this->debugTimerEnd('ai_image_generation');
+			$this->debugMemorySnapshot('after_image_gen');
+			
 			// 생성 실패 처리
 			if ($imageResult['status'] !== 'success' || !$imageResult['success']) {
-				throw new \Exception($imageResult['msg'] ?? '이미지 생성에 실패했습니다.');
+				$this->debug("이미지 생성 실패", $imageResult, 'ERROR');
+				
+				// 상세 에러 정보 구성
+				$errorMsg = $imageResult['msg'] ?? '이미지 생성에 실패했습니다.';
+				if (!empty($imageResult['error'])) {
+					$errorMsg .= ' (상세: ' . $imageResult['error'] . ')';
+				}
+				if (!empty($imageResult['debug_info'])) {
+					$errorMsg .= ' [디버그: ' . json_encode($imageResult['debug_info'], JSON_UNESCAPED_UNICODE) . ']';
+				}
+				
+				throw new \Exception($errorMsg);
 			}
 			
 			// 성공 응답 구성
@@ -1929,9 +2419,10 @@ HTML;
 			$firstImage = !empty($savedFiles) ? $savedFiles[0] : null;
 			
 			$this->debug("이미지 생성 완료", [
-				'filename' => $firstImage['filename'] ?? '',
-				'size' => $imageSize
-			]);
+				'filename' => $firstImage['filename'] ?? 'unknown',
+				'size' => $imageSize,
+				'files_count' => count($savedFiles)
+			], 'INFO');
 			
 			$result = [
 				'success' => true,
@@ -1947,6 +2438,10 @@ HTML;
 				]
 			];
 			
+			$this->debugMemorySnapshot('image_end');
+			$this->debugTimerEnd('aiGenerateArticleImage');
+			$this->debugSummary();
+			
 			// CLI 환경에서는 exit 건너뛰기 (cron job 지원)
 			if (php_sapi_name() === 'cli' || defined('CRON_EXECUTION')) {
 				return $result;
@@ -1957,6 +2452,13 @@ HTML;
 			exit;
 			
 		} catch (\Exception $e) {
+			$this->debug("aiGenerateArticleImage 예외 발생", [
+				'error' => $e->getMessage(),
+				'file' => $e->getFile(),
+				'line' => $e->getLine()
+			], 'FATAL');
+			$this->debugStackTrace();
+			
 			$errorResult = [
 				'success' => false,
 				'msg' => $this->common->getExceptionMessage($e)

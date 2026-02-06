@@ -460,15 +460,20 @@ class GPT extends AIInterface
     }
 
     /**
-     * DALL-E를 사용하여 이미지 생성
+     * OpenAI 이미지 생성 (GPT Image, DALL-E)
      * 
      * @param string $prompt 이미지 생성 프롬프트
      * @param array $options 추가 옵션
-     *   - model: 모델명 (dall-e-2, dall-e-3) 기본값: dall-e-3
-     *   - n: 생성할 이미지 개수 (dall-e-2: 1-10, dall-e-3: 1) 기본값: 1
-     *   - size: 이미지 크기 (dall-e-2: 256x256, 512x512, 1024x1024 / dall-e-3: 1024x1024, 1792x1024, 1024x1792) 기본값: 1024x1024
-     *   - quality: 품질 (dall-e-3만 지원: standard, hd) 기본값: standard
-     *   - style: 스타일 (dall-e-3만 지원: vivid, natural) 기본값: vivid
+     *   - model: 모델명 (gpt-image-1.5, gpt-image-1, gpt-image-1-mini, dall-e-3, dall-e-2) 기본값: gpt-image-1.5
+     *   - n: 생성할 이미지 개수 (dall-e-2: 1-10, 기타: 1) 기본값: 1
+     *   - size: 이미지 크기
+     *     * GPT Image 모델: 1024x1024, 1024x1536, 1536x1024, auto (기본: 1024x1024)
+     *     * DALL-E-3: 1024x1024, 1792x1024, 1024x1792 (기본: 1024x1024)
+     *     * DALL-E-2: 256x256, 512x512, 1024x1024 (기본: 1024x1024)
+     *   - quality: 품질
+     *     * GPT Image 모델: low, medium, high (기본: medium)
+     *     * DALL-E-3: standard, hd (기본: standard)
+     *   - style: 스타일 (DALL-E-3만 지원: vivid, natural) 기본값: vivid
      * @return array JSON 응답
      */
     public function generateImage($prompt, $options = [])
@@ -476,15 +481,18 @@ class GPT extends AIInterface
         try {
             // 기본 설정
             $config = array_merge([
-                'model' => 'dall-e-3',
+                'model' => 'gpt-image-1.5',
                 'n' => 1,
                 'size' => '1024x1024',
-                'quality' => 'standard',
-                'style' => 'vivid'
+                'quality' => 'medium',
+                'style' => 'vivid'  // DALL-E 전용
             ], $options);
 
-            // DALL-E-3는 1개만 생성 가능
-            if ($config['model'] === 'dall-e-3' && $config['n'] > 1) {
+            // GPT Image 모델 체크
+            $isGptImage = in_array($config['model'], ['gpt-image-1.5', 'gpt-image-1', 'gpt-image-1-mini']);
+            
+            // DALL-E-3, GPT Image는 1개만 생성 가능
+            if (($config['model'] === 'dall-e-3' || $isGptImage) && $config['n'] > 1) {
                 $config['n'] = 1;
             }
 
@@ -501,23 +509,69 @@ class GPT extends AIInterface
                 'size' => $config['size']
             ];
 
-            // DALL-E-3 전용 옵션
-            if ($config['model'] === 'dall-e-3') {
+            // 모델별 옵션 추가
+            if ($isGptImage) {
+                // GPT Image 모델: quality만 지원 (low, medium, high)
+                // response_format은 지원하지 않음
+                $requestData['quality'] = $config['quality'];
+            } elseif ($config['model'] === 'dall-e-3') {
+                // DALL-E-3: quality, style, response_format 지원
                 $requestData['quality'] = $config['quality'];
                 $requestData['style'] = $config['style'];
+                $requestData['response_format'] = 'url';  // DALL-E만 지원
+            } elseif ($config['model'] === 'dall-e-2') {
+                // DALL-E-2: response_format 지원
+                $requestData['response_format'] = 'url';
             }
+
+            // 디버그 로그
+            error_log('Image Generation Request: ' . json_encode([
+                'model' => $config['model'],
+                'is_gpt_image' => $isGptImage,
+                'prompt_length' => strlen($prompt),
+                'request_data' => $requestData
+            ], JSON_UNESCAPED_UNICODE));
 
             // API 요청 전송
             $response = $this->sendRequest($this->imageEndpoint, $requestData);
+
+            // 디버그 로그 - API 응답
+            $firstImageKeys = isset($response['data'][0]) ? array_keys($response['data'][0]) : [];
+            error_log('Image Generation Response: ' . json_encode([
+                'has_data' => isset($response['data']),
+                'data_count' => isset($response['data']) ? count($response['data']) : 0,
+                'response_keys' => array_keys($response),
+                'first_image_keys' => $firstImageKeys,
+                'has_url' => isset($response['data'][0]['url']),
+                'has_b64' => isset($response['data'][0]['b64_json']),
+                'error' => $response['error'] ?? null
+            ], JSON_UNESCAPED_UNICODE));
 
             // 응답 처리
             if (isset($response['data']) && is_array($response['data'])) {
                 $images = [];
                 foreach ($response['data'] as $imageData) {
-                    $images[] = [
-                        'url' => $imageData['url'] ?? '',
+                    $imageInfo = [
                         'revised_prompt' => $imageData['revised_prompt'] ?? $prompt
                     ];
+                    
+                    // URL 형식인 경우
+                    if (!empty($imageData['url'])) {
+                        $imageInfo['url'] = $imageData['url'];
+                        $imageInfo['format'] = 'url';
+                    }
+                    // Base64 형식인 경우
+                    elseif (!empty($imageData['b64_json'])) {
+                        $imageInfo['b64_json'] = $imageData['b64_json'];
+                        $imageInfo['format'] = 'base64';
+                    }
+                    
+                    $images[] = $imageInfo;
+                }
+
+                // 이미지 데이터가 없는 경우
+                if (empty($images) || (empty($images[0]['url']) && empty($images[0]['b64_json']))) {
+                    throw new \Exception('이미지 데이터가 없습니다. 응답 형식: ' . json_encode($firstImageKeys));
                 }
 
                 // AI 로그 기록 (성공)
@@ -542,12 +596,17 @@ class GPT extends AIInterface
                 ];
             }
 
-            throw new \Exception('이미지 생성 응답에 데이터가 없습니다.');
+            // 응답에 데이터가 없는 경우 상세 정보 포함
+            $errorDetail = json_encode($response, JSON_UNESCAPED_UNICODE);
+            throw new \Exception('이미지 생성 응답에 데이터가 없습니다. API 응답: ' . $errorDetail);
 
         } catch (\Exception $e) {
+            // 에러 상세 로그
+            error_log('Image Generation Error: ' . $e->getMessage());
+            
             // AI 로그 기록 (실패)
             $this->logGptCall(
-                $config['model'] ?? 'dall-e-3', 
+                $config['model'] ?? 'gpt-image-1.5', 
                 $prompt, 
                 '', 
                 $options, 
@@ -559,12 +618,18 @@ class GPT extends AIInterface
 
             return [
                 'status' => 'error',
-                'msg' => 'DALL-E 이미지 생성 실패: ' . $e->getMessage(),
+                'msg' => '이미지 생성 실패: ' . $e->getMessage(),
                 'success' => false,
                 'images' => [],
-                'model' => $config['model'] ?? 'dall-e-3',
+                'model' => $config['model'] ?? 'gpt-image-1.5',
                 'count' => 0,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'debug_info' => [
+                    'is_gpt_image' => $isGptImage ?? false,
+                    'request_model' => $config['model'] ?? 'unknown',
+                    'request_quality' => $requestData['quality'] ?? 'none',
+                    'has_style' => isset($requestData['style'])
+                ]
             ];
         }
     }
@@ -578,6 +643,8 @@ class GPT extends AIInterface
     protected function downloadImage($url)
     {
         try {
+            error_log("이미지 다운로드 시도: {$url}");
+            
             $ch = curl_init($url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
@@ -586,17 +653,46 @@ class GPT extends AIInterface
             
             $imageData = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
             curl_close($ch);
             
             if ($httpCode === 200 && $imageData !== false) {
+                error_log("이미지 다운로드 성공: " . strlen($imageData) . " bytes");
                 return $imageData;
             }
             
+            error_log("이미지 다운로드 실패: HTTP {$httpCode}, CURL Error: {$curlError}");
             return false;
         } catch (\Exception $e) {
-            error_log('이미지 다운로드 실패: ' . $e->getMessage());
+            error_log('이미지 다운로드 예외: ' . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * 파일 경로를 웹 URL로 변환
+     * 
+     * @param string $filePath 파일 절대 경로
+     * @return string 웹 URL
+     */
+    protected function convertToWebUrl($filePath)
+    {
+        // Windows 경로를 Unix 스타일로 변환
+        $filePath = str_replace('\\', '/', $filePath);
+        
+        // siteDocPath를 기준으로 상대 경로 추출
+        $siteDocPath = str_replace('\\', '/', $this->siteDocPath);
+        
+        if (strpos($filePath, $siteDocPath) === 0) {
+            $relativePath = substr($filePath, strlen($siteDocPath));
+            $webUrl = '/data/' . $this->coId . $relativePath;
+            error_log("URL 변환: {$filePath} -> {$webUrl}");
+            return $webUrl;
+        }
+        
+        // 기본적으로 파일 이름만 반환
+        error_log("URL 변환 실패 (경로 불일치): {$filePath} (siteDocPath: {$siteDocPath})");
+        return basename($filePath);
     }
 
     /**
@@ -615,12 +711,21 @@ class GPT extends AIInterface
             $result = $this->generateImage($prompt, $options);
             
             if (!$result['success'] || empty($result['images'])) {
+                // 상세한 에러 정보 로그
+                error_log('Generate and Save Image Failed: ' . json_encode([
+                    'success' => $result['success'] ?? false,
+                    'msg' => $result['msg'] ?? 'unknown',
+                    'error' => $result['error'] ?? 'unknown',
+                    'debug_info' => $result['debug_info'] ?? []
+                ], JSON_UNESCAPED_UNICODE));
+                
                 return [
                     'status' => 'error',
                     'msg' => $result['msg'] ?? '이미지 생성에 실패했습니다.',
                     'success' => false,
                     'saved_files' => [],
-                    'error' => $result['error'] ?? 'unknown'
+                    'error' => $result['error'] ?? 'unknown',
+                    'debug_info' => $result['debug_info'] ?? []
                 ];
             }
 
@@ -641,11 +746,26 @@ class GPT extends AIInterface
             $timestamp = date('YmdHis');
             
             foreach ($result['images'] as $index => $imageInfo) {
-                $imageUrl = $imageInfo['url'];
-                $imageData = $this->downloadImage($imageUrl);
+                $imageData = null;
                 
-                if ($imageData === false) {
-                    error_log("이미지 다운로드 실패: {$imageUrl}");
+                // URL 형식인 경우 다운로드
+                if (!empty($imageInfo['url'])) {
+                    $imageData = $this->downloadImage($imageInfo['url']);
+                    if ($imageData === false) {
+                        error_log("이미지 다운로드 실패: {$imageInfo['url']}");
+                        continue;
+                    }
+                }
+                // Base64 형식인 경우 디코딩
+                elseif (!empty($imageInfo['b64_json'])) {
+                    $imageData = base64_decode($imageInfo['b64_json']);
+                    if ($imageData === false) {
+                        error_log("Base64 디코딩 실패");
+                        continue;
+                    }
+                }
+                else {
+                    error_log("이미지 데이터가 없습니다: " . json_encode($imageInfo));
                     continue;
                 }
 
@@ -655,12 +775,18 @@ class GPT extends AIInterface
                 
                 // 파일 저장
                 if (file_put_contents($filePath, $imageData) !== false) {
+                    // 웹 URL 생성 (data 경로 기준)
+                    $webUrl = $this->convertToWebUrl($filePath);
+                    
+                    error_log("이미지 저장 성공: {$filePath} (size: " . filesize($filePath) . " bytes)");
+                    
                     $savedFiles[] = [
-                        'file_name' => $fileName,
-                        'file_path' => $filePath,
-                        'url' => $imageUrl,
+                        'filename' => $fileName,  // Article.php와 일관성
+                        'path' => $filePath,
+                        'url' => $webUrl,
                         'revised_prompt' => $imageInfo['revised_prompt'],
-                        'file_size' => filesize($filePath)
+                        'file_size' => filesize($filePath),
+                        'format' => $imageInfo['format'] ?? 'unknown'
                     ];
                 } else {
                     error_log("파일 저장 실패: {$filePath}");
@@ -668,11 +794,32 @@ class GPT extends AIInterface
             }
 
             if (empty($savedFiles)) {
+                // 상세한 디버그 정보 수집
+                $debugInfo = [
+                    'images_count' => count($result['images']),
+                    'save_path' => $savePath,
+                    'save_path_exists' => is_dir($savePath),
+                    'save_path_writable' => is_writable($savePath),
+                    'images_info' => []
+                ];
+                
+                foreach ($result['images'] as $idx => $img) {
+                    $debugInfo['images_info'][] = [
+                        'index' => $idx,
+                        'has_url' => !empty($img['url']),
+                        'has_b64' => !empty($img['b64_json']),
+                        'format' => $img['format'] ?? 'unknown'
+                    ];
+                }
+                
+                error_log('이미지 저장 실패 - 모든 이미지 저장 불가: ' . json_encode($debugInfo, JSON_UNESCAPED_UNICODE));
+                
                 return [
                     'status' => 'error',
                     'msg' => '이미지를 저장할 수 없습니다.',
                     'success' => false,
-                    'saved_files' => []
+                    'saved_files' => [],
+                    'debug_info' => $debugInfo
                 ];
             }
 

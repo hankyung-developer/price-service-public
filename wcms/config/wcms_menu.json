@@ -85,6 +85,17 @@
                 "selector": "prompt_list"
             },
             {
+                "menuId": "이미지프롬프트",
+                "menuName": "이미지 프롬프트",
+                "icon": "fa-duotone fa-image",
+                "link": "/aiSetting/imagePromptList",
+                "parent": "AI설정",
+                "depth": 2,
+                "target": "_self",
+                "datalink": "/aiSetting/imagePromptEdit",
+                "selector": "imagePrompt_list"
+            },
+            {
                 "menuId": "스케쥴러",
                 "menuName": "스케쥴러",
                 "icon": "fa-duotone fa-calendar-days",

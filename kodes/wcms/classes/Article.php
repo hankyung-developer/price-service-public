@@ -440,10 +440,10 @@ class Article
 			mkdir($targetDir, 0755, true);
 		}
 
-		// 파일 복사 및 원본 삭제
+		// 파일 복사만 수행 (임시 파일 유지)
 		if (copy($tempPath, $finalPath)) {
-			unlink($tempPath);
-			$this->debug("파일 이동 성공", $finalPath);
+			// unlink($tempPath);  // 임시 파일 삭제하지 않음 (디버깅 및 백업 용도)
+			$this->debug("파일 복사 성공 (원본 유지)", ['from' => $tempPath, 'to' => $finalPath]);
 			return true;
 		}
 		
@@ -1062,15 +1062,19 @@ class Article
 			$itemsText = !empty($itemNames) ? implode(', ', $itemNames) . '. ' : '';
 
 			// 카테고리별 이미지 프롬프트 가이드
-			if ($isAgricultural) {
-				// 농수산물: 시장/식품 이미지
-				$imagePromptGuide = "{$itemsText} Professional photojournalism, Korean market, fresh produce, bright natural lighting, market scene, natural documentary style, professional food photography, Korean style";
-			} else {
-				// 원자재: 전문적인 산업/금융 이미지 (시장/식품 이미지 절대 금지)
-				$imagePromptGuide = "{$itemsText} Commodity materials, professional industrial photography, high quality product shot, studio lighting, metallic surface, raw material, industrial product, commercial photography for financial news, modern industrial aesthetic, clean composition, professional business photography, NOT market NOT vegetables NOT food NOT produce NOT groceries";
+			if(!$imagePrompt['content']){
+				if ($isAgricultural) {
+					// 농수산물: 시장/식품 이미지
+					$imagePromptGuide = "{$itemsText} Professional photojournalism, Korean market, fresh produce, bright natural lighting, market scene, natural documentary style, professional food photography, Korean style";
+				} else {
+					// 원자재: 전문적인 산업/금융 이미지 (시장/식품 이미지 절대 금지)
+					$imagePromptGuide = "{$itemsText} Commodity materials, professional industrial photography, high quality product shot, studio lighting, metallic surface, raw material, industrial product, commercial photography for financial news, modern industrial aesthetic, clean composition, professional business photography, NOT market NOT vegetables NOT food NOT produce NOT groceries";
+				}
+			}else{
+				$imagePromptGuide = $imagePrompt['content'];
 			}
 
-			$imagePromptGuide = str_replace("\n", ' ', ($imagePrompt['content'] ?? $imagePromptGuide));
+			// echo "imagePromptGuide: ".$imagePromptGuide."\n\n";
 
 			// AI Prompt 생성 (최적화)
 			$chartDataJson = json_encode($chartData, JSON_UNESCAPED_UNICODE);
@@ -1080,21 +1084,18 @@ class Article
 				'item_count' => count($chartData['data'] ?? [])
 			]);
 			
-			$prompt = "🚨🚨🚨 중요 알림: 시장 데이터는 이미 필터링되어 각 품목당 data[0] 하나만 제공됩니다! 🚨🚨🚨\n\n";
-			$prompt .= "✅ 제공된 데이터 구조:\n";
-			$prompt .= "- 각 품목의 'data' 배열에는 오직 1개의 요소만 존재합니다.\n";
-			$prompt .= "- 이것이 바로 사용해야 할 최신 데이터입니다.\n";
-			$prompt .= "- data[0]를 그대로 사용하면 됩니다. 다른 인덱스는 존재하지 않습니다.\n\n";
+			$prompt = "=== 중요 알림 ===\n";
+			$prompt .= "시장 데이터는 이미 필터링되어 각 품목당 data[0] 하나만 제공됩니다.\n";
+			$prompt .= "각 품목의 data 배열에는 오직 1개의 요소만 존재합니다.\n";
+			$prompt .= "data[0]를 그대로 사용하면 됩니다. 다른 인덱스는 존재하지 않습니다.\n\n";
 			$prompt .= $articlePrompt['content'];
 			$prompt .= "\n=== 템플릿 ===\n제목: {$template['title']}\n본문: {$template['content']}\n";
 			$prompt .= "\n=== 시장 데이터 (이미 필터링됨) ===\n{$chartDataJson}\n\n";
-			$prompt .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-			$prompt .= "✅ 데이터 사용 방법:\n";
+			$prompt .= "=== 데이터 사용 방법 ===\n";
 			$prompt .= "각 품목의 data[0]만 사용하세요. (이미 data[0] 하나만 제공됨)\n";
 			$prompt .= "data[1], data[2], data[3], data[4], data[5]는 사용하지 마세요.\n";
-			$prompt .= "제공된 숫자를 수정하지 말고 그대로 사용하세요.\n";
-			$prompt .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-			$prompt .= "\n=== 사용자 요청 ===\n{$userPrompt}\n\n";
+			$prompt .= "제공된 숫자를 수정하지 말고 그대로 사용하세요.\n\n";
+			$prompt .= "=== 사용자 요청 ===\n{$userPrompt}\n\n";
 			
 			$prompt .= "=== 작성 요구사항 ===\n";
 			$prompt .= "1. 템플릿과 비슷한 분량 (8-12문단, 1200-1800자)\n";
@@ -1105,26 +1106,32 @@ class Article
 			$prompt .= "   - 가격/변동률: 우측정렬 (style=\"text-align: right\")\n";
 			$prompt .= "   - 변동률 색상: 양수 #dc3545(빨강), 음수 #007bff(파랑), 0% #000(검정)\n";
 			$prompt .= "4. <br /><br />으로 문단 구분\n\n";
-			$prompt .= "=== 📊 데이터 추출 규칙 (간단해졌습니다!) ===\n\n";
-			$prompt .= "**STEP-BY-STEP 표 작성 방법**:\n";
+			$prompt .= "=== 데이터 추출 규칙 ===\n\n";
+			$prompt .= "STEP-BY-STEP 표 작성 방법:\n";
 			$prompt .= "1. 시장 데이터의 첫 번째 품목 선택: chartData.data[0]\n";
 			$prompt .= "2. 그 품목의 data[0] 선택: chartData.data[0].data[0]\n";
 			$prompt .= "3. 필요한 필드 추출: .name, .price, .oneWeekAgoPrice, .oneWeekAgoChange\n";
 			$prompt .= "4. 2-5번째 품목도 동일: data[1].data[0], data[2].data[0], data[3].data[0], data[4].data[0]\n\n";
-			$prompt .= "✅ **중요**: 각 품목은 이미 data[0] 하나만 가지고 있으므로 선택의 여지가 없습니다!\n";
-			$prompt .= "제공된 데이터의 숫자를 그대로 사용하기만 하면 됩니다.\n\n";
-			$prompt .= "🖼️ **이미지 프롬프트**: ".$imagePromptGuide."\n\n";
+			$prompt .= "중요: 각 품목은 이미 data[0] 하나만 가지고 있으므로 선택의 여지가 없습니다.\n";
+			$prompt .= "제공된 데이터의 숫자를 그대로 사용하기만 하면 됩니다.\n";
+			$prompt .= "이미지 프롬프트: ".$imagePromptGuide."\n\n";
 			
-			$prompt .= "=== 출력 형식 ===\n```json\n{\n";
+			$prompt .= "=== 출력 형식 ===\n";
+			$prompt .= "반드시 아래 JSON 형식으로만 응답하세요. JSON 외의 텍스트, 설명, 이모지는 포함하지 마세요.\n\n";
+			$prompt .= "```json\n{\n";
 			$prompt .= '  "title": "제목 (10-15자)",'."\n";
 			$prompt .= '  "subtitle": "부제목 (20-30자)",'."\n";
 			$prompt .= '  "content": "본문 (표 포함, 제공된 실제 데이터만 사용)",'."\n";
 			$prompt .= '  "tags": ["태그1", "태그2", "태그3"],'." // 태그가 중복되지 않도록 해줘 \n";
 			$prompt .= '  "image_prompt": "추천된 이미지 프롬프트"';
-			$prompt .= "}```\n\n";
+			$prompt .= "\n}```\n\n";
 			
-			$prompt .= "⚠️ 주의: JSON 완전히 종료, 중간에 잘리지 않게, 표는 HTML 형식, 모든 수치는 제공된 데이터에서만 가져올 것\n\n";
-			$prompt .= "=== 📝 데이터 구조 예시 ===\n\n";
+			$prompt .= "주의사항:\n";
+			$prompt .= "- JSON만 출력하세요 (설명문, 이모지, 추가 텍스트 금지)\n";
+			$prompt .= "- JSON은 완전히 종료되어야 합니다 (중간에 잘리지 않게)\n";
+			$prompt .= "- 표는 HTML 형식으로 작성\n";
+			$prompt .= "- 모든 수치는 제공된 데이터에서만 가져오세요\n\n";
+			$prompt .= "=== 데이터 구조 예시 ===\n\n";
 			$prompt .= "제공되는 데이터는 이미 필터링되어 각 품목당 1개의 데이터만 포함:\n\n";
 			$prompt .= "{\"name\": \"미나리\", \"data\": [\n";
 			$prompt .= "  {\"date\": \"2025-11-20\", \"price\": 55000, \"oneWeekAgoPrice\": 37000, \"oneWeekAgoChange\": 48.65}\n";
@@ -1163,6 +1170,8 @@ class Article
 			$prompt .= "    </tr>\n";
 			$prompt .= "  </tbody>\n";
 			$prompt .= "</table>\n";
+
+			// echo $prompt;
 
 			// AI 모델 ID를 모델명으로 변환
 			$aiSetting = new AiSetting();

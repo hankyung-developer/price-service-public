@@ -197,6 +197,8 @@ class AiSetting
             $return = $this->view();
         }
 
+        $return['imagePrompt'] = $this->imagePromptList()['items'];
+
         // 템플릿과 프롬프트 목록
         $return['template'] = $this->templateList()['items'];
         $return['prompt'] = $this->promptList()['items'];
@@ -353,6 +355,7 @@ class AiSetting
             $request['isUse'] = $_POST['isUse']=='Y'?true:false;
             $request['templateId'] = (int)$request['templateId'];
             $request['promptId'] = (int)$request['promptId'];
+            $request['imagePrompt'] = (int)$request['imagePrompt'];
             
             // scheduleConfig JSON 파싱
             if(!empty($request['scheduleConfig'])){

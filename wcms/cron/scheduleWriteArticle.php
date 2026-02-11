@@ -47,6 +47,14 @@ $_SERVER['HTTP_HOST'] = $_SERVER['HTTP_HOST'] ?? 'datacms.hankyung.com';
 $_SERVER['REQUEST_URI'] = $_SERVER['REQUEST_URI'] ?? '/cron/scheduleWriteArticle';
 $_SERVER['REMOTE_ADDR'] = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
 
+// CLI 환경에서 DOCUMENT_ROOT 설정 (autoload.php에서 사용)
+// if (empty($_SERVER['DOCUMENT_ROOT'])) {
+//     // Windows 환경: D:\workspace\git\datacms\wcms
+//     // Linux 환경: /webSiteSource/wcms
+//     $scriptDir = dirname(__DIR__); // D:\workspace\git\datacms\wcms
+//     $_SERVER['DOCUMENT_ROOT'] = $scriptDir;
+// }
+
 // 클래스 자동 로드
 require_once dirname(__DIR__) . '/classes/autoload.php';
 
@@ -400,7 +408,8 @@ class ScheduleArticleWriter
             $categoryId = $schedule['categoryId'] ?? '';
             $templateIdx = (int)($schedule['templateId'] ?? 0);
             $promptIdx = (int)($schedule['promptId'] ?? 0);
-            
+            $imagePromptIdx = (int)($schedule['imagePrompt'] ?? 0);
+
             // selectedItems 파싱 (문자열일 경우 JSON 디코딩)
             $selectedItems = $schedule['selectedItems'] ?? [];
             if (is_string($selectedItems)) {
@@ -441,6 +450,7 @@ class ScheduleArticleWriter
                 'modelIdx' => 4, // gpt-4o
                 'articlePrompt' => '',
                 'makeImage' => $makeImage ? 'generate' : 'no-generate',
+                'imagePromptIdx' => $imagePromptIdx,
                 'makeChart' => $makeChart ? 'generate' : 'no-generate'
             ];
             
@@ -497,10 +507,13 @@ class ScheduleArticleWriter
                 $this->writeLog("  이미지 생성 중...");
                 $imageInfo = $this->generateImage($articleData['image_prompt']);
                 
-                if ($imageInfo['success']) {
+                if (!empty($imageInfo['success'])) {
                     $this->writeLog("  ✓ 이미지 생성 완료");
+                    $this->writeLog("    URL: " . ($imageInfo['data']['image_url'] ?? '없음'));
+                    $this->writeLog("    Path: " . ($imageInfo['data']['image_path'] ?? '없음'));
                 } else {
-                    $this->writeLog("  ✗ 이미지 생성 실패 (계속 진행)");
+                    $this->writeLog("  ✗ 이미지 생성 실패: " . ($imageInfo['msg'] ?? '알 수 없는 오류'));
+                    $imageInfo = null;  // 실패 시 null로 설정
                 }
             }
             
@@ -527,13 +540,31 @@ class ScheduleArticleWriter
             $this->writeLog("  기사 저장 중...");
             
             // 이미지 데이터 키 이름 변환 (image_url → url, image_path → path)
+            // aiSave()에서는 URL보다 path를 우선 사용하므로, path를 먼저 체크
             $imageData = null;
-            if (!empty($imageInfo['data'])) {
-                $imageData = [
-                    'url' => $imageInfo['data']['image_url'] ?? '',
-                    'path' => $imageInfo['data']['image_path'] ?? '',
-                    'filename' => $imageInfo['data']['image_filename'] ?? ''
-                ];
+            if (!empty($imageInfo) && !empty($imageInfo['success']) && !empty($imageInfo['data'])) {
+                // path가 있으면 path만 전달 (파일 이동 방식)
+                // URL이 상대 경로일 경우 file_get_contents() 실패를 방지
+                if (!empty($imageInfo['data']['image_path'])) {
+                    $imageData = [
+                        'path' => $imageInfo['data']['image_path'],
+                        'filename' => $imageInfo['data']['image_filename'] ?? ''
+                    ];
+                    $this->writeLog("    이미지 데이터 준비 완료 (로컬 경로 사용):");
+                    $this->writeLog("      Path: " . $imageData['path']);
+                    $this->writeLog("      Filename: " . ($imageData['filename'] ?: '없음'));
+                } 
+                // path가 없고 URL만 있으면 URL 전달 (다운로드 방식)
+                else if (!empty($imageInfo['data']['image_url'])) {
+                    $imageData = [
+                        'url' => $imageInfo['data']['image_url'],
+                        'filename' => $imageInfo['data']['image_filename'] ?? ''
+                    ];
+                    $this->writeLog("    이미지 데이터 준비 완료 (URL 다운로드 사용):");
+                    $this->writeLog("      URL: " . $imageData['url']);
+                }
+            } else {
+                $this->writeLog("    이미지 데이터 없음 (생성 안 함 또는 실패)");
             }
             
             // MongoDB 저장용: items를 간단한 {id, title} 형식으로 변환
@@ -570,8 +601,9 @@ class ScheduleArticleWriter
             $this->writeLog("    - 품목: " . count($simpleItems) . "개 (간단한 형식)");
             $this->writeLog("    - 이미지: " . (!empty($imageData) ? 'O' : 'X'));
             if (!empty($imageData)) {
-                $this->writeLog("      URL: " . ($imageData['url'] ?? '없음'));
-                $this->writeLog("      Path: " . ($imageData['path'] ?? '없음'));
+                $this->writeLog("      저장할 URL: " . ($imageData['url'] ?? '없음'));
+                $this->writeLog("      저장할 Path: " . ($imageData['path'] ?? '없음'));
+                $this->writeLog("      저장할 Filename: " . ($imageData['filename'] ?? '없음'));
             }
             $this->writeLog("    - 차트: " . (!empty($chartInfo['data']) ? 'O' : 'X'));
             
@@ -758,12 +790,28 @@ class ScheduleArticleWriter
             ];
             
             $this->writeLog("    이미지 프롬프트: " . substr($imagePrompt, 0, 100) . "...");
+            $this->writeLog("    모델: gpt-image-1.5, 크기: 1536x1024, 품질: high");
             
             // aiGenerateArticleImage() 직접 호출 (CLI 환경에서는 배열 반환)
             $result = $this->article->aiGenerateArticleImage();
             
+            // 결과 상세 로그
+            $this->writeLog("    이미지 생성 결과: " . json_encode([
+                'success' => $result['success'] ?? false,
+                'has_data' => !empty($result['data']),
+                'msg' => $result['msg'] ?? 'no message'
+            ], JSON_UNESCAPED_UNICODE));
+            
             if (empty($result['success'])) {
                 $this->writeLog("    ✗ 이미지 생성 실패: " . ($result['msg'] ?? '알 수 없는 오류'));
+                
+                // 추가 디버그 정보
+                if (!empty($result['error'])) {
+                    $this->writeLog("    에러 상세: " . $result['error']);
+                }
+                if (!empty($result['debug_info'])) {
+                    $this->writeLog("    디버그 정보: " . json_encode($result['debug_info'], JSON_UNESCAPED_UNICODE));
+                }
             } else {
                 $this->writeLog("    ✓ 이미지 생성 성공");
                 $this->writeLog("      URL: " . ($result['data']['image_url'] ?? '없음'));
@@ -775,6 +823,7 @@ class ScheduleArticleWriter
             
         } catch (\Exception $e) {
             $this->writeLog("    ✗ 이미지 생성 예외: " . $e->getMessage());
+            $this->writeLog("    Stack trace: " . $e->getTraceAsString());
             return ['success' => false, 'msg' => $e->getMessage()];
         }
     }
@@ -796,7 +845,10 @@ class ScheduleArticleWriter
             $imageUrl = $imageInfo['data']['image_url'];
             $imageAlt = $articleData['title'] ?? '';  // alt 속성용으로만 사용
             $html .= '<img src="' . htmlspecialchars($imageUrl) . '" alt="' . htmlspecialchars($imageAlt) . '" style="max-width: 100%; height: auto; display: block;">';
+            $this->writeLog("    reviewContent에 이미지 추가: " . $imageUrl);
             // 이미지 캡션(제목) 출력 제거 - 본문에 제목이 중복으로 들어가는 문제 해결
+        } else {
+            $this->writeLog("    reviewContent에 이미지 없음 (image_url 없음)");
         }
         
         // 본문 구성: 이미지 → 모든 단락

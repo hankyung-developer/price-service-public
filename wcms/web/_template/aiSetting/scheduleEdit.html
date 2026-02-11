@@ -427,6 +427,17 @@
 									</select>
 								</label>
 							</div>
+                            <div class="grid">
+								<label for="makeImage">
+									이미지 프롬프트
+									<select id="imagePrompt" name="imagePrompt" class="input-field" style="width: 100%;padding:7px;">
+                                        <option value="0">선택 안함 (AI가 자동으로 생성)</option>
+                                        {@ result.imagePrompt}
+                                        <option value="{.idx}">{.title}</option>
+                                        {/}
+                                    </select>
+								</label>
+							</div>
 						</div>
 					</div>
 
@@ -596,6 +607,7 @@ var availableItems = []; // 카테고리별 전체 품목 리스트
 
 // PHP에서 전달받은 저장된 품목 데이터 (수정 모드)
 var savedSelectedItems = {? !empty(result.item.selectedItems)}{=json_encode(result.item.selectedItems)}{:}null{/};
+var imagePromptIdx = '{? result.item.imagePrompt}{result.item.imagePrompt}{:}0{/}';
 
 // 페이지 로드 시 초기화
 $(document).ready(function() {
@@ -675,7 +687,9 @@ $(document).ready(function() {
             loadSelectedItems();
         }
     }
-    
+    // 
+
+    $('#imagePrompt').val(imagePromptIdx);
     // 초기 스케줄 요약 업데이트
     updateScheduleSummary();
 });

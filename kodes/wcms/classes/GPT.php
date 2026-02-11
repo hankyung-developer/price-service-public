@@ -730,8 +730,14 @@ class GPT extends AIInterface
             }
 
             // 저장 디렉토리 생성
+            error_log("저장 경로 확인: {$savePath}");
+            error_log("디렉토리 존재 여부: " . (is_dir($savePath) ? 'Y' : 'N'));
+            
             if (!is_dir($savePath)) {
+                error_log("디렉토리 생성 시도: {$savePath}");
                 if (!mkdir($savePath, 0755, true)) {
+                    $error = error_get_last();
+                    error_log("디렉토리 생성 실패: " . json_encode($error));
                     return [
                         'status' => 'error',
                         'msg' => '저장 디렉토리를 생성할 수 없습니다: ' . $savePath,
@@ -739,30 +745,46 @@ class GPT extends AIInterface
                         'saved_files' => []
                     ];
                 }
+                error_log("디렉토리 생성 성공: {$savePath}");
+            } else {
+                error_log("디렉토리 이미 존재: {$savePath}");
+                error_log("디렉토리 쓰기 가능: " . (is_writable($savePath) ? 'Y' : 'N'));
             }
 
             // 각 이미지 다운로드 및 저장
             $savedFiles = [];
             $timestamp = date('YmdHis');
             
+            error_log("이미지 저장 루프 시작: " . count($result['images']) . "개");
+            
             foreach ($result['images'] as $index => $imageInfo) {
+                error_log("이미지 #{$index} 처리 중: " . json_encode([
+                    'has_url' => !empty($imageInfo['url']),
+                    'has_b64' => !empty($imageInfo['b64_json']),
+                    'format' => $imageInfo['format'] ?? 'unknown'
+                ]));
+                
                 $imageData = null;
                 
                 // URL 형식인 경우 다운로드
                 if (!empty($imageInfo['url'])) {
+                    error_log("URL 다운로드 시도: {$imageInfo['url']}");
                     $imageData = $this->downloadImage($imageInfo['url']);
                     if ($imageData === false) {
                         error_log("이미지 다운로드 실패: {$imageInfo['url']}");
                         continue;
                     }
+                    error_log("URL 다운로드 성공: " . strlen($imageData) . " bytes");
                 }
                 // Base64 형식인 경우 디코딩
                 elseif (!empty($imageInfo['b64_json'])) {
+                    error_log("Base64 디코딩 시도");
                     $imageData = base64_decode($imageInfo['b64_json']);
                     if ($imageData === false) {
                         error_log("Base64 디코딩 실패");
                         continue;
                     }
+                    error_log("Base64 디코딩 성공: " . strlen($imageData) . " bytes");
                 }
                 else {
                     error_log("이미지 데이터가 없습니다: " . json_encode($imageInfo));
@@ -773,12 +795,18 @@ class GPT extends AIInterface
                 $fileName = $filePrefix . '_' . $timestamp . '_' . ($index + 1) . '.png';
                 $filePath = rtrim($savePath, '/') . '/' . $fileName;
                 
+                error_log("파일 저장 시도: {$filePath}");
+                error_log("디렉토리 존재: " . (is_dir(dirname($filePath)) ? 'Y' : 'N'));
+                error_log("디렉토리 쓰기 가능: " . (is_writable(dirname($filePath)) ? 'Y' : 'N'));
+                error_log("이미지 데이터 크기: " . strlen($imageData) . " bytes");
+                
                 // 파일 저장
-                if (file_put_contents($filePath, $imageData) !== false) {
+                $bytesWritten = @file_put_contents($filePath, $imageData);
+                if ($bytesWritten !== false) {
                     // 웹 URL 생성 (data 경로 기준)
                     $webUrl = $this->convertToWebUrl($filePath);
                     
-                    error_log("이미지 저장 성공: {$filePath} (size: " . filesize($filePath) . " bytes)");
+                    error_log("이미지 저장 성공: {$filePath} (size: " . filesize($filePath) . " bytes, written: {$bytesWritten} bytes)");
                     
                     $savedFiles[] = [
                         'filename' => $fileName,  // Article.php와 일관성
@@ -789,7 +817,9 @@ class GPT extends AIInterface
                         'format' => $imageInfo['format'] ?? 'unknown'
                     ];
                 } else {
+                    $error = error_get_last();
                     error_log("파일 저장 실패: {$filePath}");
+                    error_log("PHP 에러: " . json_encode($error));
                 }
             }
 

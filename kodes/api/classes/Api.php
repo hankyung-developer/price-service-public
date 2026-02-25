@@ -283,8 +283,8 @@ class Api{
         try {
             // GET 파라미터에서 값 추출
             $apiId = $_GET['apiId'] ?? null;
-            $market = $_GET['market'] ?? null;
-            $grade = $_GET['grade'] ?? null;
+            $market = isset($_GET['market']) ? (is_numeric($_GET['market']) ? 0 + $_GET['market'] : $_GET['market']) : null;
+            $grade = isset($_GET['grade']) ? (is_numeric($_GET['grade']) ? 0 + $_GET['grade'] : $_GET['grade']) : null;
             $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 25;
             $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
             

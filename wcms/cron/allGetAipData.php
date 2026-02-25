@@ -25,7 +25,7 @@ ini_set('memory_limit', '512M');
 set_time_limit(600); // 10분 제한
 
 // 로그 레벨 설정: DEBUG < INFO < WARNING < ERROR
-define('LOG_LEVEL', 'WARNING');
+define('LOG_LEVEL', 'INFO');
 
 // CLI 환경에서 필요한 전역 변수 설정
 if (!isset($_SESSION)) {
@@ -863,8 +863,8 @@ class AllApiDataCollector
     /**
      * 조건 평가 메서드
      * 
-     * @param mixed $value 비교할 값
-     * @param string $condition 조건 문자열 (예: "== '사과'", "> 20", ">= 20", "<= 20", "!= 0")
+     * @param mixed $value 비교할 값 ($value 변수로 조건 내에서 사용)
+     * @param string $condition 조건 문자열 (예: "== '사과'", "> 20", "in_array($value,['33','237'])", "strpos($value,'x')!==false")
      * @return bool 조건 만족 여부
      */
     private function evaluateCondition($value, $condition)
@@ -872,6 +872,26 @@ class AllApiDataCollector
         try {
             // 조건 문자열 파싱
             $condition = trim($condition);
+            
+            $this->log("조건 평가: value='{$value}', condition='{$condition}'", 'INFO');
+
+            // PHP 함수/표현식 형식: $value가 포함된 경우 치환 후 평가 (예: in_array($value,["33","237"]), strpos($value,"x")!==false)
+            if (strpos($condition, '$value') !== false) {
+                $dangerous = ['eval\s*\(', 'exec\s*\(', 'system\s*\(', 'passthru\s*\(', 'shell_exec\s*\(', '`', 'require\s', 'include\s', 'create_function\s*\(', 'assert\s*\(', 'preg_replace\s*\([^)]*\/e', '\$\{', 'call_user_func'];
+                $isSafe = true;
+                foreach ($dangerous as $pattern) {
+                    if (preg_match('/' . $pattern . '/i', $condition)) {
+                        $isSafe = false;
+                        break;
+                    }
+                }
+                if ($isSafe) {
+                    $result = @eval('return (bool)(' . $condition . ');');
+                    if ($result !== null) {
+                        return $result;
+                    }
+                }
+            }
             
             // 등호 비교 (==)
             if (preg_match('/^==\s*(.+)$/', $condition, $matches)) {

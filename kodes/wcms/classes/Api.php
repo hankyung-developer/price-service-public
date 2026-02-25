@@ -319,6 +319,8 @@ class Api{
                 'data' => $data,
                 'meta' => [
                     'totalCount' => $totalCount,
+                    'condition' => json_encode($filter),
+                    'options' => json_encode($options),
                     'page' => $page,
                     'limit' => $limit,
                     'haveMarket' => $this->haveMarket($apiId),

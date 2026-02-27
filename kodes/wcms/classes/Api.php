@@ -633,8 +633,8 @@ class Api{
                 // 키워드 검색: 검색어를 포함한 카테고리, 품종에 대한 리스트 정보 전달
                 $result = $category->searchByKeyword($keyword)['data'];
                 foreach($result as $key => $item){
-                    // depth가 4이거나, 하위 카테고리가 없는 최하위 카테고리인 경우 item 리스트 포함
-                    if($item['depth'] == 4 || !$this->hasChildren($item['id'])){
+                    // depth가 maxDepth이거나, 하위 카테고리가 없는 최하위 카테고리인 경우 item 리스트 포함
+                    if($item['depth'] == $category->getMaxDepth() || !$this->hasChildren($item['id'])){
                         $_GET['returnType']="array";
                         $_GET['categoryId']=$item['id'];
                         $result[$key]["items"] = $this->itemList();
@@ -651,7 +651,8 @@ class Api{
 
                 $_GET['categoryId'] = $categoryId;
                 $categoryId = preg_replace("/000{1,}$/", "", $categoryId);
-                if(strlen($categoryId) === 15){
+                $expectedIdLen = 3 + 3 * $category->getMaxDepth(); // coId(3) + depth별 3자리
+                if(strlen($categoryId) === $expectedIdLen){
                     $result = $this->itemList();
                 }
 
@@ -664,8 +665,9 @@ class Api{
             }
 
             
-            if (!empty($categoryId) && strlen($categoryId) === 15) {
-                // 4depth 카테고리의 품목 리스트 구하기
+            $maxDepth = $category->getMaxDepth();
+            if (!empty($categoryId) && strlen($categoryId) === (3 + 3 * $maxDepth)) {
+                // maxDepth 카테고리의 품목 리스트 구하기
                
                 // outputJsonResponse로 반환한 $result는 배열(카테고리 정보)임. meta에 sidList를 추가해서 응답해야 함.
                 // 이 코드는 outputJsonResponse 전에 넣어야 함. (위 try블럭 내에서 적절히 위치 조정 필요)

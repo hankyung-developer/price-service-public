@@ -35,6 +35,18 @@ class Category
     /** @var string 회사 ID */
     protected $coId;
 
+    /** @var int 카테고리 최대 depth (기본값: 4) */
+    protected $maxDepth = 4;
+
+    /**
+     * 최대 depth 반환 (외부 참조용)
+     * @return int
+     */
+    public function getMaxDepth()
+    {
+        return $this->maxDepth;
+    }
+
     /**
      * 생성자 - 필요한 객체들을 초기화
      */
@@ -73,8 +85,8 @@ class Category
         }
         
         $categoryList = $this->db->list($this->collection, $filter, $options);
-        
-        return ['categoryList' => $categoryList];
+
+        return ['categoryList' => $categoryList, 'maxDepth' => $this->maxDepth];
     }
 
     /**
@@ -831,6 +843,9 @@ class Category
         
         if ($action === 'insert') {
             $data['depth'] = $this->calculateDepth($data['parentId'], $data['coId']);
+            if ($data['depth'] > $this->maxDepth) {
+                throw new \Exception("카테고리는 {$this->maxDepth}depth까지만 추가할 수 있습니다. (현재 부모가 {$this->maxDepth}depth입니다.)", 400);
+            }
             $data['id'] = $this->generateId($data['parentId'], $data['coId'], $data['depth']);
         }
         
@@ -989,7 +1004,7 @@ class Category
             case 4:
                 return new \MongoDB\BSON\Regex(substr($parentId, 0, -3), 'i');
             default:
-                return new \MongoDB\BSON\Regex($coId, 'i');
+                throw new \Exception("카테고리는 {$this->maxDepth}depth까지만 지원합니다. (요청 depth: {$depth})", 400);
         }
     }
 
@@ -1018,10 +1033,11 @@ class Category
                 $tempInt = (int)substr($tempId, -6, 3);
                 return substr($tempId, 0, -6) . sprintf('%03d', $tempInt + 1) . '000';
             case 4:
-                $tempInt = (int)substr($tempId, 3, 3);
+                // 4depth: 마지막 3자리가 4depth 연번 (버그 수정: 기존 substr($tempId,3,3)은 1depth 값을 잘못 가져옴)
+                $tempInt = (int)substr($tempId, -3, 3);
                 return substr($tempId, 0, -3) . sprintf('%03d', $tempInt + 1);
             default:
-                return $coId . '001000000000';
+                throw new \Exception("카테고리는 {$this->maxDepth}depth까지만 지원합니다. (요청 depth: {$depth})", 400);
         }
     }
 
@@ -1055,8 +1071,8 @@ class Category
     {
         $category = [];
         
-        // depth별 조회
-        $depths = [1, 2, 3];
+        // depth별 조회 (1~maxDepth 지원)
+        $depths = range(1, $this->maxDepth);
         $depthData = [];
         
         foreach ($depths as $depth) {
@@ -1064,22 +1080,26 @@ class Category
             $depthData[$depth] = iterator_to_array($this->db->list($this->collection, $filter, $options), false);
         }
         
-        // 계층 구조 구성
-        foreach ($depthData[1] as $value1) {
-            $category[] = $value1;
-            foreach ($depthData[2] as $value2) {
-                if ($value1['id'] == $value2['parentId']) {
-                    $category[] = $value2;
-                    foreach ($depthData[3] as $value3) {
-                        if ($value2['id'] == $value3['parentId']) {
-                            $category[] = $value3;
-                        }
-                    }
-                }
-            }
-        }
+        // 계층 구조 구성 (재귀)
+        $this->buildHierarchyRecursive($depthData, 1, '0', $category);
         
         return $category;
+    }
+
+    /**
+     * 계층 구조 재귀 빌드 (buildHierarchicalCategory 보조)
+     */
+    private function buildHierarchyRecursive($depthData, $depth, $parentId, &$category)
+    {
+        if ($depth > $this->maxDepth || !isset($depthData[$depth])) {
+            return;
+        }
+        foreach ($depthData[$depth] as $item) {
+            if ($item['parentId'] == $parentId) {
+                $category[] = $item;
+                $this->buildHierarchyRecursive($depthData, $depth + 1, $item['id'], $category);
+            }
+        }
     }
 
     /**
@@ -1146,7 +1166,7 @@ class Category
      * @return string CSV 데이터
      * @throws \Exception
      */
-    private function readGoogleSheet($sheetIdentifier = '')
+    public function readGoogleSheet($sheetIdentifier = '')
     {
         // 구글 시트 URL
         $spreadsheetId = '16MRE-x0qyGlD-_9HNZrzd7IHr5XLjXja3TgiYl0A0k4';
@@ -1285,8 +1305,8 @@ class Category
         foreach ($data as $row) {
             $categoryChain = [];
             
-            // 1depth부터 4depth까지 순차 처리 (각 행의 완전한 경로)
-            for ($depth = 1; $depth <= 4; $depth++) {
+            // 1depth부터 maxDepth까지 순차 처리 (각 행의 완전한 경로)
+            for ($depth = 1; $depth <= $this->maxDepth; $depth++) {
                 $categoryKey = (string)$depth;
                 if (!isset($row[$categoryKey]) || empty(trim($row[$categoryKey]))) {
                     break; // 해당 depth가 없으면 중단

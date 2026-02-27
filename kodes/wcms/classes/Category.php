@@ -4,6 +4,25 @@ namespace Kodes\Wcms;
 /**
  * 카테고리 클래스
  * 
+ * 계층형 카테고리(1~4depth) 관리: 조회, 검색, CRUD, 구글 시트 연동
+ * 
+ * [구조 개요 - 디버깅 시 참고]
+ * 1. 속성/초기화     : $maxDepth, __construct, getMaxDepth
+ * 2. 공개 API-조회   : list, popup, getCategory, getFirstDepth, getCategoryTree, getHierarchy, searchByKeyword
+ * 3. 공개 API-CRUD   : saveProc, deleteProc, changeSort
+ * 4. 공개 API-구글시트: googleSheetToCategory, testGid
+ * 5. 공개 API-유틸   : getCategoryHierarchyString, getCategoryHierarchyInfo
+ * 6. 검색(내부)      : getAllCategoriesForSearch → searchInArray → organizeSearchResultsFromArray
+ * 7. 계층구조(내부)  : getAllHierarchyFromArray, getCategoryHierarchyFromArray, getChildrenRecursiveFromArray
+ * 8. 정렬/맵(내부)   : sortHierarchically, createCategoryMap, getCategoriesByDepth, getDirectChildren
+ * 9. 검색결과구성    : addParentCategories, addCurrentCategory, addChildrenToResult
+ * 10. 경로처리       : getParentPathFromArray, buildPathString
+ * 11. 저장처리       : validateCategoryData → processCategorySave → calculateDepth, calculateSort
+ * 12. ID생성        : generateId → getRegexForDepth, buildNewId (saveProc용)
+ * 13. JSON/계층빌드  : makeJson → buildHierarchicalCategory → buildHierarchyRecursive
+ * 14. 구글시트(내부) : readGoogleSheet → parseCsvData → processCategoryHierarchy → createCategoryIfNotExists
+ * 15. 구글시트-ID    : generateNewCategoryId, findCategoryByName, findCategoryByPath, isPathMatch
+ * 
  * @author  Kodes <kodesinfo@gmail.com>
  * @version 1.0
  * @license 해당 프로그램은 kodes에서 제작된 프로그램으로 저작원은 코드스(https://www.kode.co.kr)
@@ -11,7 +30,7 @@ namespace Kodes\Wcms;
 class Category
 {
     // ===========================================
-    // 클래스 속성 및 초기화
+    // [섹션 1] 클래스 속성 및 초기화
     // ===========================================
     
     /** @var DB MongoDB 연결 객체 */
@@ -26,14 +45,26 @@ class Category
     /** @var ArticlePublish 아티클 발행 관련 객체 */
     protected $articlePublish;
     
-    /** @var string 카테고리 컬렉션명 */
+    /** @var string 카테고리 컬렉션명 (MongoDB) */
     protected $collection = 'category';
 
-    /** @var array 전체 카테고리 배열 */
+    /** @var array 전체 카테고리 캐시 (getAllCategoriesForSearch에서 사용) */
     protected $allCategorye = [];
     
     /** @var string 회사 ID */
     protected $coId;
+
+    /** @var int 카테고리 최대 depth (기본값: 4) */
+    protected $maxDepth = 4;
+
+    /**
+     * 최대 depth 반환 (외부 참조용)
+     * @return int
+     */
+    public function getMaxDepth()
+    {
+        return $this->maxDepth;
+    }
 
     /**
      * 생성자 - 필요한 객체들을 초기화
@@ -56,7 +87,8 @@ class Category
     }
 
     // ===========================================
-    // 공개 API 메서드들 (외부에서 호출)
+    // [섹션 2] 공개 API - 조회
+    // URL/컨트롤러에서 직접 호출되는 진입점
     // ===========================================
 
     /**
@@ -86,7 +118,7 @@ class Category
         
         $categoryList = $this->db->list($this->collection, $filter, $options);
         
-        return ['categoryList' => $categoryList];
+        return ['categoryList' => $categoryList, 'maxDepth' => $this->maxDepth];
     }
 
     /**
@@ -290,7 +322,8 @@ class Category
     }
 
     // ===========================================
-    // 카테고리 관리 메서드들 (CRUD)
+    // [섹션 3] 공개 API - CRUD (저장/삭제/순서변경)
+    // saveProc → processCategorySave → generateId → makeJson
     // ===========================================
 
     /**
@@ -388,11 +421,13 @@ class Category
     }
 
     // ===========================================
-    // 핵심 비즈니스 로직 메서드들
+    // [섹션 6] 검색 - 데이터 조회
+    // searchByKeyword → getAllCategoriesForSearch → searchInArray → organizeSearchResultsFromArray
     // ===========================================
 
     /**
-     * 전체 카테고리 조회 (검색용)
+     * 전체 카테고리 조회 (검색/계층 조회용)
+     * 캐시: $this->allCategorye 에 저장하여 재사용
      * 
      * @return array 전체 카테고리 배열
      */
@@ -414,7 +449,7 @@ class Category
     }
 
     /**
-     * PHP 배열에서 키워드 검색 수행
+     * PHP 배열에서 키워드 검색 수행 (이름 부분일치)
      * 
      * @param array $allCategories 전체 카테고리 배열
      * @param string $keyword 검색 키워드
@@ -465,7 +500,8 @@ class Category
     }
 
     /**
-     * 전체 계층 구조 조회 (1depth 카테고리와 하위 분류들)
+     * [섹션 7] 전체 계층 구조 조회 (1depth 카테고리와 하위 분류들)
+     * getHierarchy(빈값) → getAllHierarchyFromArray
      * 
      * @param array $allCategories 전체 카테고리 배열
      * @return array 전체 계층 구조
@@ -495,7 +531,8 @@ class Category
     }
 
     /**
-     * 특정 카테고리의 바로 하위 depth만 조회
+     * [섹션 7] 특정 카테고리의 바로 하위 depth만 조회
+     * getHierarchy(categoryId) → getCategoryHierarchyFromArray
      * 
      * @param string $categoryId 카테고리 ID
      * @param array $allCategories 전체 카테고리 배열
@@ -551,11 +588,12 @@ class Category
     }
 
     // ===========================================
-    // 정렬 및 유틸리티 메서드들
+    // [섹션 8] 정렬 및 맵 유틸리티
+    // sortHierarchically, createCategoryMap, getCategoriesByDepth, getDirectChildren
     // ===========================================
 
     /**
-     * 계층적 순서로 정렬
+     * 계층적 순서로 정렬 (1depth → 2depth → ... 순)
      * 
      * @param array $result 정렬할 결과 배열
      * @return array 정렬된 결과 배열
@@ -669,11 +707,12 @@ class Category
     }
 
     // ===========================================
-    // 검색 결과 구성 메서드들
+    // [섹션 9] 검색 결과 구성 (organizeSearchResultsFromArray 내부 호출)
+    // addParentCategories → addCurrentCategory → addChildrenToResult
     // ===========================================
 
     /**
-     * 부모 카테고리들을 결과에 추가
+     * 부모 카테고리들을 결과에 추가 (검색 시 상위 경로 표시용)
      * 
      * @param array $category 현재 카테고리
      * @param array $categoryMap 카테고리 맵
@@ -770,11 +809,12 @@ class Category
     }
 
     // ===========================================
-    // 경로 및 문자열 처리 메서드들
+    // [섹션 10] 경로 처리 (부모→자식 경로 추적)
+    // getParentPathFromArray: ID로 부모 체인 조회, buildPathString: "A > B > C" 변환
     // ===========================================
 
     /**
-     * 배열에서 특정 카테고리의 부모 경로 조회
+     * 배열에서 특정 카테고리의 부모 경로 조회 (루트까지 역추적)
      * 
      * @param string $categoryId 카테고리 ID
      * @param array $categoryMap 카테고리 맵
@@ -811,11 +851,12 @@ class Category
     }
 
     // ===========================================
-    // 카테고리 관리 헬퍼 메서드들
+    // [섹션 11] 저장 처리 (saveProc 내부)
+    // validateCategoryData → processCategorySave → calculateDepth, calculateSort
     // ===========================================
 
     /**
-     * 카테고리 데이터 검증
+     * 카테고리 데이터 검증 (필수 필드: coId, name)
      * 
      * @param array &$data 카테고리 데이터 (참조)
      * @throws \Exception 검증 실패 시
@@ -844,6 +885,9 @@ class Category
         
         if ($action === 'insert') {
             $data['depth'] = $this->calculateDepth($data['parentId'], $data['coId']);
+            if ($data['depth'] > $this->maxDepth) {
+                throw new \Exception("카테고리는 {$this->maxDepth}depth까지만 추가할 수 있습니다. (현재 부모가 {$this->maxDepth}depth입니다.)", 400);
+            }
             $data['id'] = $this->generateId($data['parentId'], $data['coId'], $data['depth']);
         }
         
@@ -946,7 +990,7 @@ class Category
     }
 
     /**
-     * CORS 헤더 설정
+     * CORS 헤더 설정 (popup 등 iframe 연동 시 필요)
      */
     private function setCorsHeaders()
     {
@@ -958,12 +1002,14 @@ class Category
     }
 
     // ===========================================
-    // 카테고리 ID 생성 및 JSON 파일 관리
+    // [섹션 12] ID 생성 (processCategorySave → generateId)
+    // 형식: hkp001002003004 (coId 3자 + depth별 3자리)
+    // getRegexForDepth: DB 조회용 패턴, buildNewId: 연번 증가
     // ===========================================
 
     /**
-     * 카테고리 ID 생성
-     * 생성규칙: coId(회사코드)+1depth(숫자3자리)+2depth(숫자3자리)+3depth(숫자3자리)
+     * 카테고리 ID 생성 (신규 저장 시)
+     * 규칙: coId(3자)+1depth(3자)+2depth(3자)+3depth(3자)+4depth(3자)
      * 
      * @param string $parentId 부모 카테고리 ID
      * @param string $coId 회사 코드
@@ -1002,7 +1048,7 @@ class Category
             case 4:
                 return new \MongoDB\BSON\Regex(substr($parentId, 0, -3), 'i');
             default:
-                return new \MongoDB\BSON\Regex($coId, 'i');
+                throw new \Exception("카테고리는 {$this->maxDepth}depth까지만 지원합니다. (요청 depth: {$depth})", 400);
         }
     }
 
@@ -1031,15 +1077,22 @@ class Category
                 $tempInt = (int)substr($tempId, -6, 3);
                 return substr($tempId, 0, -6) . sprintf('%03d', $tempInt + 1) . '000';
             case 4:
-                $tempInt = (int)substr($tempId, 3, 3);
+                // 4depth: 마지막 3자리가 4depth 연번 (버그 수정: 기존 substr($tempId,3,3)은 1depth 값을 잘못 가져옴)
+                $tempInt = (int)substr($tempId, -3, 3);
                 return substr($tempId, 0, -3) . sprintf('%03d', $tempInt + 1);
             default:
-                return $coId . '001000000000';
+                throw new \Exception("카테고리는 {$this->maxDepth}depth까지만 지원합니다. (요청 depth: {$depth})", 400);
         }
     }
 
+    // ===========================================
+    // [섹션 13] JSON 파일 및 계층 데이터 생성
+    // makeJson: saveProc/deleteProc/changeSort 후 호출
+    // buildHierarchicalCategory: DB → 평면 배열(계층순), getCategoryTree: 트리 구조
+    // ===========================================
+
     /**
-     * 카테고리 정보 변경 시 JSON 파일 재생성
+     * 카테고리 정보 변경 시 JSON 파일 재생성 (_category, _categoryTree)
      */
     protected function makeJson()
     {
@@ -1068,8 +1121,8 @@ class Category
     {
         $category = [];
         
-        // depth별 조회
-        $depths = [1, 2, 3];
+        // depth별 조회 (1~maxDepth 지원)
+        $depths = range(1, $this->maxDepth);
         $depthData = [];
         
         foreach ($depths as $depth) {
@@ -1077,28 +1130,38 @@ class Category
             $depthData[$depth] = iterator_to_array($this->db->list($this->collection, $filter, $options), false);
         }
         
-        // 계층 구조 구성
-        foreach ($depthData[1] as $value1) {
-            $category[] = $value1;
-            foreach ($depthData[2] as $value2) {
-                if ($value1['id'] == $value2['parentId']) {
-                    $category[] = $value2;
-                    foreach ($depthData[3] as $value3) {
-                        if ($value2['id'] == $value3['parentId']) {
-                            $category[] = $value3;
-                        }
-                    }
-                }
-            }
-        }
+        // 계층 구조 구성 (재귀)
+        $this->buildHierarchyRecursive($depthData, 1, '0', $category);
         
         return $category;
     }
 
     /**
-     * 구글 시트를 읽어서 카테고리 데이터로 변환
+     * 계층 구조 재귀 빌드 (buildHierarchicalCategory 보조)
+     */
+    private function buildHierarchyRecursive($depthData, $depth, $parentId, &$category)
+    {
+        if ($depth > $this->maxDepth || !isset($depthData[$depth])) {
+            return;
+        }
+        foreach ($depthData[$depth] as $item) {
+            if ($item['parentId'] == $parentId) {
+                $category[] = $item;
+                $this->buildHierarchyRecursive($depthData, $depth + 1, $item['id'], $category);
+            }
+        }
+    }
+
+    // ===========================================
+    // [섹션 4] 공개 API - 구글 시트 연동
+    // URL: /category/googleSheetToCategory?gid=xxx
+    // ===========================================
+
+    /**
+     * 구글 시트 → 카테고리 DB 변환
+     * 흐름: readGoogleSheet → parseCsvData → processCategoryHierarchy → createCategoryIfNotExists
      * 
-     * @param string $sheetIdentifier 시트 gid 값 (GET 파라미터로 받음)
+     * @param string $sheetIdentifier 시트 gid (GET gid 파라미터)
      * @return array 카테고리 데이터
      */
     public function googleSheetToCategory($sheetIdentifier = '')
@@ -1113,9 +1176,19 @@ class Category
 
             // 구글 시트에서 CSV 데이터 가져오기
             $csvData = $this->readGoogleSheet($sheetIdentifier);
+
+            echo "<pre>";
+            print_r($csvData);
+            echo "</pre>";
+
             // CSV 데이터 파싱
             $parsedData = $this->parseCsvData($csvData);
             
+
+            echo "<pre>";
+            print_r($parsedData);
+            echo "</pre>";
+
             // 카테고리 계층 구조 처리 및 DB 저장
             $categoryResults = $this->processCategoryHierarchy($parsedData['data']);
             
@@ -1152,8 +1225,12 @@ class Category
 
 
 
+    // ===========================================
+    // [섹션 14] 구글 시트 - CSV 읽기/파싱
+    // ===========================================
+
     /**
-     * 구글 시트에서 CSV 데이터 읽기
+     * 구글 시트에서 CSV 데이터 읽기 (cURL)
      * 
      * @param string $sheetIdentifier 시트 gid 값
      * @return string CSV 데이터
@@ -1284,9 +1361,10 @@ class Category
     }
 
     /**
-     * 카테고리 계층 구조 처리 및 DB 저장
+     * [섹션 14] 구글 시트 데이터 → 카테고리 계층 처리 및 DB 저장
+     * 각 행의 1,2,3,4 컬럼을 depth로 해석하여 createCategoryIfNotExists 호출
      * 
-     * @param array $data 구글 시트 데이터
+     * @param array $data 구글 시트 데이터 (행 배열)
      * @return array 처리 결과
      */
     private function processCategoryHierarchy($data)
@@ -1298,8 +1376,8 @@ class Category
         foreach ($data as $row) {
             $categoryChain = [];
             
-            // 1depth부터 4depth까지 순차 처리 (각 행의 완전한 경로)
-            for ($depth = 1; $depth <= 4; $depth++) {
+            // 1depth부터 maxDepth까지 순차 처리 (각 행의 완전한 경로)
+            for ($depth = 1; $depth <= $this->maxDepth; $depth++) {
                 $categoryKey = (string)$depth;
                 if (!isset($row[$categoryKey]) || empty(trim($row[$categoryKey]))) {
                     break; // 해당 depth가 없으면 중단
@@ -1325,7 +1403,8 @@ class Category
     }
 
     /**
-     * 카테고리가 존재하지 않으면 생성
+     * [섹션 14] 구글 시트용: 카테고리 없으면 생성
+     * findCategoryByPath로 부모 조회 → findCategoryByName으로 중복 확인 → generateNewCategoryId
      * 
      * @param string $categoryName 카테고리 이름
      * @param int $depth 카테고리 depth
@@ -1395,10 +1474,7 @@ class Category
                     'ip' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1'
                 ]
             ];
-            
-            // print_r("categoryData: " . json_encode($categoryData));
-            // echo "\n\n<br>";
-            
+                       
             // DB에 저장
             $this->db->insert($this->collection, $categoryData);
             
@@ -1422,12 +1498,17 @@ class Category
         }
     }
 
+    // ===========================================
+    // [섹션 15] 구글 시트 - 카테고리 조회/매칭
+    // createCategoryIfNotExists 내부에서 사용
+    // ===========================================
+
     /**
-     * 이름으로 카테고리 찾기
+     * 이름+depth+parentId로 카테고리 조회 (DB)
      * 
      * @param string $name 카테고리 이름
      * @param int $depth 카테고리 depth
-     * @param string $parentId 부모 카테고리 ID (선택사항)
+     * @param string|null $parentId 부모 카테고리 ID (선택)
      * @return array|null 카테고리 정보 또는 null
      */
     private function findCategoryByName($name, $depth, $parentId = null)
@@ -1450,11 +1531,11 @@ class Category
     }
 
     /**
-     * 경로를 기반으로 카테고리 찾기
+     * 경로(부모 체인) 기반 카테고리 찾기 (동일 이름이 여러 경로에 있을 때 구분)
      * 
      * @param string $name 카테고리 이름
      * @param int $depth 카테고리 depth
-     * @param array $path 카테고리 경로
+     * @param array $path 부모 경로 배열 (예: ['농수축산물','채소류'])
      * @return array|null 카테고리 정보 또는 null
      */
     private function findCategoryByPath($name, $depth, $path)
@@ -1515,7 +1596,8 @@ class Category
     }
 
     /**
-     * 새 카테고리 ID 생성
+     * [섹션 15] 구글 시트용 ID 생성 (generateId와 별도, DB 직접 조회 방식)
+     * 형식: hkp001002003004 (depth별 3자리)
      * 
      * @param string $parentId 부모 카테고리 ID
      * @param int $depth 카테고리 depth
@@ -1603,8 +1685,12 @@ class Category
         return $lastCategory ? $lastCategory['sort'] + 1 : 1;
     }
 
+    // ===========================================
+    // [섹션 5] 공개 API - 유틸리티
+    // ===========================================
+
     /**
-     * 카테고리 ID를 입력받아 계층구조 문자열을 반환하는 함수
+     * 카테고리 ID → 계층 문자열 변환
      * 예) hkp001002016002 -> "농수축산물 > 채소류 > 당근 > 무세척"
      * 
      * @param string $categoryId 카테고리 ID
@@ -1696,9 +1782,10 @@ class Category
     }
 
     /**
-     * 구글 시트 gid 테스트 함수
+     * 구글 시트 gid 테스트 (디버깅용)
+     * URL: /category/testGid?gid=xxx
      * 
-     * @return array 테스트 결과
+     * @return array 테스트 결과 (firstLine, secondLine, httpCode 등)
      */
     public function testGid()
     {

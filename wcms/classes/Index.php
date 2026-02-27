@@ -189,6 +189,13 @@ class Index
 			echo json_encode($this->data, JSON_UNESCAPED_UNICODE);
             exit;
 
+        } elseif (!is_file($this->tpl->template_dir.'/'.$baseTemplate) && !empty($this->data['result'])) {
+            // 템플릿이 없지만 result가 있는 경우: JSON으로 출력 (디버깅/에러 확인용)
+            header('Content-Type: application/json; charset=utf-8');
+            unset($this->data['common']);
+            echo json_encode($this->data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            exit;
+
         } elseif (is_file($this->tpl->template_dir.'/'.$baseTemplate)) {
             // html 출력
             /**

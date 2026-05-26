@@ -548,10 +548,12 @@ class ScheduleArticleWriter
                 if (!empty($imageInfo['data']['image_path'])) {
                     $imageData = [
                         'path' => $imageInfo['data']['image_path'],
+                        'url' => $imageInfo['data']['image_url'] ?? '',
                         'filename' => $imageInfo['data']['image_filename'] ?? ''
                     ];
                     $this->writeLog("    이미지 데이터 준비 완료 (로컬 경로 사용):");
                     $this->writeLog("      Path: " . $imageData['path']);
+                    $this->writeLog("      URL: " . ($imageData['url'] ?: '없음'));
                     $this->writeLog("      Filename: " . ($imageData['filename'] ?: '없음'));
                 } 
                 // path가 없고 URL만 있으면 URL 전달 (다운로드 방식)

@@ -466,7 +466,7 @@ class Image
         // 원본이 1200px보다 작으면 원본 크기 유지
         if ($width <= $newWidth) {
             imagedestroy($image);
-            return true; // 리사이즈 불필요
+            return $imagePath; // 리사이즈 불필요
         }
         
         // 비율에 맞춰 높이 계산

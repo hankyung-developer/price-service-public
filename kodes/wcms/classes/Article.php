@@ -422,10 +422,8 @@ class Article
 	 */
 	protected function moveFile($tempPath, $finalPath)
 	{
-		// 상대 경로를 절대 경로로 변환
-		if (strpos($tempPath, '/data/') === 0) {
-			$tempPath = '.' . $tempPath;
-		}
+		// 웹 경로(/data, /webData)로 전달된 경우 실제 파일 시스템 경로로 변환
+		$tempPath = $this->toFileSystemPath($tempPath);
 
 		$this->debug("파일 이동 시도", ['from' => $tempPath, 'to' => $finalPath]);
 		
@@ -480,6 +478,136 @@ class Article
 			default:
 				return $basePath;
 		}
+	}
+
+	/**
+	 * 웹 경로를 실제 파일 시스템 경로로 변환합니다.
+	 *
+	 * @param string $path 파일 시스템 경로 또는 웹 경로
+	 * @return string 실제 파일 시스템 경로
+	 */
+	protected function toFileSystemPath($path)
+	{
+		if (empty($path) || !is_string($path)) {
+			return '';
+		}
+
+		$path = str_replace('\\', '/', $path);
+
+		if (strpos($path, '/data/') === 0) {
+			return str_replace('/data/', $this->common->config['path']['data'] . '/', $path);
+		}
+
+		return $path;
+	}
+
+	/**
+	 * 파일 시스템 경로를 브라우저에서 접근 가능한 /data 경로로 변환합니다.
+	 *
+	 * @param string $filePath 파일 시스템 경로 또는 웹 경로
+	 * @return string 웹 경로
+	 */
+	protected function toDataWebPath($filePath)
+	{
+		if (empty($filePath) || !is_string($filePath)) {
+			return '';
+		}
+
+		$filePath = str_replace('\\', '/', $filePath);
+		$siteDocPath = str_replace('\\', '/', $this->siteDocPath);
+
+		if (strpos($filePath, '/data/') === 0) {
+			return $filePath;
+		}
+
+		if (strpos($filePath, '/webData/') === 0) {
+			return str_replace('/webData/', '/data/', $filePath);
+		}
+
+		if (strpos($filePath, $siteDocPath) === 0) {
+			$relativePath = substr($filePath, strlen($siteDocPath));
+			return '/data/' . $this->coId . $relativePath;
+		}
+
+		return str_replace('/webData/', '/data/', $filePath);
+	}
+
+	/**
+	 * 파일 시스템 경로를 기사 DB 저장용 /webData 경로로 변환합니다.
+	 *
+	 * @param string $filePath 파일 시스템 경로 또는 웹 경로
+	 * @return string /webData 기준 경로
+	 */
+	protected function toWebDataPath($filePath)
+	{
+		if (empty($filePath) || !is_string($filePath)) {
+			return '';
+		}
+
+		$filePath = str_replace('\\', '/', $filePath);
+		$siteDocPath = str_replace('\\', '/', $this->siteDocPath);
+
+		if (strpos($filePath, '/webData/') === 0) {
+			return $filePath;
+		}
+
+		if (strpos($filePath, '/data/') === 0) {
+			return str_replace('/data/', '/webData/', $filePath);
+		}
+
+		if (strpos($filePath, $siteDocPath) === 0) {
+			$relativePath = substr($filePath, strlen($siteDocPath));
+			return '/webData/' . $this->coId . $relativePath;
+		}
+
+		return $filePath;
+	}
+
+	/**
+	 * 본문에 남아있는 임시 이미지 src를 최종 이미지 경로로 교체합니다.
+	 *
+	 * @param string $content HTML 또는 텍스트 본문
+	 * @param string $imageSrc 교체할 이미지 src
+	 * @return string 교체된 본문
+	 */
+	protected function replaceFirstImageSrc($content, $imageSrc)
+	{
+		if (empty($content) || empty($imageSrc)) {
+			return $content;
+		}
+
+		$safeImageSrc = htmlspecialchars($imageSrc, ENT_QUOTES, 'UTF-8');
+
+		return preg_replace(
+			'/(<img\b[^>]*\bsrc=["\'])([^"\']*)(["\'][^>]*>)/i',
+			'$1' . $safeImageSrc . '$3',
+			$content,
+			1
+		);
+	}
+
+	/**
+	 * 전송 패키지에 복사된 이미지 파일명으로 본문 이미지 src를 맞춥니다.
+	 *
+	 * @param string $content 본문
+	 * @param string $filename 이미지 파일명
+	 * @param string $replacementSrc 전송용 이미지 경로
+	 * @return string 교체된 본문
+	 */
+	protected function replaceImageSrcByFilename($content, $filename, $replacementSrc)
+	{
+		if (empty($content) || empty($filename) || empty($replacementSrc)) {
+			return $content;
+		}
+
+		$filenamePattern = preg_quote($filename, '/');
+		$safeReplacementSrc = htmlspecialchars($replacementSrc, ENT_QUOTES, 'UTF-8');
+
+		return preg_replace(
+			'/(<img\b[^>]*\bsrc=["\'])([^"\']*' . $filenamePattern . ')(["\'][^>]*>)/i',
+			'$1' . $safeReplacementSrc . '$3',
+			$content
+		);
 	}
 
 	/******************************************************************************************
@@ -1987,21 +2115,61 @@ HTML;
 				
 				
 				$newFilename = null;
+				$newImagePath = null;
 				$imageProcessed = false;
 
-				$data['image']['url'] = str_replace(' ','',$data['image']['url']);
-				
-				// URL에서 이미지 다운로드
+				$imageUrl = $data['image']['url'] ?? '';
+				$tempImagePath = $data['image']['path'] ?? '';
+
 				if (!empty($data['image']['url'])) {
-					$this->debug("이미지 URL에서 다운로드", $data['image']['url']);
+					$imageUrl = str_replace(' ', '', $data['image']['url']);
+				}
+
+				// 생성 API가 /data 임시 URL과 로컬 path를 함께 넘기므로 로컬 파일을 우선 사용합니다.
+				if (empty($tempImagePath) && preg_match('#^/(data|webData)/#', $imageUrl)) {
+					$tempImagePath = $imageUrl;
+				}
+				
+				// 로컬 경로에서 이미지 이동
+				if (!empty($tempImagePath)) {
+					$tempPathForExt = parse_url($tempImagePath, PHP_URL_PATH) ?: $tempImagePath;
+					$extension = pathinfo($tempPathForExt, PATHINFO_EXTENSION);
+					if (empty($extension) || !in_array(strtolower($extension), ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
+						$extension = 'png';
+					}
+					$newFilename = $aid . '_image.' . $extension;
+					$newImagePath = $imageDir . '/' . $newFilename;
+					// 파일 이동 (헬퍼 메서드 사용)
+					if ($this->moveFile($tempImagePath, $newImagePath)) {
+						$this->debug("로컬 이미지 파일 이동 성공", $newImagePath);
+						$imageProcessed = true;
+					}
+				}
+				// path 복사가 실패했지만 내부 URL이 있으면 해당 URL을 파일 경로로 변환해 재시도
+				if (!$imageProcessed && !empty($imageUrl) && preg_match('#^/(data|webData)/#', $imageUrl)) {
+					$tempPathForExt = parse_url($imageUrl, PHP_URL_PATH) ?: $imageUrl;
+					$extension = pathinfo($tempPathForExt, PATHINFO_EXTENSION);
+					if (empty($extension) || !in_array(strtolower($extension), ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
+						$extension = 'png';
+					}
+					$newFilename = $aid . '_image.' . $extension;
+					$newImagePath = $imageDir . '/' . $newFilename;
+					if ($this->moveFile($imageUrl, $newImagePath)) {
+						$this->debug("내부 URL 이미지 파일 이동 성공", $newImagePath);
+						$imageProcessed = true;
+					}
+				}
+				// 외부 URL에서 이미지 다운로드
+				if (!$imageProcessed && !empty($imageUrl) && !preg_match('#^/(data|webData)/#', $imageUrl)) {
+					$this->debug("이미지 URL에서 다운로드", $imageUrl);
 
 					try {
 						// URL에서 이미지 데이터 가져오기
-						$imageData = @file_get_contents($data['image']['url']);
+						$imageData = @file_get_contents($imageUrl);
 						
 						if ($imageData !== false) {
 							// URL에서 확장자 추출 (없으면 png로 기본 설정)
-							$urlPath = parse_url($data['image']['url'], PHP_URL_PATH);
+							$urlPath = parse_url($imageUrl, PHP_URL_PATH);
 							$extension = pathinfo($urlPath, PATHINFO_EXTENSION);
 							if (empty($extension) || !in_array(strtolower($extension), ['jpg', 'jpeg', 'png', 'gif', 'webp'])) {
 								$extension = 'png';
@@ -2022,32 +2190,28 @@ HTML;
 								$this->debug("이미지 파일 저장 실패", $newImagePath, 'ERROR');
 							}
 						} else {
-							$this->debug("URL에서 이미지 다운로드 실패", $data['image']['url'], 'ERROR');
+							$this->debug("URL에서 이미지 다운로드 실패", $imageUrl, 'ERROR');
 						}
 					} catch (\Exception $e) {
 						$this->debug("이미지 다운로드 중 오류", $e->getMessage(), 'ERROR');
-					}
-				}
-				// 로컬 경로에서 이미지 이동
-				else if (!empty($data['image']['path'])) {
-					$tempImagePath = $data['image']['path'];
-					$extension = pathinfo($tempImagePath, PATHINFO_EXTENSION);
-					$newFilename = $aid . '_image.' . $extension;
-					$newImagePath = $imageDir . '/' . $newFilename;
-					// 파일 이동 (헬퍼 메서드 사용)
-					if ($this->moveFile($tempImagePath, $newImagePath)) {
-						$this->debug("로컬 이미지 파일 이동 성공", $newImagePath);
-						$imageProcessed = true;
 					}
 				}
 
 				// 이미지가 성공적으로 처리된 경우에만 DB 저장
 				if ($imageProcessed && $newFilename && $newImagePath) {
 					// 이미지 정보를 DB에 저장
-					$newImagePath =$imageClass->resizeImage($newImagePath,1200);
+					$resizedImagePath = $imageClass->resizeImage($newImagePath, 1200);
+					if ($resizedImagePath === false) {
+						$this->debug("이미지 리사이즈 실패 - 원본 파일 사용", $newImagePath, 'WARNING');
+					} else {
+						$newImagePath = $resizedImagePath;
+						$newFilename = basename($newImagePath);
+					}
+
+					$storedImagePath = $this->toWebDataPath($newImagePath);
 
 					$newFileInfo = [
-						'path' => $newImagePath,
+						'path' => $storedImagePath,
 						'filename' => basename($newImagePath),
 						'caption' => $data['title'] ?? '',
 						'description' => $data['image_prompt'] ?? '',
@@ -2058,7 +2222,7 @@ HTML;
 					$this->debug("이미지 DB 저장 완료", $imageInfo);
 					
 					$result['image'] = [
-						'path' =>  $newImagePath,
+						'path' =>  $storedImagePath,
 						'filename' => $newFilename,
 						'id' => $imageInfo['id'] ?? null
 					];
@@ -2104,14 +2268,9 @@ HTML;
 				
 				// 4-1. 이미지 경로 변경 (temp → 최종 경로)
 				if ($result['image']) {
-					// temp 경로를 최종 경로로 변경
-					$re = '/"https:\/\/oaidalleapiprodscus.blob.core.windows.net[^"]+/m';
-					$subst = '"'.str_replace("/webData","/data",$result['image']['path']);
-					$reviewContentHtml = preg_replace(
-						$re, 
-						$subst,
-						$reviewContentHtml
-					);
+					// temp/blob 경로를 최종 저장 이미지 경로로 변경
+					$finalImageUrl = $this->toDataWebPath($result['image']['path']);
+					$reviewContentHtml = $this->replaceFirstImageSrc($reviewContentHtml, $finalImageUrl);
 				}
 				
 				// 4-2. 차트 경로 변경 (temp → 최종 경로)
@@ -2567,9 +2726,16 @@ HTML;
 						
 						// 이미지 복사
 						if (copy($imageFullPath, $newImagePath)) {
+							$packageImagePath = 'images/' . $imageFilename;
+							$articleInfo['content'] = $this->replaceImageSrcByFilename(
+								$articleInfo['content'],
+								$imageFilename,
+								$packageImagePath
+							);
+
 							// mediaid 필드 추가 (한경CMS에서 필수)
 							$images[] = [
-								'path' => 'images/' . $imageFilename,
+								'path' => $packageImagePath,
 								'caption' => $articleInfo['title'] ?? '',
 								'mediaid' => $imageId  // DB에 저장된 이미지 ID
 							];
